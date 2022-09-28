@@ -138,7 +138,7 @@ function main() {
           enemiesToRemove.push(i);
 
           nextFrameActionQueue.push(() => {
-            player.xp += XP_PER_KILL * player.xpMulti;
+            player.xp += XP_PER_KILL + e.r * player.xpMulti;
             if (player.xp >= player.next_level) {
               player.level++;
               player.next_level *= XP_REQ_MULTI_PER_LEVEL;
