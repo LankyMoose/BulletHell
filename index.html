@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.10.4/gsap.min.js"
+      integrity="sha512-VEBjfxWUOyzl0bAwh4gdLEaQyDYPvLrZql3pw1ifgb6fhEvZl9iDDehwHZ+dsMzA0Jfww8Xt7COSZuJ/slxc4Q=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script defer type="module" src="index.js"></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #222;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        line-height: 1;
+      }
+      p {
+        font-size: 0.875rem;
+        color: #777;
+        margin: 0;
+      }
+      #menu button {
+        background-color: #346fe1;
+        color: #fff;
+        border: 0;
+        outline: 0;
+        box-shadow: none;
+        padding: 1rem 2rem;
+        cursor: pointer;
+        border-radius: 2rem;
+        line-height: 1rem;
+        font-size: 1.25rem;
+        font-weight: bold;
+        letter-spacing: 1px;
+        box-shadow: 3px 3px 5px -3px rgba(0, 0, 0, 0.5),
+          inset 3px 3px 5px rgba(255, 255, 255, 0.5);
+        transition: background 0.05s linear;
+      }
+      button:hover {
+        background-color: #5386e8;
+      }
+      button:active {
+        background-color: #2357bb;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+      #score {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        color: #fff;
+        display: flex;
+        gap: 0.5em;
+        font-size: 0.875rem;
+        padding: 0.5rem;
+        pointer-events: none;
+      }
+      #menu {
+        background-image: radial-gradient(#222, black);
+      }
+      .overlay {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 1;
+        background-color: rgba(0, 0, 0, 0.75);
+        transition: all 0.4s ease-in-out;
+      }
+      .overlay .inner {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .overlay.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #menu .inner {
+        background-color: #efefef;
+        padding: 2rem;
+        text-align: center;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        display: flex;
+        gap: 1rem;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: 0 0 50px black, inset 0 0 10px black;
+      }
+
+      #heat {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 250px;
+        height: 18px;
+      }
+
+      #xp {
+        position: fixed;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        border-radius: 7px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: rgba(255, 255, 255, 0.3);
+        height: 12px;
+      }
+
+      #heat,
+      #xp {
+        opacity: 0.7;
+        border-radius: 1em;
+        overflow: hidden;
+        height: 10px;
+      }
+      ::-webkit-meter-bar {
+        height: 10px;
+        background-color: #777;
+      }
+
+      /* ::-webkit-progress-value {
+        color: blue;
+        background-color: blue;
+      } */
+      ::-webkit-progress-bar {
+        border-radius: 1em;
+      }
+      ::-webkit-progress-inner-element {
+        border-radius: 1em;
+      }
+      ::-webkit-progress-value {
+        background-color: gold;
+        color: gold;
+        border-radius: 1em;
+      }
+      ::-moz-progress-bar {
+        background-color: gold;
+        color: gold;
+        border-radius: 1em;
+      }
+
+      #level_container {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        border: 4px solid #fff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(255, 255, 255, 0.15);
+        opacity: 0.7;
+      }
+      #level_container h2 {
+        color: #fff;
+        font-size: 1.5rem;
+      }
+
+      #levelup {
+        text-align: center;
+      }
+      #levelup h2 {
+        margin-bottom: 1rem;
+      }
+
+      #levelup_options {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-columns: 1fr 1fr 1fr;
+        height: 80px;
+        gap: 1em;
+      }
+      #levelup_options button {
+        color: #fff;
+        border-radius: 0.5em;
+        background-color: rgba(255, 255, 255, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        flex-grow: 1;
+        opacity: 0.7;
+        padding: 1em;
+        cursor: pointer;
+        text-shadow: 0 0 1px black;
+      }
+      #levelup_options button[data-rarity='1'] {
+        background-color: rgba(100, 140, 255, 0.4);
+      }
+      #levelup_options button[data-rarity='2'] {
+        background-color: rgba(140, 100, 255, 0.4);
+      }
+      #levelup_options button:hover {
+        opacity: 1;
+      }
+
+      #player_stats_container {
+        position: fixed;
+        right: 0;
+        top: 0;
+        padding: 0.5em;
+        background: rgba(0, 0, 0, 0.3);
+        color: #fff;
+        opacity: 0.5;
+        z-index: 999;
+      }
+      #player_stats_container:hover {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="display: none">
+      <img id="img_bullet" src="img/bullet.png" width="30" height="30" />
+      <img id="img_bullets" src="img/bullets.png" width="30" height="30" />
+      <img id="img_demon" src="img/demon.png" />
+      <img id="img_demon_open" src="img/demon_open.png" />
+      <img id="img_demon_r" src="img/demon_r.png" />
+      <img id="img_demon_r_open" src="img/demon_r_open.png" />
+    </div>
+
+    <meter
+      id="heat"
+      min="0"
+      max="100"
+      low="90"
+      high="10"
+      optimum="80"
+      value="0"
+    ></meter>
+    <progress id="xp" value="0" max="100"></progress>
+    <div id="level_container">
+      <h2 id="level">1</h2>
+    </div>
+    <div id="player_stats_container">
+      <div id="player_stats"></div>
+    </div>
+
+    <canvas></canvas>
+    <div id="score">
+      <span>Score:</span>
+      <span id="scoreEl">0</span>
+      |
+      <span>Kills:</span>
+      <span id="killsEl">0</span>
+    </div>
+    <div id="menu" class="overlay">
+      <div class="inner">
+        <div
+          style="
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            gap: 1em;
+          "
+        >
+          <div>
+            <h1 id="menuScoreEl">0</h1>
+            <p>Points</p>
+          </div>
+          <div>
+            <h1 id="menuKillsEl">0</h1>
+            <p>Kills</p>
+          </div>
+        </div>
+        <div>
+          <button type="button" id="startButton">Start Game</button>
+        </div>
+      </div>
+    </div>
+    <div id="levelup" class="overlay hide">
+      <div class="inner">
+        <h2 style="color: white">Level Up!</h2>
+        <div id="levelup_options"></div>
+      </div>
+    </div>
+    <div id="pause" class="overlay hide">
+      <div class="inner">
+        <h2 style="color: white">Paused</h2>
+      </div>
+    </div>
+  </body>
+</html>
