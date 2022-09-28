@@ -63,11 +63,13 @@
         left: 0;
         z-index: 1;
         color: #fff;
-        display: flex;
-        gap: 0.5em;
         font-size: 0.875rem;
         padding: 0.5rem;
         pointer-events: none;
+      }
+      #score .row {
+        display: flex;
+        gap: 0.5em;
       }
       #menu {
         background-image: radial-gradient(#222, black);
@@ -245,9 +247,9 @@
       id="heat"
       min="0"
       max="100"
-      low="90"
+      low="60"
       high="10"
-      optimum="80"
+      optimum="30"
       value="0"
     ></meter>
     <progress id="xp" value="0" max="100"></progress>
@@ -260,11 +262,17 @@
 
     <canvas></canvas>
     <div id="score">
-      <span>Score:</span>
-      <span id="scoreEl">0</span>
-      |
-      <span>Kills:</span>
-      <span id="killsEl">0</span>
+      <div class="row">
+        <span>Score:</span>
+        <span id="scoreEl">0</span>
+        |
+        <span>Kills:</span>
+        <span id="killsEl">0</span>
+      </div>
+      <div class="row">
+        <span>Life</span>
+        <span id="lifeEl">100/100</span>
+      </div>
     </div>
     <div id="menu" class="overlay">
       <div class="inner">

@@ -3,6 +3,7 @@ export const startButton = document.getElementById('startButton');
 export const scoreEl = document.getElementById('scoreEl');
 export const menuScoreEl = document.getElementById('menuScoreEl');
 export const killsEl = document.getElementById('killsEl');
+export const lifeEl = document.getElementById('lifeEl');
 export const menuKillsEl = document.getElementById('menuKillsEl');
 export const heatBarEl = document.getElementById('heat');
 export const xpBarEl = document.getElementById('xp');
@@ -75,17 +76,41 @@ export const PLAYER_STAT_DISPLAYS = [
 
 export const BONUS_TYPES = [
   {
-    name: 'Max Health',
+    name: '+ Damage',
+    weight: 5,
+    modifiers: [
+      {
+        key: 'damage',
+        amounts: [2, 4, 8],
+        triggers: [
+          (player, amount) => {
+            const percent = player.maxLife / amount;
+            player.life += player.maxLife / percent;
+            window.renderPlayerLife();
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: '+ Max Health',
     weight: 5,
     modifiers: [
       {
         key: 'maxLife',
         amounts: [20, 50, 80],
+        triggers: [
+          (player, amount) => {
+            const percent = player.maxLife / amount;
+            player.life += player.maxLife / percent;
+            window.renderPlayerLife();
+          },
+        ],
       },
     ],
   },
   {
-    name: 'Speed Boost',
+    name: '+ Max Speed',
     weight: 5,
     modifiers: [
       {
@@ -95,7 +120,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
-    name: 'Bullet Speed',
+    name: '+ Bullet Speed',
     weight: 5,
     modifiers: [
       {
@@ -105,17 +130,23 @@ export const BONUS_TYPES = [
     ],
   },
   {
-    name: 'Bullet Cooldown',
+    name: '- Bullet Cooldown',
     weight: 5,
     modifiers: [
       {
         key: 'shootSpeed',
         amounts: [-4, -10, -18],
+        triggers: [
+          () => {
+            window.clearShootInterval();
+            window.setShootInterval();
+          },
+        ],
       },
     ],
   },
   {
-    name: 'XP Multiplier',
+    name: '+ XP Multiplier',
     weight: 5,
     modifiers: [
       {
@@ -125,7 +156,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
-    name: 'Weight Increase',
+    name: '+ Weight',
     weight: 5,
     modifiers: [
       {
@@ -135,7 +166,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
-    name: 'Critical Chance',
+    name: '+ Critical Chance',
     weight: 5,
     modifiers: [
       {
@@ -145,7 +176,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
-    name: 'Critical Multiplier',
+    name: '+ Critical Multiplier',
     weight: 5,
     modifiers: [
       {

@@ -19,7 +19,15 @@ import {
 } from './constants.js';
 
 import { rotate, randomScreenEdgeCoords, randomCoords } from './util.js';
-
+const debug = false;
+function strokeCircle(circle) {
+  c.beginPath();
+  c.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, false);
+  c.lineWidth = '2';
+  c.strokeStyle = 'white';
+  c.stroke();
+  c.restore();
+}
 export class Circle {
   constructor(x, y, r, color, vel) {
     this.x = x;
@@ -44,10 +52,10 @@ export class Circle {
     if (this.image) {
       c.drawImage(
         this.image,
-        this.x - (this.r * 1.5) / 2,
-        this.y - (this.r * 1.5) / 2,
-        this.r * 1.5,
-        this.r * 1.5
+        this.x - (this.r * 2) / 2,
+        this.y - (this.r * 2) / 2,
+        this.r * 2,
+        this.r * 2
       );
     }
   }
@@ -131,6 +139,10 @@ export class Player extends Circle {
     }
 
     super.update();
+  }
+  draw() {
+    super.draw();
+    if (debug) strokeCircle(this);
   }
 
   shootSingle(clientX, clientY) {
@@ -267,6 +279,11 @@ export class Enemy extends Circle {
     this.cur_frame++;
     if (this.cur_frame > this.img_update_frames) Enemy.setImage(this);
   }
+  draw() {
+    super.draw();
+    if (debug) strokeCircle(this);
+  }
+
   static spawn(coords) {
     if (!document.hasFocus()) return;
     const rad = Math.random() * (60 - Enemy.minSize) + Enemy.minSize;
