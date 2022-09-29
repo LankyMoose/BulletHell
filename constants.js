@@ -199,7 +199,7 @@ export const BONUS_TYPES = [
   {
     type: 'ability',
     name: 'Laser',
-    weight: 5,
+    weight: 10,
   },
 ];
 

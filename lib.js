@@ -57,13 +57,17 @@ export class Circle {
     c.restore();
 
     if (this.image) {
-      c.drawImage(
-        this.image,
-        this.x - (this.r * 2) / 2,
-        this.y - (this.r * 2) / 2,
-        this.r * 2,
-        this.r * 2
-      );
+      try {
+        c.drawImage(
+          this.image,
+          this.x - (this.r * 2) / 2,
+          this.y - (this.r * 2) / 2,
+          this.r * 2,
+          this.r * 2
+        );
+      } catch (error) {
+        console.log('img fail', this.image);
+      }
     }
   }
 
@@ -284,6 +288,14 @@ export class Enemy extends Circle {
     this.images = {
       left: ['img_demon', 'img_demon_open'],
       right: ['img_demon_r', 'img_demon_r_open'],
+      up: {
+        left: ['img_demon_up', 'img_demon_up_open'],
+        right: ['img_demon_up_r', 'img_demon_up_r_open'],
+      },
+      down: {
+        left: ['img_demon_down', 'img_demon_down_open'],
+        right: ['img_demon_down_r', 'img_demon_down_r_open'],
+      },
     };
   }
   update() {
@@ -329,7 +341,14 @@ export class Enemy extends Circle {
   static setImage(enemy) {
     enemy.cur_frame = 0;
     enemy.cur_image = enemy.cur_image == 0 ? 1 : 0;
-    const imgDir = enemy.x > player.x ? enemy.images.left : enemy.images.right;
+
+    let imgDir = enemy.x > player.x ? enemy.images.left : enemy.images.right;
+    if (enemy.y > player.y - player.r)
+      imgDir =
+        enemy.x > player.x ? enemy.images.up.left : enemy.images.up.right;
+    if (enemy.y < player.y + player.r)
+      imgDir =
+        enemy.x > player.x ? enemy.images.down.left : enemy.images.down.right;
     enemy.image = document.getElementById(imgDir[enemy.cur_image]);
   }
 }
