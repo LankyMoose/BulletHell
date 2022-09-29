@@ -54,3 +54,37 @@ export function randomCoords() {
     y: Math.random() * canvas.height,
   };
 }
+export function detectCollision(rect, circle) {
+  var cx, cy;
+
+  if (circle.x < rect.x) {
+    cx = rect.x;
+  } else if (circle.x > rect.x + rect.w) {
+    cx = rect.x + rect.w;
+  } else {
+    cx = circle.x;
+  }
+
+  if (circle.y < rect.y) {
+    cy = rect.y;
+  } else if (circle.y > rect.y + rect.h) {
+    cy = rect.y + rect.h;
+  } else {
+    cy = circle.y;
+  }
+
+  if (distance(circle.x, circle.y, cx, cy) < circle.r) {
+    return true;
+  }
+
+  return false;
+}
+
+function distance(x1, y1, x2, y2) {
+  return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+}
+
+export function radians_to_degrees(radians) {
+  var pi = Math.PI;
+  return radians * (180 / pi);
+}

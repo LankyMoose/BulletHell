@@ -22,7 +22,8 @@ import {
 
 import { rotate, randomScreenEdgeCoords, randomCoords } from './util.js';
 const debug = false;
-const allowEnemySpawn = false;
+const allowEnemySpawn = true;
+const allowPlayerShoot = true;
 function strokeCircle(circle) {
   c.beginPath();
   c.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, false);
@@ -161,14 +162,12 @@ export class Player extends Circle {
   static shoot(e) {
     if (!animId) return;
     const { clientX, clientY } = e;
-
-    console.log(player.laserCd);
-
     if (player.laserCd == 0) {
       player.shootLaser(clientX, clientY);
     }
     player.laserCd -= 1;
     if (player.laserCd < 0) player.laserCd = 5;
+    if (!allowPlayerShoot) return;
 
     const bulletMods = player.items.filter((i) =>
       i.modifiers.some((m) => m.key == 'bulletsFired')
@@ -435,37 +434,36 @@ export class DamageText {
 export class Kamehameha extends Circle {
   constructor(x, y, r, color, vel, clientX, clientY) {
     super(x, y, r, color, vel);
-    this.remainingFrames = 50;
+    this.remainingFrames = 40;
     this.targetX = clientX;
     this.targetY = clientY;
-    this.length = 50;
-    this.width = 20;
-    //this.angle = Math.atan2(this.y - this.targetY, this.x - this.targetX);
+    this.h = 5;
+    this.w = 20;
     this.angle =
       Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
   }
 
   update() {
+    this.h += 30;
+    if (this.remainingFrames > 30) {
+      this.w++;
+    } else if (this.w > 1) {
+      this.w--;
+    }
     this.draw();
     this.remainingFrames -= 1;
   }
 
   draw() {
     c.save();
+    const cos = Math.cos(this.angle);
+    const sin = Math.sin(this.angle);
+    c.transform(cos, sin, -sin, cos, this.x, this.y);
     c.beginPath();
-    c.ellipse(
-      this.x,
-      this.y,
-      //this.x + Math.cos(this.angle) * (player.r * 2),
-      //this.y + Math.sin(this.angle) * (player.r * 2),
-      this.width,
-      this.length,
-      this.angle,
-      0,
-      2 * Math.PI
-    );
+    c.rect(0 - this.w / 2, 0 + player.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
+    c.setTransform(1, 0, 0, 1, 0, 0);
     c.restore();
   }
 }
