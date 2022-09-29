@@ -248,6 +248,11 @@ export const addItem = (i) => items.push(i);
 export const removeItem = (i) => items.splice(i, 1);
 export const clearItems = () => (items = []);
 
+export let abilityEffects = [];
+export const addAbilityEffect = (e) => abilityEffects.push(e);
+export const removeAbilityEffect = (i) => abilityEffects.splice(i, 1);
+export const clearAbilityEffects = () => (abilityEffects = []);
+
 export let damageTexts = [];
 export const addDamageText = (i) => damageTexts.push(i);
 export const removeDamageText = (i) => damageTexts.splice(i, 1);

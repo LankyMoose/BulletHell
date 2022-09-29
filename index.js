@@ -43,6 +43,8 @@ import {
   damageTexts,
   removeDamageText,
   lifeEl,
+  abilityEffects,
+  removeAbilityEffect,
 } from './constants.js';
 
 import {
@@ -186,6 +188,12 @@ function main() {
     if (item.i > 540) {
       removeItem(i, 1);
     }
+  }
+
+  for (let i = 0; i < abilityEffects.length; i++) {
+    const ae = abilityEffects[i];
+    ae.update();
+    if (ae.remainingFrames <= 0) removeAbilityEffect(i);
   }
 
   player.heat -= 0.025;
@@ -341,6 +349,8 @@ function removeEventHandlers() {
 
 function handleKeyDown(e) {
   switch (e.key.toLowerCase()) {
+    case 'space':
+      return false;
     case 'escape':
       togglePause();
       break;
@@ -355,6 +365,7 @@ function handleKeyDown(e) {
       break;
     case 's':
       player.inputs.down = true;
+      break;
     default:
       break;
   }
@@ -362,6 +373,8 @@ function handleKeyDown(e) {
 
 function handleKeyUp(e) {
   switch (e.key) {
+    case 'space':
+      return false;
     case 'a':
       player.inputs.left = false;
       break;
@@ -373,6 +386,7 @@ function handleKeyUp(e) {
       break;
     case 's':
       player.inputs.down = false;
+      break;
     default:
       break;
   }
@@ -400,7 +414,7 @@ addEventListener('resize', () => {
   canvas.height = innerHeight;
   set_x(canvas.width / 2);
   set_y(canvas.height / 2);
-  [...enemies, ...bullets].forEach((el) => {
+  [...enemies, ...bullets, ...abilityEffects].forEach((el) => {
     el.x += x - old.x;
     el.y += y - old.y;
   });

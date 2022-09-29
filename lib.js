@@ -16,10 +16,13 @@ import {
   canvas,
   BONUS_WEIGHT_MAP,
   BONUS_TYPES,
+  abilityEffects,
+  addAbilityEffect,
 } from './constants.js';
 
 import { rotate, randomScreenEdgeCoords, randomCoords } from './util.js';
 const debug = false;
+const allowEnemySpawn = false;
 function strokeCircle(circle) {
   c.beginPath();
   c.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, false);
@@ -103,6 +106,7 @@ export class Player extends Circle {
     this.life = 100;
     this.maxLife = 100;
     this.friction = FRICTION;
+    this.laserCd = 5;
   }
   update() {
     let inputDown = false;
@@ -157,6 +161,15 @@ export class Player extends Circle {
   static shoot(e) {
     if (!animId) return;
     const { clientX, clientY } = e;
+
+    console.log(player.laserCd);
+
+    if (player.laserCd == 0) {
+      player.shootLaser(clientX, clientY);
+    }
+    player.laserCd -= 1;
+    if (player.laserCd < 0) player.laserCd = 5;
+
     const bulletMods = player.items.filter((i) =>
       i.modifiers.some((m) => m.key == 'bulletsFired')
     );
@@ -222,6 +235,21 @@ export class Player extends Circle {
     }
   }
 
+  shootLaser(clientX, clientY) {
+    console.log('shoot laser');
+    addAbilityEffect(
+      new Kamehameha(
+        this.x,
+        this.y,
+        20,
+        'yellow',
+        { x: 0, y: 0 },
+        clientX,
+        clientY
+      )
+    );
+  }
+
   reset() {
     Object.assign(this, new Player(x, y, 20, 'white', { x: 0, y: 0 }));
   }
@@ -285,6 +313,7 @@ export class Enemy extends Circle {
   }
 
   static spawn(coords) {
+    if (!allowEnemySpawn) return;
     if (!document.hasFocus()) return;
     const rad = Math.random() * (60 - Enemy.minSize) + Enemy.minSize;
     if (!coords) coords = randomScreenEdgeCoords(rad);
@@ -399,6 +428,44 @@ export class DamageText {
     //if (this.isCrit) c.fillStyle = 'orangered';
     c.fillText(this.dmg.toString(), this.x, this.y);
     //c.strokeText(this.dmg.toString(), this.x, this.y);
+    c.restore();
+  }
+}
+
+export class Kamehameha extends Circle {
+  constructor(x, y, r, color, vel, clientX, clientY) {
+    super(x, y, r, color, vel);
+    this.remainingFrames = 50;
+    this.targetX = clientX;
+    this.targetY = clientY;
+    this.length = 50;
+    this.width = 20;
+    //this.angle = Math.atan2(this.y - this.targetY, this.x - this.targetX);
+    this.angle =
+      Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
+  }
+
+  update() {
+    this.draw();
+    this.remainingFrames -= 1;
+  }
+
+  draw() {
+    c.save();
+    c.beginPath();
+    c.ellipse(
+      this.x,
+      this.y,
+      //this.x + Math.cos(this.angle) * (player.r * 2),
+      //this.y + Math.sin(this.angle) * (player.r * 2),
+      this.width,
+      this.length,
+      this.angle,
+      0,
+      2 * Math.PI
+    );
+    c.fillStyle = this.color;
+    c.fill();
     c.restore();
   }
 }
