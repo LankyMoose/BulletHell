@@ -3,7 +3,6 @@ import {
   BULLET_COLOR,
   BULLET_SIZE,
   ITEM_TYPES,
-  ITEM_WEIGHT_MAP,
   ENEMY_SPEED,
   x,
   y,
@@ -14,13 +13,17 @@ import {
   addItem,
   score,
   canvas,
-  BONUS_WEIGHT_MAP,
   BONUS_TYPES,
   abilityEffects,
   addAbilityEffect,
 } from './constants.js';
 
-import { rotate, randomScreenEdgeCoords, randomCoords } from './util.js';
+import {
+  rotate,
+  randomScreenEdgeCoords,
+  randomCoords,
+  getWeightMap,
+} from './util.js';
 const debug = false;
 const allowEnemySpawn = true;
 const allowPlayerShoot = true;
@@ -107,7 +110,7 @@ export class Player extends Circle {
     this.life = 100;
     this.maxLife = 100;
     this.friction = FRICTION;
-    this.laserCd = 5;
+    this.cooldownRefs = [];
   }
   update() {
     let inputDown = false;
@@ -159,35 +162,27 @@ export class Player extends Circle {
     addBullet(new Bullet(this.x, this.y, BULLET_SIZE, BULLET_COLOR, vel));
   }
 
-  static shoot(e) {
-    if (!animId) return;
-    const { clientX, clientY } = e;
-    if (player.laserCd == 0) {
-      player.shootLaser(clientX, clientY);
-    }
-    player.laserCd -= 1;
-    if (player.laserCd < 0) player.laserCd = 5;
-    if (!allowPlayerShoot) return;
-
-    const bulletMods = player.items.filter((i) =>
-      i.modifiers.some((m) => m.key == 'bulletsFired')
-    );
-    if (!bulletMods.length) return player.shootSingle(clientX, clientY);
-
+  shootMultiple(clientX, clientY) {
     let bulletCount = 1;
-    bulletMods.forEach((a, i) => {
-      a.modifiers.forEach((b) => {
+    for (let i = 0; i < this.items.length; i++) {
+      const item = this.items[i];
+      if (
+        !item.modifiers ||
+        !item.modifiers.some((m) => m.key == 'bulletsFired')
+      )
+        continue;
+
+      item.modifiers.forEach((b) => {
         bulletCount += b.amount;
       });
-      if (!a.permanent) {
-        a.duration--;
-        if (a.duration <= 0) {
+      if (!item.permanent) {
+        item.duration--;
+        if (item.duration <= 0) {
           player.items.splice(i, 1);
         }
       }
-    });
+    }
 
-    const s = Math.hypot(player.x - clientX, player.y - clientY);
     let bulletSpread = 10;
     if (360 / bulletCount < 10) {
       bulletSpread = 360 / bulletCount;
@@ -234,19 +229,19 @@ export class Player extends Circle {
     }
   }
 
-  shootLaser(clientX, clientY) {
-    console.log('shoot laser');
-    addAbilityEffect(
-      new Kamehameha(
-        this.x,
-        this.y,
-        20,
-        'yellow',
-        { x: 0, y: 0 },
-        clientX,
-        clientY
-      )
+  static shoot(e) {
+    if (!animId) return;
+    const { clientX, clientY } = e;
+    if (!allowPlayerShoot) return;
+
+    const bulletMods = player.items.filter(
+      (i) => i.modifiers && i.modifiers.some((m) => m.key == 'bulletsFired')
     );
+    if (!bulletMods.length) {
+      player.shootSingle(clientX, clientY);
+    } else {
+      player.shootMultiple(clientX, clientY);
+    }
   }
 
   reset() {
@@ -264,6 +259,10 @@ export class Player extends Circle {
 
   onLevelUp() {
     this.xp = 1;
+  }
+
+  triggerAbility(ability, mouseEvt) {
+    ability.trigger(mouseEvt.clientX, mouseEvt.clientY, this);
   }
 }
 
@@ -361,8 +360,8 @@ export class Item extends Circle {
     const rad = 20;
     const newItem = new Item(coords.x, coords.y, rad, 'red', { x: 0, y: 0 });
 
-    const newItemIndex =
-      ITEM_WEIGHT_MAP[Math.floor(Math.random() * ITEM_WEIGHT_MAP.length)];
+    const wm = getWeightMap(ITEM_TYPES.filter((it) => it.weight));
+    const newItemIndex = wm[Math.floor(Math.random() * wm.length)];
 
     newItem.itemType = ITEM_TYPES[newItemIndex];
 
@@ -381,7 +380,8 @@ export class Item extends Circle {
 }
 
 export class Bonus {
-  constructor(name, modifiers) {
+  constructor(type, name, modifiers) {
+    this.type = type;
     this.rarity = Math.floor(Math.random() * 3);
     this.name = name;
     this.modifiers = modifiers;
@@ -394,12 +394,22 @@ export class BonusSet {
   }
   generate() {
     while (this.items.length < 3) {
-      const newItemIndex =
-        BONUS_WEIGHT_MAP[Math.floor(Math.random() * BONUS_WEIGHT_MAP.length)];
+      const wm = getWeightMap(
+        BONUS_TYPES.filter((bt) => {
+          return (
+            bt.type !== 'ability' ||
+            !player.items.some((i) => i.name == bt.name)
+          );
+        })
+      );
+
+      const newItemIndex = wm[Math.floor(Math.random() * wm.length)];
       const itemDef = BONUS_TYPES[newItemIndex];
 
       if (!this.items.some((x) => x.name == itemDef.name)) {
-        this.items.push(new Bonus(itemDef.name, itemDef.modifiers));
+        this.items.push(
+          new Bonus(itemDef.type, itemDef.name, itemDef.modifiers)
+        );
       }
     }
   }

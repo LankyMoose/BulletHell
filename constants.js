@@ -1,3 +1,5 @@
+import { Kamehameha } from './lib.js';
+
 export const menu = document.getElementById('menu');
 export const startButton = document.getElementById('startButton');
 export const scoreEl = document.getElementById('scoreEl');
@@ -70,12 +72,13 @@ export const PLAYER_STAT_DISPLAYS = [
   },
   {
     key: 'friction',
-    displayText: 'Friction',
+    displayText: 'Slipperyness',
   },
 ];
 
 export const BONUS_TYPES = [
   {
+    type: 'attribute',
     name: '+ Damage',
     weight: 5,
     modifiers: [
@@ -93,6 +96,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
+    type: 'attribute',
     name: '+ Max Health',
     weight: 5,
     modifiers: [
@@ -110,6 +114,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
+    type: 'attribute',
     name: '+ Max Speed',
     weight: 5,
     modifiers: [
@@ -120,6 +125,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
+    type: 'attribute',
     name: '+ Bullet Speed',
     weight: 5,
     modifiers: [
@@ -130,6 +136,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
+    type: 'attribute',
     name: '- Bullet Cooldown',
     weight: 5,
     modifiers: [
@@ -146,8 +153,9 @@ export const BONUS_TYPES = [
     ],
   },
   {
+    type: 'attribute',
     name: '+ XP Multiplier',
-    weight: 5,
+    weight: 8,
     modifiers: [
       {
         key: 'xpMulti',
@@ -156,6 +164,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
+    type: 'attribute',
     name: '+ Weight',
     weight: 5,
     modifiers: [
@@ -166,6 +175,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
+    type: 'attribute',
     name: '+ Critical Chance',
     weight: 5,
     modifiers: [
@@ -176,6 +186,7 @@ export const BONUS_TYPES = [
     ],
   },
   {
+    type: 'attribute',
     name: '+ Critical Multiplier',
     weight: 5,
     modifiers: [
@@ -185,13 +196,12 @@ export const BONUS_TYPES = [
       },
     ],
   },
+  {
+    type: 'ability',
+    name: 'Laser',
+    weight: 5,
+  },
 ];
-export const BONUS_WEIGHT_MAP = [
-  ...BONUS_TYPES.map((t, i) => Array(t.weight).fill(i)),
-]
-  .join()
-  .split(',')
-  .map((a) => parseInt(a));
 
 export const ITEM_TYPES = [
   {
@@ -220,13 +230,25 @@ export const ITEM_TYPES = [
       },
     ],
   },
+  {
+    name: 'Laser',
+    isAbility: true,
+    cooldown: 2000,
+    trigger: (clientX, clientY, player) => {
+      addAbilityEffect(
+        new Kamehameha(
+          player.x,
+          player.y,
+          20,
+          'yellow',
+          { x: 0, y: 0 },
+          clientX,
+          clientY
+        )
+      );
+    },
+  },
 ];
-export const ITEM_WEIGHT_MAP = [
-  ...ITEM_TYPES.map((t, i) => Array(t.weight).fill(i)),
-]
-  .join()
-  .split(',')
-  .map((a) => parseInt(a));
 
 export let bullets = [];
 export const addBullet = (b) => bullets.push(b);

@@ -1,4 +1,13 @@
 import {
+  Player,
+  player,
+  Enemy,
+  Particle,
+  Item,
+  BonusSet,
+  DamageText,
+} from './lib.js';
+import {
   menu,
   startButton,
   scoreEl,
@@ -45,17 +54,11 @@ import {
   lifeEl,
   abilityEffects,
   removeAbilityEffect,
+  ITEM_TYPES,
 } from './constants.js';
 
-import {
-  Player,
-  player,
-  Enemy,
-  Particle,
-  Item,
-  BonusSet,
-  DamageText,
-} from './lib.js';
+let lastMouseMove;
+
 import { detectCollision, radians_to_degrees, rotate } from './util.js';
 //import {  } from './util.js';
 
@@ -248,6 +251,26 @@ function main() {
   heatBarEl.value = player.heat;
 }
 
+function startAbilityCooldowns() {
+  stopAbilityCooldowns();
+  const abilities = player.items.filter((i) => i.isAbility);
+  for (let ability of abilities) {
+    console.log('activating ability...', ability);
+    player.cooldownRefs.push(
+      setInterval(() => {
+        player.triggerAbility(ability, lastMouseMove);
+      }, ability.cooldown)
+    );
+  }
+}
+
+function stopAbilityCooldowns() {
+  for (let cdRef of player.cooldownRefs) {
+    clearInterval(cdRef);
+  }
+  player.cooldownRefs = [];
+}
+
 function handleProgression() {
   scoreEl.innerText = score;
   killsEl.innerText = player.kills;
@@ -257,7 +280,7 @@ function handleProgression() {
     clearInterval(enemySpawnInterval);
     enemySpawnInterval = setInterval(Enemy.spawn, enemySpawnTime);
   }
-  if (player.kills % 5 == 0 && items.length <= 4) {
+  if (player.kills % 10 == 0 && items.length <= 2) {
     Item.spawn();
   }
   if (player.heat >= player.maxHeat) {
@@ -282,6 +305,7 @@ function startGame() {
   main();
   attachEventHandlers();
   setShootInterval();
+  startAbilityCooldowns();
   renderPlayerStats();
 }
 
@@ -299,6 +323,7 @@ function pauseGame() {
   gameRunning = false;
   Object.assign(player.inputs, new Player().inputs);
   clearInterval(enemySpawnInterval);
+  stopAbilityCooldowns();
   cancelAnimationFrame(animId);
   setAnimId(null);
 }
@@ -315,6 +340,7 @@ function renderPlayerStats() {
 function resumeGame() {
   gameRunning = true;
   enemySpawnInterval = setInterval(Enemy.spawn, enemySpawnTime);
+  startAbilityCooldowns();
   main();
 }
 
@@ -363,23 +389,43 @@ function showLevelUpScreen() {
         onBonusSelected(b);
       },
     });
-    btn.dataset.rarity = b.rarity;
+    if (b.type == 'attribute') {
+      btn.dataset.rarity = b.rarity;
+      for (let mod of b.modifiers) {
+        console.log('modifier', mod);
+        const displayKey = PLAYER_STAT_DISPLAYS.find(
+          (item) => item.key == mod.key
+        );
+        btn.innerHTML = `${displayKey.displayText}: ${
+          mod.amounts[b.rarity]
+        }<br />`;
+      }
+    }
     levelUpOptionsEl.appendChild(btn);
   });
 }
 
 function onBonusSelected(bonus) {
   console.log('bonus selected', bonus);
-  bonus.modifiers.forEach((m) => {
-    //console.log(`gained ${m.key}: ${m.amounts[bonus.rarity]}`);
-    //console.log(`prev value: ${player[m.key]}`);
-    const amount = m.amounts[bonus.rarity];
-    player[m.key] += amount;
-    //console.log(`new value: ${player[m.key]}`);
-    if (m.triggers) {
-      m.triggers.forEach((t) => t(player, amount));
-    }
-  });
+  if (bonus.type == 'attribute') {
+    bonus.modifiers.forEach((m) => {
+      //console.log(`gained ${m.key}: ${m.amounts[bonus.rarity]}`);
+      //console.log(`prev value: ${player[m.key]}`);
+      const amount = m.amounts[bonus.rarity];
+      player[m.key] += amount;
+      //console.log(`new value: ${player[m.key]}`);
+      if (m.triggers) {
+        m.triggers.forEach((t) => t(player, amount));
+      }
+    });
+  } else if (bonus.type == 'ability') {
+    player.items.push(
+      Object.assign(
+        {},
+        ITEM_TYPES.find((it) => it.name == bonus.name)
+      )
+    );
+  }
   renderPlayerStats();
   hideLevelUpScreen();
   resumeGame();
@@ -443,7 +489,6 @@ startButton.addEventListener('click', () => {
   startGame();
 });
 
-let lastMouseMove;
 document.addEventListener('mousemove', (e) => (lastMouseMove = e));
 
 window.clearShootInterval = function () {
