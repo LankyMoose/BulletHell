@@ -31,16 +31,16 @@
         margin: 0;
       }
       #menu button {
-        background-color: #346fe1;
+        background-color: green;
         color: #fff;
         border: 0;
         outline: 0;
         box-shadow: none;
-        padding: 1rem 2rem;
+        padding: 2rem;
         cursor: pointer;
-        border-radius: 2rem;
+        border-radius: 4rem;
         line-height: 1rem;
-        font-size: 1.25rem;
+        font-size: 2rem;
         font-weight: bold;
         letter-spacing: 1px;
         box-shadow: 3px 3px 5px -3px rgba(0, 0, 0, 0.5),
@@ -239,10 +239,11 @@
 
       #leaderboard_wrapper {
         background: #fafafa;
-        border-radius: 1em;
-        padding: 1em 2em;
+        border-radius: 2em;
+        padding: 2em 4em;
         margin-bottom: 1rem;
         text-align: center;
+        box-shadow: 0 0 50px black, inset 0 0 10px black;
       }
       #leaderboard_wrapper h2 {
         margin: 0;
@@ -313,6 +314,16 @@
         <h2>Leaderboard</h2>
         <hr style="opacity: 0.5; margin-bottom: 1rem" />
         <div id="leaderboard">Loading...</div>
+        <div id="submit_score" style="display: none; margin-top: 2em">
+          <button
+            id="submit_button"
+            style="background-color: #346fe1; font-size: 1em; padding: 1em"
+            type="button"
+            disabled
+          >
+            Submit Score
+          </button>
+        </div>
       </div>
       <div class="inner">
         <div
@@ -338,16 +349,6 @@
         <div>
           <label>Player Color: </label>
           <input id="player_color" type="color" value="#FFFFFF" />
-        </div>
-        <div id="submit_score" style="display: none; margin-top: 2em">
-          <button
-            id="submit_button"
-            style="background-color: green"
-            type="button"
-            disabled
-          >
-            Submit Score
-          </button>
         </div>
       </div>
     </div>

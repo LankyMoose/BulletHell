@@ -87,5 +87,5 @@ export const loadScores = async () => {
   snapshot.forEach((childSnapshot) => {
     res.push(childSnapshot.val());
   });
-  return res;
+  return res.reverse();
 };

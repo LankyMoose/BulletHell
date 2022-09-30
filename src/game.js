@@ -552,7 +552,7 @@ async function renderLeaderboard() {
         </li>
         `;
         })
-        .join()}
+        .join('')}
     </ol>
   `;
 }
