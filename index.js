@@ -57,6 +57,7 @@ import {
   removeAbilityEffect,
   ITEM_TYPES,
   clearAnimId,
+  playerColorEl,
 } from './constants.js';
 
 import { detectCollision, radians_to_degrees, rotate } from './util.js';
@@ -302,6 +303,7 @@ function startGame() {
   clearParticles();
   clearItems();
   enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
+  player.color = playerColorEl.value;
   main();
   attachEventHandlers();
   window.setShootInterval();

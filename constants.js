@@ -2,6 +2,7 @@ import { Kamehameha, SolarFlare } from './lib.js';
 
 export const menu = document.getElementById('menu');
 export const startButton = document.getElementById('startButton');
+export const playerColorEl = document.getElementById('player_color');
 export const scoreEl = document.getElementById('scoreEl');
 export const menuScoreEl = document.getElementById('menuScoreEl');
 export const killsEl = document.getElementById('killsEl');
