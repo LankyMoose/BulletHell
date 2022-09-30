@@ -403,6 +403,8 @@ function showLevelUpScreen() {
           mod.amounts[b.rarity]
         }<br />`;
       }
+    } else {
+      btn.dataset.item = true;
     }
     levelUpOptionsEl.appendChild(btn);
   });

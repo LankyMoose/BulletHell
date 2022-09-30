@@ -20,6 +20,7 @@ import {
   randomScreenEdgeCoords,
   randomCoords,
   getWeightMap,
+  getRandomWeightMapIndex,
 } from './util.js';
 const debug = false;
 const allowEnemySpawn = true;
@@ -400,7 +401,7 @@ export class Item extends Circle {
     const newItem = new Item(coords.x, coords.y, rad, 'red', { x: 0, y: 0 });
 
     const wm = getWeightMap(ITEM_TYPES.filter((it) => it.weight));
-    const newItemIndex = wm[Math.floor(Math.random() * wm.length)];
+    const newItemIndex = getRandomWeightMapIndex(wm);
 
     newItem.itemType = ITEM_TYPES[newItemIndex];
 
@@ -419,11 +420,11 @@ export class Item extends Circle {
 }
 
 export class Bonus {
-  constructor(type, name, modifiers) {
+  constructor(type, name, modifiers, rarity) {
     this.type = type;
-    this.rarity = Math.floor(Math.random() * 3);
     this.name = name;
     this.modifiers = modifiers;
+    this.rarity = rarity;
   }
 }
 export class BonusSet {
@@ -442,12 +443,18 @@ export class BonusSet {
         })
       );
 
-      const newItemIndex = wm[Math.floor(Math.random() * wm.length)];
+      const newItemIndex = getRandomWeightMapIndex(wm);
       const itemDef = BONUS_TYPES[newItemIndex];
 
       if (!this.items.some((x) => x.name == itemDef.name)) {
+        let rarity = 0;
+        if (itemDef.rarity_weights) {
+          const rarityWeightMap = getWeightMap(itemDef.rarity_weights);
+          rarity = getRandomWeightMapIndex(rarityWeightMap);
+        }
+
         this.items.push(
-          new Bonus(itemDef.type, itemDef.name, itemDef.modifiers)
+          new Bonus(itemDef.type, itemDef.name, itemDef.modifiers, rarity)
         );
       }
     }

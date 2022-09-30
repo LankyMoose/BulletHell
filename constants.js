@@ -85,6 +85,7 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Damage',
     weight: 5,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'damage',
@@ -96,6 +97,7 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Max Health',
     weight: 5,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'maxLife',
@@ -114,6 +116,7 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Max Speed',
     weight: 5,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'maxSpeed',
@@ -125,6 +128,7 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Bullet Speed',
     weight: 5,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'bulletSpeed',
@@ -136,6 +140,7 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '- Bullet Cooldown',
     weight: 5,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'shootSpeed',
@@ -153,10 +158,11 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ XP Multiplier',
     weight: 8,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'xpMulti',
-        amounts: [0.2, 0.5, 1],
+        amounts: [0.4, 1, 2],
       },
     ],
   },
@@ -164,6 +170,7 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Weight',
     weight: 5,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'friction',
@@ -175,6 +182,7 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Critical Chance',
     weight: 5,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'critChance',
@@ -186,6 +194,7 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Critical Multiplier',
     weight: 5,
+    rarity_weights: [6, 3, 1],
     modifiers: [
       {
         key: 'critDamageMulti',
@@ -201,7 +210,7 @@ export const BONUS_TYPES = [
   {
     type: 'ability',
     name: 'Explode',
-    weight: 500,
+    weight: 7,
   },
 ];
 

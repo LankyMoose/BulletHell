@@ -95,3 +95,7 @@ export function getWeightMap(arr) {
     .split(',')
     .map((a) => parseInt(a));
 }
+
+export function getRandomWeightMapIndex(wm) {
+  return wm[Math.floor(Math.random() * wm.length)];
+}
