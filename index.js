@@ -322,7 +322,7 @@ function togglePause() {
 function pauseGame() {
   clearAnimId();
   window.clearInterval(enemySpawnInterval);
-  clearShootInterval();
+  window.clearShootInterval();
   gameRunning = false;
   Object.assign(player.inputs, new Player().inputs);
   player.stopAbilityCooldowns();
@@ -395,12 +395,12 @@ function showLevelUpScreen() {
     if (b.type == 'attribute') {
       btn.dataset.rarity = b.rarity;
       for (let mod of b.modifiers) {
-        console.log('modifier', mod);
+        const amount = mod.amounts[b.rarity];
         const displayKey = PLAYER_STAT_DISPLAYS.find(
           (item) => item.key == mod.key
         );
         btn.innerHTML = `${displayKey.displayText}: ${
-          mod.amounts[b.rarity]
+          amount > 0 ? `+${amount}` : amount
         }<br />`;
       }
     } else {
@@ -441,6 +441,7 @@ function removeEventHandlers() {
 }
 
 function handleKeyDown(e) {
+  let triggerResume = false;
   switch (e.key.toLowerCase()) {
     case 'space':
       return false;
@@ -449,19 +450,24 @@ function handleKeyDown(e) {
       break;
     case 'a':
       player.inputs.left = true;
+      triggerResume = true;
       break;
     case 'd':
       player.inputs.right = true;
+      triggerResume = true;
       break;
     case 'w':
       player.inputs.up = true;
+      triggerResume = true;
       break;
     case 's':
       player.inputs.down = true;
+      triggerResume = true;
       break;
     default:
       break;
   }
+  if (triggerResume && !gameRunning && !levelUpScreenShowing) togglePause();
 }
 
 function handleKeyUp(e) {

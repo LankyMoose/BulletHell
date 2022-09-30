@@ -74,10 +74,6 @@ export const PLAYER_STAT_DISPLAYS = [
     key: 'maxLife',
     displayText: 'Max Life',
   },
-  {
-    key: 'friction',
-    displayText: 'Slipperyness',
-  },
 ];
 
 export const BONUS_TYPES = [
@@ -163,18 +159,6 @@ export const BONUS_TYPES = [
       {
         key: 'xpMulti',
         amounts: [0.4, 1, 2],
-      },
-    ],
-  },
-  {
-    type: 'attribute',
-    name: '+ Weight',
-    weight: 5,
-    rarity_weights: [6, 3, 1],
-    modifiers: [
-      {
-        key: 'friction',
-        amounts: [-0.02, -0.05, -0.09],
       },
     ],
   },

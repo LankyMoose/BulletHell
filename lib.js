@@ -400,10 +400,12 @@ export class Item extends Circle {
     const rad = 20;
     const newItem = new Item(coords.x, coords.y, rad, 'red', { x: 0, y: 0 });
 
-    const wm = getWeightMap(ITEM_TYPES.filter((it) => it.weight));
+    const spawnableItems = ITEM_TYPES.filter((it) => it.weight);
+
+    const wm = getWeightMap(spawnableItems);
     const newItemIndex = getRandomWeightMapIndex(wm);
 
-    newItem.itemType = ITEM_TYPES[newItemIndex];
+    newItem.itemType = spawnableItems[newItemIndex];
 
     newItem.image = newItem.itemType.image;
 
@@ -433,18 +435,16 @@ export class BonusSet {
     this.generate();
   }
   generate() {
-    while (this.items.length < 3) {
-      const wm = getWeightMap(
-        BONUS_TYPES.filter((bt) => {
-          return (
-            bt.type !== 'ability' ||
-            !player.items.some((i) => i.name == bt.name)
-          );
-        })
+    const filteredBonuses = BONUS_TYPES.filter((bt) => {
+      return (
+        bt.type !== 'ability' || !player.items.some((i) => i.name == bt.name)
       );
+    });
+    while (this.items.length < 3) {
+      const wm = getWeightMap(filteredBonuses);
 
       const newItemIndex = getRandomWeightMapIndex(wm);
-      const itemDef = BONUS_TYPES[newItemIndex];
+      const itemDef = filteredBonuses[newItemIndex];
 
       if (!this.items.some((x) => x.name == itemDef.name)) {
         let rarity = 0;
