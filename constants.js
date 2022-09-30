@@ -23,10 +23,14 @@ export let x = canvas.width / 2;
 export let y = canvas.height / 2;
 
 export const XP_PER_KILL = 100;
-export const XP_REQ_MULTI_PER_LEVEL = 1.5;
+export const XP_REQ_MULTI_PER_LEVEL = 1.2;
 
 export let animId;
 export const setAnimId = (id) => (animId = id);
+export const clearAnimId = () => {
+  window.cancelAnimationFrame(animId);
+  animId = null;
+};
 
 export const FRICTION = 0.97;
 export const BULLET_COLOR = 'rgba(255,255,255,.75)';
@@ -85,13 +89,6 @@ export const BONUS_TYPES = [
       {
         key: 'damage',
         amounts: [2, 4, 8],
-        triggers: [
-          (player, amount) => {
-            const percent = player.maxLife / amount;
-            player.life += player.maxLife / percent;
-            window.renderPlayerLife();
-          },
-        ],
       },
     ],
   },

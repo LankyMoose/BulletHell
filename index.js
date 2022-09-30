@@ -6,6 +6,7 @@ import {
   Item,
   BonusSet,
   DamageText,
+  resetPlayer,
 } from './lib.js';
 import {
   menu,
@@ -55,9 +56,8 @@ import {
   abilityEffects,
   removeAbilityEffect,
   ITEM_TYPES,
+  clearAnimId,
 } from './constants.js';
-
-let lastMouseMove;
 
 import { detectCollision, radians_to_degrees, rotate } from './util.js';
 //import {  } from './util.js';
@@ -106,7 +106,7 @@ function main() {
       player.life -= 10;
       renderPlayerLife();
       if (player.life <= 0) {
-        endGame();
+        return endGame();
       } else {
         if (player.vel.x == 0) {
           player.vel.x += e.vel.x * 3;
@@ -203,8 +203,7 @@ function main() {
 
         addScore(e.killValue);
         player.kills++;
-        player.heat += 5;
-
+        player.heat += 5 - Math.log(5);
         handleProgression();
       });
     }
@@ -251,34 +250,14 @@ function main() {
   heatBarEl.value = player.heat;
 }
 
-function startAbilityCooldowns() {
-  stopAbilityCooldowns();
-  const abilities = player.items.filter((i) => i.isAbility);
-  for (let ability of abilities) {
-    console.log('activating ability...', ability);
-    player.cooldownRefs.push(
-      setInterval(() => {
-        player.triggerAbility(ability, lastMouseMove);
-      }, ability.cooldown)
-    );
-  }
-}
-
-function stopAbilityCooldowns() {
-  for (let cdRef of player.cooldownRefs) {
-    clearInterval(cdRef);
-  }
-  player.cooldownRefs = [];
-}
-
 function handleProgression() {
   scoreEl.innerText = score;
   killsEl.innerText = player.kills;
 
   if (player.kills % 20 == 0) {
     enemySpawnTime -= 5;
-    clearInterval(enemySpawnInterval);
-    enemySpawnInterval = setInterval(Enemy.spawn, enemySpawnTime);
+    window.clearInterval(enemySpawnInterval);
+    enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   }
   if (player.kills % 10 == 0 && items.length <= 2) {
     Item.spawn();
@@ -295,17 +274,18 @@ function handleProgression() {
 }
 
 function startGame() {
+  if (gameRunning) return false;
   gameRunning = true;
   menu.classList.add('hide');
   clearBullets();
   clearEnemies();
   clearParticles();
   clearItems();
-  enemySpawnInterval = setInterval(Enemy.spawn, enemySpawnTime);
+  enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   main();
   attachEventHandlers();
-  setShootInterval();
-  startAbilityCooldowns();
+  window.setShootInterval();
+  player.startAbilityCooldowns();
   renderPlayerStats();
 }
 
@@ -320,12 +300,12 @@ function togglePause() {
 }
 
 function pauseGame() {
+  clearAnimId();
+  window.clearInterval(enemySpawnInterval);
+  clearShootInterval();
   gameRunning = false;
   Object.assign(player.inputs, new Player().inputs);
-  clearInterval(enemySpawnInterval);
-  stopAbilityCooldowns();
-  cancelAnimationFrame(animId);
-  setAnimId(null);
+  player.stopAbilityCooldowns();
 }
 
 function renderPlayerStats() {
@@ -339,12 +319,18 @@ function renderPlayerStats() {
 
 function resumeGame() {
   gameRunning = true;
-  enemySpawnInterval = setInterval(Enemy.spawn, enemySpawnTime);
-  startAbilityCooldowns();
+  enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
+  player.startAbilityCooldowns();
+  window.setShootInterval();
   main();
 }
 
 function endGame() {
+  clearAnimId(animId);
+  window.clearInterval(enemySpawnInterval);
+  window.clearShootInterval();
+  player.stopAbilityCooldowns();
+
   gameRunning = false;
   menu.classList.remove('hide');
   menuScoreEl.innerText = score;
@@ -352,22 +338,19 @@ function endGame() {
   resetScore();
   menuKillsEl.innerText = player.kills;
   killsEl.innerText = 0;
-  player.resetProgression();
-  player.reset();
+
+  resetPlayer();
   renderPlayerLife();
   heatBarEl.value = 0;
   xpBarEl.value = 0;
   lvlEl.innerHTML = 1;
-  clearShootInterval();
-  clearInterval(enemySpawnInterval);
   enemySpawnInterval = null;
   enemySpawnTime = 1000;
-  cancelAnimationFrame(animId);
-  setAnimId(null);
+
   removeEventHandlers();
 }
 
-window.renderPlayerLife = function () {
+window.renderPlayerLife = () => {
   lifeEl.innerText = `${player.life}/${player.maxLife}`;
 };
 
@@ -419,12 +402,7 @@ function onBonusSelected(bonus) {
       }
     });
   } else if (bonus.type == 'ability') {
-    player.items.push(
-      Object.assign(
-        {},
-        ITEM_TYPES.find((it) => it.name == bonus.name)
-      )
-    );
+    player.items.push({ ...ITEM_TYPES.find((it) => it.name == bonus.name) });
   }
   renderPlayerStats();
   hideLevelUpScreen();
@@ -465,7 +443,7 @@ function handleKeyDown(e) {
 }
 
 function handleKeyUp(e) {
-  switch (e.key) {
+  switch (e.key.toLowerCase()) {
     case 'space':
       return false;
     case 'a':
@@ -489,14 +467,14 @@ startButton.addEventListener('click', () => {
   startGame();
 });
 
-document.addEventListener('mousemove', (e) => (lastMouseMove = e));
+document.addEventListener('mousemove', (e) => (player.lastMouseMove = e));
 
 window.clearShootInterval = function () {
-  clearInterval(playerShootTimer);
+  window.clearInterval(playerShootTimer);
 };
 window.setShootInterval = function () {
-  playerShootTimer = setInterval(() => {
-    if (lastMouseMove) Player.shoot(lastMouseMove);
+  playerShootTimer = window.setInterval(() => {
+    if (player.lastMouseMove) Player.shoot();
   }, player.shootSpeed);
 };
 

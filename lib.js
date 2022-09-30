@@ -93,7 +93,7 @@ export class Player extends Circle {
     this.speed = 0.5;
     this.bulletSpeed = 17.5;
     this.maxSpeed = 10;
-    this.shootSpeed = 200;
+    this.shootSpeed = 400;
     this.damage = 10;
     this.critChance = 10;
     this.critDamageMulti = 1.5;
@@ -115,6 +115,7 @@ export class Player extends Circle {
     this.maxLife = 100;
     this.friction = FRICTION;
     this.cooldownRefs = [];
+    this.lastMouseMove = null;
   }
   update() {
     let inputDown = false;
@@ -143,10 +144,20 @@ export class Player extends Circle {
       this.vel.x *= this.friction;
       this.vel.y *= this.friction;
     }
-    if (this.x > canvas.width || this.x < 0) {
+    if (this.x - this.r < 0) {
+      this.x = this.r;
       this.vel.x *= -1;
     }
-    if (this.y > canvas.height || this.y < 0) {
+    if (this.x + this.r > canvas.width) {
+      this.x = canvas.width - this.r;
+      this.vel.x *= -1;
+    }
+    if (this.y - this.r < 0) {
+      this.y = this.r;
+      this.vel.y *= -1;
+    }
+    if (this.y + this.r > canvas.height) {
+      this.y = canvas.height - this.r;
       this.vel.y *= -1;
     }
 
@@ -233,9 +244,9 @@ export class Player extends Circle {
     }
   }
 
-  static shoot(e) {
+  static shoot() {
     if (!animId) return;
-    const { clientX, clientY } = e;
+    const { clientX, clientY } = player.lastMouseMove;
     if (!allowPlayerShoot) return;
 
     const bulletMods = player.items.filter(
@@ -248,19 +259,6 @@ export class Player extends Circle {
     }
   }
 
-  reset() {
-    Object.assign(this, new Player(x, y, 20, 'white', { x: 0, y: 0 }));
-  }
-
-  resetProgression() {
-    this.level = 1;
-    this.xp = 1;
-    this.next_level = 1000;
-    this.kills = 0;
-    this.heat = 0;
-    this.shootSpeed = 200;
-  }
-
   onLevelUp() {
     this.xp = 1;
   }
@@ -268,9 +266,31 @@ export class Player extends Circle {
   triggerAbility(ability, mouseEvt) {
     ability.trigger(mouseEvt.clientX, mouseEvt.clientY, this);
   }
+
+  startAbilityCooldowns() {
+    this.stopAbilityCooldowns();
+    const abilities = this.items.filter((i) => i.isAbility);
+    for (let ability of abilities) {
+      console.log('activating ability...', ability);
+      this.cooldownRefs.push(
+        window.setInterval(() => {
+          this.triggerAbility(ability, this.lastMouseMove);
+        }, ability.cooldown)
+      );
+    }
+  }
+  stopAbilityCooldowns() {
+    for (let cdRef of this.cooldownRefs) {
+      window.clearInterval(cdRef);
+    }
+    this.cooldownRefs = [];
+  }
 }
 
-export const player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
+export let player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
+export const resetPlayer = () => {
+  player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
+};
 
 export class Bullet extends Circle {
   constructor() {
@@ -285,6 +305,7 @@ export class Enemy extends Circle {
     this.img_update_frames = 14;
     this.cur_frame = 0;
     this.cur_image = 0;
+    this.speed = 1;
     this.images = {
       left: ['img_demon', 'img_demon_open'],
       right: ['img_demon_r', 'img_demon_r_open'],
@@ -299,7 +320,7 @@ export class Enemy extends Circle {
     };
   }
   update() {
-    let speedMod = Math.floor(score / 2000) * 0.125;
+    let speedMod = this.speed + player.level / 5;
     if (speedMod <= 1) speedMod = 1;
 
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
