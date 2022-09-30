@@ -11,11 +11,8 @@ import {
   addBullet,
   addEnemy,
   addItem,
-  score,
   canvas,
   BONUS_TYPES,
-  abilityEffects,
-  addAbilityEffect,
 } from './constants.js';
 
 import {
@@ -35,6 +32,7 @@ function strokeCircle(circle) {
   c.stroke();
   c.restore();
 }
+
 export class Circle {
   constructor(x, y, r, color, vel) {
     this.x = x;
@@ -288,6 +286,7 @@ export class Player extends Circle {
 }
 
 export let player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
+
 export const resetPlayer = () => {
   player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
 };
@@ -491,6 +490,7 @@ export class Kamehameha extends Circle {
     this.w = 20;
     this.angle =
       Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
+    this.shapeType = 'square';
   }
 
   update() {
@@ -515,5 +515,28 @@ export class Kamehameha extends Circle {
     c.fill();
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.restore();
+  }
+}
+
+export class SolarFlare extends Circle {
+  constructor(x, y, r) {
+    super(x, y, r, 'yellow', { x: 0, y: 0 });
+    this.remainingFrames = 20;
+    this.shapeType = 'circle';
+  }
+
+  update() {
+    super.update();
+    // if (this.remainingFrames > 30) {
+    //   this.w++;
+    // } else if (this.w > 1) {
+    //   this.w--;
+    // }
+    if (this.remainingFrames > 10) {
+      this.r += 7;
+    } else {
+      this.alpha -= 0.1;
+    }
+    this.remainingFrames -= 1;
   }
 }

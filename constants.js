@@ -1,4 +1,4 @@
-import { Kamehameha } from './lib.js';
+import { Kamehameha, SolarFlare } from './lib.js';
 
 export const menu = document.getElementById('menu');
 export const startButton = document.getElementById('startButton');
@@ -198,6 +198,11 @@ export const BONUS_TYPES = [
     name: 'Laser',
     weight: 10,
   },
+  {
+    type: 'ability',
+    name: 'Explode',
+    weight: 500,
+  },
 ];
 
 export const ITEM_TYPES = [
@@ -231,18 +236,18 @@ export const ITEM_TYPES = [
     name: 'Laser',
     isAbility: true,
     cooldown: 2000,
-    trigger: (clientX, clientY, player) => {
+    trigger: (cx, cy, player) => {
       addAbilityEffect(
-        new Kamehameha(
-          player.x,
-          player.y,
-          20,
-          'yellow',
-          { x: 0, y: 0 },
-          clientX,
-          clientY
-        )
+        new Kamehameha(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
       );
+    },
+  },
+  {
+    name: 'Explode',
+    isAbility: true,
+    cooldown: 2000,
+    trigger: (cx, cy, player) => {
+      addAbilityEffect(new SolarFlare(player.x, player.y, 20));
     },
   },
 ];

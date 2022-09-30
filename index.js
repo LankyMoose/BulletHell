@@ -103,21 +103,23 @@ function main() {
     let enemyDestroyed = false;
     const dist = Math.hypot(player.x - e.x, player.y - e.y);
     if (dist - e.r - player.r < 0.01) {
-      player.life -= 10;
+      player.life -= 3;
       renderPlayerLife();
       if (player.life <= 0) {
         return endGame();
       } else {
-        if (player.vel.x == 0) {
-          player.vel.x += e.vel.x * 3;
-        } else {
-          player.vel.x *= e.vel.x * 3;
-        }
-        if (player.vel.y == 0) {
-          player.vel.y += e.vel.y * 3;
-        } else {
-          player.vel.y *= e.vel.y * 3;
-        }
+        player.vel.x += e.vel.x * 3;
+        player.vel.y += e.vel.y * 3;
+        // if (player.vel.x == 0) {
+
+        // } else {
+        //   player.vel.x *= e.vel.x * 3;
+        // }
+        // if (player.vel.y == 0) {
+        //   player.vel.y += e.vel.y * 3;
+        // } else {
+        //   player.vel.y *= e.vel.y * 3;
+        // }
       }
     }
     e.update();
@@ -156,34 +158,52 @@ function main() {
     }
     for (let j = 0; j < abilityEffects.length; j++) {
       const ae = abilityEffects[j];
-      const angle = radians_to_degrees(ae.angle);
-      const rotatedEnemyCoords = rotate(
-        player.x,
-        player.y,
-        e.x,
-        e.y,
-        angle,
-        true
-      );
-      const projectedEnemy = {
-        x: rotatedEnemyCoords.x,
-        y: rotatedEnemyCoords.y,
-        r: e.r,
-      };
-      if (detectCollision(ae, projectedEnemy)) {
-        console.log('lasser collide');
-        let isCrit = false;
-        if (player.critChance > 0) {
-          isCrit = player.critChance / 100 > Math.random();
-        }
-        const damage = Math.floor(
-          isCrit ? player.damage * player.critDamageMulti : player.damage
+      if (ae.shapeType == 'square') {
+        const angle = radians_to_degrees(ae.angle);
+        const rotatedEnemyCoords = rotate(
+          player.x,
+          player.y,
+          e.x,
+          e.y,
+          angle,
+          true
         );
-        addDamageText(new DamageText(e.x, e.y, damage, isCrit));
-        if (e.r - damage > Enemy.minSize) {
-          e.r -= damage;
-        } else {
-          enemyDestroyed = true;
+        const projectedEnemy = {
+          x: rotatedEnemyCoords.x,
+          y: rotatedEnemyCoords.y,
+          r: e.r,
+        };
+        if (detectCollision(ae, projectedEnemy)) {
+          let isCrit = false;
+          if (player.critChance > 0) {
+            isCrit = player.critChance / 100 > Math.random();
+          }
+          const damage = Math.floor(
+            isCrit ? player.damage * player.critDamageMulti : player.damage
+          );
+          addDamageText(new DamageText(e.x, e.y, damage, isCrit));
+          if (e.r - damage > Enemy.minSize) {
+            e.r -= damage;
+          } else {
+            enemyDestroyed = true;
+          }
+        }
+      } else {
+        const dist = Math.hypot(ae.x - e.x, ae.y - e.y);
+        if (dist - e.r - ae.r < 1) {
+          let isCrit = false;
+          if (player.critChance > 0) {
+            isCrit = player.critChance / 100 > Math.random();
+          }
+          const damage = Math.floor(
+            isCrit ? player.damage * player.critDamageMulti : player.damage
+          );
+          addDamageText(new DamageText(e.x, e.y, damage, isCrit));
+          if (e.r - damage > Enemy.minSize) {
+            e.r -= damage;
+          } else {
+            enemyDestroyed = true;
+          }
         }
       }
     }
