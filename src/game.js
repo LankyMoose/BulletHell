@@ -8,6 +8,7 @@ import {
   DamageText,
   resetPlayer,
 } from './lib.js';
+
 import {
   menu,
   startButton,
@@ -58,9 +59,13 @@ import {
   ITEM_TYPES,
   clearAnimId,
   playerColorEl,
+  submitScoreDiv,
+  submitScoreButton,
+  leaderboard,
 } from './constants.js';
 
 import { detectCollision, radians_to_degrees, rotate } from './util.js';
+import { loadScores, submitScore } from './firebase.js';
 //import {  } from './util.js';
 
 let playerShootTimer;
@@ -296,6 +301,10 @@ function handleProgression() {
 
 function startGame() {
   if (gameRunning) return false;
+  resetScore();
+  submitScoreDiv.style.display = 'none';
+  submitScoreButton.setAttribute('disabled', '');
+
   gameRunning = true;
   menu.classList.add('hide');
   clearBullets();
@@ -357,7 +366,6 @@ function endGame() {
   menu.classList.remove('hide');
   menuScoreEl.innerText = score;
   scoreEl.innerText = 0;
-  resetScore();
   menuKillsEl.innerText = player.kills;
   killsEl.innerText = 0;
 
@@ -370,6 +378,9 @@ function endGame() {
   enemySpawnTime = 1000;
 
   removeEventHandlers();
+
+  submitScoreDiv.style.display = 'block';
+  submitScoreButton.removeAttribute('disabled');
 }
 
 window.renderPlayerLife = () => {
@@ -497,6 +508,12 @@ startButton.addEventListener('click', () => {
   startGame();
 });
 
+submitScoreButton.addEventListener('click', async () => {
+  console.log('submitting score...');
+  const res = await submitScore(score);
+  if (res) alert('score submitted!');
+});
+
 document.addEventListener('mousemove', (e) => (player.lastMouseMove = e));
 
 window.clearShootInterval = function () {
@@ -522,3 +539,24 @@ addEventListener('resize', () => {
   player.x = x;
   player.y = y;
 });
+
+async function renderLeaderboard() {
+  const scores = await loadScores();
+  leaderboard.innerHTML = `
+    <ol>
+      ${scores
+        .map((entry) => {
+          return `
+        <li>
+          ${entry.username} ${entry.score}
+        </li>
+        `;
+        })
+        .join()}
+    </ol>
+  `;
+}
+
+(async () => {
+  renderLeaderboard();
+})();

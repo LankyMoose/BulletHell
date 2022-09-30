@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --watch src --exec npm run build",
+    "build": "webpack --mode=production"
   },
   "repository": {
     "type": "git",
@@ -16,5 +18,13 @@
   "bugs": {
     "url": "https://github.com/Robby6Strings/BulletHell/issues"
   },
-  "homepage": "https://github.com/Robby6Strings/BulletHell#readme"
+  "homepage": "https://github.com/Robby6Strings/BulletHell#readme",
+  "dependencies": {
+    "firebase": "^9.10.0",
+    "nodemon": "^2.0.20"
+  },
+  "devDependencies": {
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  }
 }

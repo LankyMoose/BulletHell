@@ -1,89 +1,366 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.10.4/gsap.min.js"
+      integrity="sha512-VEBjfxWUOyzl0bAwh4gdLEaQyDYPvLrZql3pw1ifgb6fhEvZl9iDDehwHZ+dsMzA0Jfww8Xt7COSZuJ/slxc4Q=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script defer type="module" src="bundle.js"></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #222;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        line-height: 1;
+      }
+      p {
+        font-size: 0.875rem;
+        color: #777;
+        margin: 0;
+      }
+      #menu button {
+        background-color: #346fe1;
+        color: #fff;
+        border: 0;
+        outline: 0;
+        box-shadow: none;
+        padding: 1rem 2rem;
+        cursor: pointer;
+        border-radius: 2rem;
+        line-height: 1rem;
+        font-size: 1.25rem;
+        font-weight: bold;
+        letter-spacing: 1px;
+        box-shadow: 3px 3px 5px -3px rgba(0, 0, 0, 0.5),
+          inset 3px 3px 5px rgba(255, 255, 255, 0.5);
+        transition: background 0.05s linear;
+      }
+      button:hover {
+        background-color: #5386e8;
+      }
+      button:active {
+        background-color: #2357bb;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+      #score {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        color: #fff;
+        font-size: 0.875rem;
+        padding: 0.5rem;
+        pointer-events: none;
+      }
+      #score .row {
+        display: flex;
+        gap: 0.5em;
+      }
+      #menu {
+        background-image: radial-gradient(#222, black);
+      }
+      .overlay {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 1;
+        background-color: rgba(0, 0, 0, 0.75);
+        transition: all 0.4s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/9.10.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/9.10.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/9.10.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/9.10.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/9.10.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/9.10.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/9.10.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/9.10.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/9.10.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/9.10.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+      .overlay.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
+      #menu .inner {
+        background-color: #efefef;
+        padding: 2rem;
+        text-align: center;
+        width: 300px;
+        height: 300px;
+        border-radius: 50%;
+        display: flex;
+        gap: 1rem;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: 0 0 50px black, inset 0 0 10px black;
+      }
+
+      #heat {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 250px;
+        height: 18px;
+      }
+
+      #xp {
+        position: fixed;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        border-radius: 7px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: rgba(255, 255, 255, 0.3);
+        height: 12px;
+      }
+
+      #heat,
+      #xp {
+        opacity: 0.7;
+        border-radius: 1em;
+        overflow: hidden;
+        height: 10px;
+      }
+      ::-webkit-meter-bar {
+        height: 10px;
+        background-color: #777;
+      }
+
+      /* ::-webkit-progress-value {
+        color: blue;
+        background-color: blue;
+      } */
+      ::-webkit-progress-bar {
+        border-radius: 1em;
+      }
+      ::-webkit-progress-inner-element {
+        border-radius: 1em;
+      }
+      ::-webkit-progress-value {
+        background-color: gold;
+        color: gold;
+        border-radius: 1em;
+      }
+      ::-moz-progress-bar {
+        background-color: gold;
+        color: gold;
+        border-radius: 1em;
+      }
+
+      #level_container {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        border: 4px solid #fff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(255, 255, 255, 0.15);
+        opacity: 0.7;
+      }
+      #level_container h2 {
+        color: #fff;
+        font-size: 1.5rem;
+      }
+
+      #levelup {
+        text-align: center;
+      }
+      #levelup h2 {
+        margin-bottom: 1rem;
+      }
+
+      #levelup_options {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1em;
+      }
+      #levelup_options button {
+        color: #fff;
+        border-radius: 0.5em;
+        background-color: rgba(255, 255, 255, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        flex-grow: 1;
+        opacity: 0.7;
+        padding: 1em;
+        cursor: pointer;
+        font-size: 1em;
+        line-height: 1;
+        font-weight: bold;
+        text-shadow: 2px 3px 5px rgb(0, 0, 0);
+        box-shadow: inset 0 0 12px -1px rgba(255, 255, 255, 0.2);
+      }
+      #levelup_options button[data-rarity='1'] {
+        background-color: rgba(100, 140, 255, 0.4);
+      }
+      #levelup_options button[data-rarity='2'] {
+        background-color: rgba(140, 100, 255, 0.4);
+      }
+      #levelup_options button[data-item='true'] {
+        background-color: rgba(255, 255, 0, 0.4);
+      }
+      #levelup_options button:hover {
+        opacity: 1;
+      }
+
+      #player_stats_container {
+        position: fixed;
+        right: 0;
+        top: 0;
+        padding: 0.5em;
+        background: rgba(0, 0, 0, 0.3);
+        color: #fff;
+        opacity: 0.5;
+        z-index: 999;
+      }
+      #player_stats_container:hover {
+        opacity: 1;
+      }
+
+      #leaderboard_wrapper {
+        background: #fafafa;
+        border-radius: 1em;
+        padding: 1em 2em;
+        margin-bottom: 1rem;
+        text-align: center;
+      }
+      #leaderboard_wrapper h2 {
+        margin: 0;
+      }
+      ol {
+        margin: 0;
+        padding: 0;
+        font-size: small;
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+    <div style="display: none">
+      <img id="img_bullet" src="img/bullet.png" width="30" height="30" />
+      <img id="img_bullets" src="img/bullets.png" width="30" height="30" />
+
+      <img id="img_demon" src="img/demon.png" />
+      <img id="img_demon_down" src="img/demon_down.png" />
+      <img id="img_demon_up" src="img/demon_up.png" />
+
+      <img id="img_demon_open" src="img/demon_open.png" />
+      <img id="img_demon_down_open" src="img/demon_down_open.png" />
+      <img id="img_demon_up_open" src="img/demon_up_open.png" />
+
+      <img id="img_demon_r" src="img/demon_r.png" />
+      <img id="img_demon_down_r" src="img/demon_down_r.png" />
+      <img id="img_demon_up_r" src="img/demon_up_r.png" />
+
+      <img id="img_demon_r_open" src="img/demon_r_open.png" />
+      <img id="img_demon_down_r_open" src="img/demon_down_r_open.png" />
+      <img id="img_demon_up_r_open" src="img/demon_up_r_open.png" />
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+    <meter
+      id="heat"
+      min="0"
+      max="100"
+      low="60"
+      high="10"
+      optimum="30"
+      value="0"
+    ></meter>
+    <progress id="xp" value="0" max="100"></progress>
+    <div id="level_container">
+      <h2 id="level">1</h2>
+    </div>
+    <div id="player_stats_container">
+      <div id="player_stats"></div>
+    </div>
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-        }
-      });
-    </script>
+    <canvas></canvas>
+    <div id="score">
+      <div class="row">
+        <span>Score:</span>
+        <span id="scoreEl">0</span>
+        |
+        <span>Kills:</span>
+        <span id="killsEl">0</span>
+      </div>
+      <div class="row">
+        <span>Life</span>
+        <span id="lifeEl">100/100</span>
+      </div>
+    </div>
+    <div id="menu" class="overlay">
+      <div id="leaderboard_wrapper">
+        <h2>Leaderboard</h2>
+        <hr style="opacity: 0.5; margin-bottom: 1rem" />
+        <div id="leaderboard">Loading...</div>
+      </div>
+      <div class="inner">
+        <div
+          style="
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            gap: 1em;
+          "
+        >
+          <div>
+            <h1 id="menuScoreEl">0</h1>
+            <p>Points</p>
+          </div>
+          <div>
+            <h1 id="menuKillsEl">0</h1>
+            <p>Kills</p>
+          </div>
+        </div>
+        <div>
+          <button type="button" id="startButton">Start Game</button>
+        </div>
+        <div>
+          <label>Player Color: </label>
+          <input id="player_color" type="color" value="#FFFFFF" />
+        </div>
+        <div id="submit_score" style="display: none; margin-top: 2em">
+          <button
+            id="submit_button"
+            style="background-color: green"
+            type="button"
+            disabled
+          >
+            Submit Score
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="levelup" class="overlay hide">
+      <div class="inner">
+        <h2 style="color: white">Level Up!</h2>
+        <div id="levelup_options"></div>
+      </div>
+    </div>
+    <div id="pause" class="overlay hide">
+      <div class="inner">
+        <h2 style="color: white">Paused</h2>
+      </div>
+    </div>
   </body>
 </html>

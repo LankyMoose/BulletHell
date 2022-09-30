@@ -1,6 +1,7 @@
 import { Kamehameha, SolarFlare } from './lib.js';
 
 export const menu = document.getElementById('menu');
+export const leaderboard = document.getElementById('leaderboard');
 export const startButton = document.getElementById('startButton');
 export const playerColorEl = document.getElementById('player_color');
 export const scoreEl = document.getElementById('scoreEl');
@@ -15,7 +16,8 @@ export const levelUpScreen = document.getElementById('levelup');
 export const levelUpOptionsEl = document.getElementById('levelup_options');
 export const pauseScreen = document.getElementById('pause');
 export const playerStatsEl = document.getElementById('player_stats');
-
+export const submitScoreDiv = document.getElementById('submit_score');
+export const submitScoreButton = document.getElementById('submit_button');
 export const canvas = document.querySelector('canvas');
 export const c = canvas.getContext('2d');
 canvas.width = innerWidth;
