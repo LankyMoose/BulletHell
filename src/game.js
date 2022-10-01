@@ -662,8 +662,12 @@ function renderUser(userData) {
       Object.assign(document.createElement('button'), {
         innerText: 'Log out',
         type: 'button',
-        onclick: () => {
-          logout();
+        onclick: async () => {
+          await logout();
+          submitScoreDiv.style.display = 'none';
+          submitScoreButton.setAttribute('disabled', '');
+          signInDiv.style.display = 'block';
+          signInButton.removeAttribute('disabled');
         },
       })
     );
