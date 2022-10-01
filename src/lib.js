@@ -99,6 +99,34 @@ export class Circle {
     this.updatePosition();
     this.applyGlobalScale();
   }
+
+  enforceMapBoundaries() {
+    if (this.x - this.r < 0) {
+      this.x = this.r;
+      this.vel.x *= -1;
+    }
+    if (this.x + this.r > canvas.width) {
+      this.x = canvas.width - this.r;
+      this.vel.x *= -1;
+    }
+    if (this.y - this.r < 0) {
+      this.y = this.r;
+      this.vel.y *= -1;
+    }
+    if (this.y + this.r > canvas.height) {
+      this.y = canvas.height - this.r;
+      this.vel.y *= -1;
+    }
+  }
+
+  inMap() {
+    return (
+      this.x - this.r > 0 &&
+      this.x + this.r < canvas.width &&
+      this.y - this.r > 0 &&
+      this.y + this.r < canvas.height
+    );
+  }
 }
 
 export class Player extends Circle {
@@ -159,22 +187,7 @@ export class Player extends Circle {
       this.vel.x *= this.friction;
       this.vel.y *= this.friction;
     }
-    if (this.x - this.r < 0) {
-      this.x = this.r;
-      this.vel.x *= -1;
-    }
-    if (this.x + this.r > canvas.width) {
-      this.x = canvas.width - this.r;
-      this.vel.x *= -1;
-    }
-    if (this.y - this.r < 0) {
-      this.y = this.r;
-      this.vel.y *= -1;
-    }
-    if (this.y + this.r > canvas.height) {
-      this.y = canvas.height - this.r;
-      this.vel.y *= -1;
-    }
+    this.enforceMapBoundaries();
 
     super.update();
     this.bulletTick += 16;
@@ -330,6 +343,7 @@ export class Enemy extends Circle {
         right: ['img_demon_down_r', 'img_demon_down_r_open'],
       },
     };
+    this.enteredMap = false;
   }
 
   followPlayer() {
@@ -352,6 +366,9 @@ export class Enemy extends Circle {
     if (dist - player.r - this.r < this.aggroRange) {
       this.followPlayer();
     }
+    if (!this.enteredMap && this.inMap()) this.enteredMap = true;
+    if (this.enteredMap) this.enforceMapBoundaries();
+
     this.cur_frame++;
     if (this.cur_frame > this.img_update_frames) Enemy.setImage(this);
   }

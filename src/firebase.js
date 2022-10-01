@@ -8,6 +8,7 @@ import {
   child,
   get,
   orderByChild,
+  limitToLast,
 } from 'firebase/database';
 
 // TODO: Replace the following with your app's Firebase project configuration
@@ -80,7 +81,7 @@ export const submitScore = async (score) => {
 };
 
 export const loadScores = async () => {
-  const q = query(ref(db, 'scores'), orderByChild('score'));
+  const q = query(ref(db, 'scores'), orderByChild('score'), limitToLast(10));
   //const q = query(child(db, 'scores'), orderByChild('score'), limitToLast(5));
   const res = [];
   const snapshot = await get(q);

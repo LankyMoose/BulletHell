@@ -83,18 +83,18 @@ export const PLAYER_STAT_DISPLAYS = [
 ];
 
 export const BONUS_TYPES = [
-  {
-    type: 'attribute',
-    name: '+ Bullet Damage',
-    weight: 5,
-    rarity_weights: [9, 6, 4, 2],
-    modifiers: [
-      {
-        key: 'damage',
-        amounts: [1, 3, 5, 8],
-      },
-    ],
-  },
+  // {
+  //   type: 'attribute',
+  //   name: '+ Bullet Damage',
+  //   weight: 5,
+  //   rarity_weights: [9, 6, 4, 2],
+  //   modifiers: [
+  //     {
+  //       key: 'damage',
+  //       amounts: [1, 3, 5, 8],
+  //     },
+  //   ],
+  // },
   {
     type: 'attribute',
     name: '+ Max Health',

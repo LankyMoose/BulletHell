@@ -116,12 +116,7 @@ function update() {
   for (let i = 0; i < bullets.length; i++) {
     const b = bullets[i];
     b.update();
-
-    const offscreenX = b.x - b.r < 0 || b.x + b.r > canvas.width;
-    const offscreenY = b.y - b.r < 0 || b.y + b.r > canvas.height;
-    if (offscreenX || offscreenY) {
-      removeBullet(i);
-    }
+    if (!b.inMap()) removeBullet(i);
   }
   // investigate pooling?
   const enemiesToRemove = [];
