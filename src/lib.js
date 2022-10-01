@@ -37,7 +37,11 @@ function strokeCircle(circle) {
 export class Circle {
   constructor(x, y, r, color, vel) {
     this.x = x;
+    this.oldX = x;
+    this.renderX = x;
     this.y = y;
+    this.oldY = y;
+    this.renderY = y;
     this.r = r;
     this.initialR = r;
     this.killValue = Math.floor((r / 3) * 10);
@@ -46,11 +50,22 @@ export class Circle {
     this.vel = vel;
   }
 
-  draw() {
+  preDraw(lagOffset) {
+    //Use the `lagOffset` and previous x/y positions to
+    //calculate the render positions
+    this.renderX = (this.x - this.oldX) * lagOffset + this.oldX;
+    this.renderY = (this.y - this.oldY) * lagOffset + this.oldY;
+  }
+  postDraw() {
+    this.oldX = this.x;
+    this.oldY = this.y;
+  }
+  draw(lagOffset) {
+    this.preDraw(lagOffset);
     c.save();
     c.globalAlpha = this.alpha;
     c.beginPath();
-    c.arc(this.x, this.y, this.r, 0, Math.PI * 2, false);
+    c.arc(this.renderX, this.renderY, this.r, 0, Math.PI * 2, false);
     c.fillStyle = this.color;
     c.fill();
     c.restore();
@@ -59,8 +74,8 @@ export class Circle {
       try {
         c.drawImage(
           this.image,
-          this.x - (this.r * 2) / 2,
-          this.y - (this.r * 2) / 2,
+          this.renderX - (this.r * 2) / 2,
+          this.renderY - (this.r * 2) / 2,
           this.r * 2,
           this.r * 2
         );
@@ -68,6 +83,7 @@ export class Circle {
         console.log('img fail', this.image);
       }
     }
+    this.postDraw();
   }
 
   updatePosition() {
@@ -82,7 +98,6 @@ export class Circle {
   update() {
     this.updatePosition();
     this.applyGlobalScale();
-    this.draw();
   }
 }
 
@@ -162,8 +177,8 @@ export class Player extends Circle {
 
     super.update();
   }
-  draw() {
-    super.draw();
+  draw(lagOffset) {
+    super.draw(lagOffset);
     if (debug) strokeCircle(this);
   }
 
@@ -338,8 +353,8 @@ export class Enemy extends Circle {
     this.cur_frame++;
     if (this.cur_frame > this.img_update_frames) Enemy.setImage(this);
   }
-  draw() {
-    super.draw();
+  draw(lagOffset) {
+    super.draw(lagOffset);
     if (debug) strokeCircle(this);
   }
 
@@ -417,7 +432,6 @@ export class Item extends Circle {
     this.x = this.x + this.angle * Math.cos(this.angle);
     this.y = this.y + this.angle * Math.sin(this.angle);
     this.i++;
-    this.draw();
   }
 }
 
@@ -464,7 +478,12 @@ export class BonusSet {
 export class DamageText {
   constructor(x, y, dmg, isCrit) {
     this.x = x;
+    this.oldX = x;
+    this.renderX = x;
     this.y = y;
+    this.oldY = y;
+    this.renderY = y;
+
     this.dmg = dmg;
     this.isCrit = isCrit;
     this.alpha = 1;
@@ -472,18 +491,27 @@ export class DamageText {
 
   update() {
     this.alpha -= 0.05;
-    if (this.alpha >= 0) this.draw();
   }
-  draw() {
+  preDraw(lagOffset) {
+    this.renderX = (this.x - this.oldX) * lagOffset + this.oldX;
+    this.renderY = (this.y - this.oldY) * lagOffset + this.oldY;
+  }
+  postDraw() {
+    this.oldX = this.x;
+    this.oldY = this.y;
+  }
+  draw(lagOffset) {
+    this.preDraw(lagOffset);
     c.save();
     c.globalAlpha = this.alpha;
     c.font = `bold ${this.isCrit ? 22 : 14}px sans-serif`;
     //c.strokeStyle = 'black';
     c.fillStyle = 'gold';
     //if (this.isCrit) c.fillStyle = 'orangered';
-    c.fillText(this.dmg.toString(), this.x, this.y);
+    c.fillText(this.dmg.toString(), this.renderX, this.renderY);
     //c.strokeText(this.dmg.toString(), this.x, this.y);
     c.restore();
+    this.postDraw();
   }
 }
 
@@ -507,21 +535,22 @@ export class Kamehameha extends Circle {
     } else if (this.w > 1) {
       this.w--;
     }
-    this.draw();
     this.remainingFrames -= 1;
   }
 
-  draw() {
+  draw(lagOffset) {
+    this.preDraw(lagOffset);
     c.save();
     const cos = Math.cos(this.angle);
     const sin = Math.sin(this.angle);
-    c.transform(cos, sin, -sin, cos, this.x, this.y);
+    c.transform(cos, sin, -sin, cos, this.renderX, this.renderY);
     c.beginPath();
     c.rect(0 - this.w / 2, 0 + player.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.restore();
+    this.postDraw();
   }
 }
 

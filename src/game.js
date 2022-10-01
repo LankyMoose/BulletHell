@@ -1,3 +1,13 @@
+window.fps = 60;
+window.start = performance.now();
+window.frameDuration = 1000 / window.fps;
+window.lag = 0;
+window.requestAnimationFrame =
+  window.requestAnimationFrame ||
+  function (callback) {
+    window.setTimeout(callback, window.frameRate);
+  };
+
 import {
   Player,
   player,
@@ -78,6 +88,10 @@ let nextFrameActionQueue = [];
 
 function main() {
   setAnimId(requestAnimationFrame(main));
+  const now = performance.now();
+  const elapsed = now - window.start;
+  window.start = now;
+  window.lag += elapsed;
   //c.clearRect(0, 0, canvas.width, canvas.height);
   c.fillStyle = 'rgba(50, 50, 50, 1)';
   c.fillRect(0, 0, canvas.width, canvas.height);
@@ -87,6 +101,16 @@ function main() {
     nextFrameActionQueue = [];
   }
 
+  while (window.lag >= window.frameDuration) {
+    update();
+    window.lag -= window.frameDuration;
+  }
+  render(window.lag / window.frameDuration);
+
+  heatBarEl.value = player.heat;
+}
+
+function update() {
   player.update();
 
   for (let i = 0; i < bullets.length; i++) {
@@ -96,9 +120,7 @@ function main() {
     const offscreenX = b.x - b.r < 0 || b.x + b.r > canvas.width;
     const offscreenY = b.y - b.r < 0 || b.y + b.r > canvas.height;
     if (offscreenX || offscreenY) {
-      setTimeout(() => {
-        removeBullet(i);
-      }, 0);
+      removeBullet(i);
     }
   }
   // investigate pooling?
@@ -116,16 +138,6 @@ function main() {
       } else {
         player.vel.x += e.vel.x * 3;
         player.vel.y += e.vel.y * 3;
-        // if (player.vel.x == 0) {
-
-        // } else {
-        //   player.vel.x *= e.vel.x * 3;
-        // }
-        // if (player.vel.y == 0) {
-        //   player.vel.y += e.vel.y * 3;
-        // } else {
-        //   player.vel.y *= e.vel.y * 3;
-        // }
       }
     }
     e.update();
@@ -240,7 +252,6 @@ function main() {
   for (let index of bulletsToRemove) {
     removeBullet(index);
   }
-
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
     p.update();
@@ -256,15 +267,15 @@ function main() {
     const dist = Math.hypot(player.x - item.x, player.y - item.y);
     if (dist - item.r - player.r < 1) {
       player.items.push({ ...item.itemType });
-      return removeItem(i, 1);
+      removeItem(i);
+      continue;
     }
 
     item.update();
     if (item.i > 540) {
-      removeItem(i, 1);
+      removeItem(i);
     }
   }
-
   for (let i = 0; i < abilityEffects.length; i++) {
     const ae = abilityEffects[i];
     ae.update();
@@ -273,7 +284,39 @@ function main() {
 
   player.heat -= 0.025;
   if (player.heat < 0) player.heat = 0;
-  heatBarEl.value = player.heat;
+}
+
+function render(lagOffset) {
+  // for (const sprite of [
+  //   player,
+  //   ...bullets,
+  //   ...enemies,
+  //   ...particles,
+  //   ...damageTexts,
+  //   ...items,
+  //   ...abilityEffects,
+  // ]) {
+  //   sprite.draw(lagOffset);
+  // }
+  player.draw(lagOffset);
+  for (const bullet of bullets) {
+    bullet.draw(lagOffset);
+  }
+  for (const enemy of enemies) {
+    enemy.draw(lagOffset);
+  }
+  for (const particle of particles) {
+    particle.draw(lagOffset);
+  }
+  for (const dt of damageTexts) {
+    dt.draw(lagOffset);
+  }
+  for (const item of items) {
+    item.draw(lagOffset);
+  }
+  for (const ae of abilityEffects) {
+    ae.draw(lagOffset);
+  }
 }
 
 function handleProgression() {
@@ -301,6 +344,7 @@ function handleProgression() {
 
 function startGame() {
   if (gameRunning) return false;
+  window.start = performance.now();
   resetScore();
   submitScoreDiv.style.display = 'none';
   submitScoreButton.setAttribute('disabled', '');
@@ -349,6 +393,7 @@ function renderPlayerStats() {
 }
 
 function resumeGame() {
+  window.start = performance.now();
   gameRunning = true;
   enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   player.startAbilityCooldowns();
