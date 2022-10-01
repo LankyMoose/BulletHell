@@ -73,7 +73,7 @@ async function writeUserData(userId, username, profile_picture, score, kills) {
 }
 export const submitScore = async (score, kills) => {
   try {
-    if (!user) {
+    if (!userData.user) {
       const result = await signInWithPopup(auth, provider);
       if (!result.user) throw new Error('failed to authenticate');
     }
