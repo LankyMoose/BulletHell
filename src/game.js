@@ -574,8 +574,9 @@ submitScoreButton.addEventListener('click', async () => {
     submitScoreDiv.style.display = 'none';
     alert('score submitted!');
     renderLeaderboard();
+  } else {
+    alert('failed to submit your score :C');
   }
-  alert('failed to submit your score :C');
 });
 
 document.addEventListener('mousemove', (e) => (player.lastMouseMove = e));
