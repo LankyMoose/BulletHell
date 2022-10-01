@@ -76,6 +76,7 @@ export const submitScore = async (score, kills) => {
     if (!userData.user) {
       const result = await signInWithPopup(auth, provider);
       if (!result.user) throw new Error('failed to authenticate');
+      userData.setValue(result.user, 0);
     }
 
     if (
