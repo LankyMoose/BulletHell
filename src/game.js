@@ -72,6 +72,7 @@ import {
   submitScoreDiv,
   submitScoreButton,
   leaderboard,
+  playerStatsWrapper,
 } from './constants.js';
 
 import { detectCollision, radians_to_degrees, rotate } from './util.js';
@@ -229,7 +230,7 @@ function update() {
 
     if (enemyDestroyed) {
       enemiesToRemove.push(i);
-      player.xp += XP_PER_KILL + e.r * player.xpMulti;
+      player.xp += XP_PER_KILL + e.initialR * player.xpMulti;
       addScore(e.killValue);
       player.kills++;
       player.heat += 5 - Math.log(5);
@@ -325,7 +326,7 @@ function handleProgression() {
   killsEl.innerText = player.kills;
 
   if (player.kills % 20 == 0) {
-    enemySpawnTime -= 5;
+    enemySpawnTime -= 4;
     window.clearInterval(enemySpawnInterval);
     enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   }
@@ -360,7 +361,6 @@ function startGame() {
   player.color = playerColorEl.value;
   main();
   attachEventHandlers();
-  renderPlayerStats();
 }
 
 function togglePause() {
@@ -374,27 +374,39 @@ function togglePause() {
 }
 
 function pauseGame() {
-  console.log('game pause');
+  canvas.style.filter = 'blur(2px)';
   clearAnimId();
   window.clearInterval(enemySpawnInterval);
   gameRunning = false;
   Object.assign(player.inputs, new Player().inputs);
-}
-
-function renderPlayerStats() {
-  playerStatsEl.innerHTML = '';
-  Object.entries(player).forEach(([k, v]) => {
-    const displayKey = PLAYER_STAT_DISPLAYS.find((item) => item.key == k);
-    if (!displayKey) return;
-    playerStatsEl.innerHTML += `<p>${displayKey.displayText}: ${v}</p>`;
-  });
+  renderPlayerStats();
 }
 
 function resumeGame() {
+  canvas.style.filter = 'blur(0)';
+  renderPlayerStats();
+  hidePlayerStats();
   window.start = performance.now();
   gameRunning = true;
   enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   main();
+}
+
+function renderPlayerStats() {
+  playerStatsWrapper.style.opacity = 1;
+  console.log(playerStatsWrapper);
+  playerStatsEl.innerHTML = '';
+  Object.entries(player).forEach(([k, v]) => {
+    const displayKey = PLAYER_STAT_DISPLAYS.find((item) => item.key == k);
+    if (!displayKey) return;
+    playerStatsEl.innerHTML += `<p>${displayKey.displayText}: ${v.toFixed(
+      2
+    )}</p>`;
+  });
+}
+
+function hidePlayerStats() {
+  playerStatsWrapper.style.opacity = 0;
 }
 
 function endGame() {
@@ -451,11 +463,12 @@ function showLevelUpScreen() {
       btn.dataset.rarity = b.rarity;
       for (let mod of b.modifiers) {
         const amount = mod.amounts[b.rarity];
+        console.log('mod amount', amount, amount.toFixed(2));
         const displayKey = PLAYER_STAT_DISPLAYS.find(
           (item) => item.key == mod.key
         );
         btn.innerHTML = `${displayKey.displayText}: ${
-          amount > 0 ? `+${amount}` : amount
+          amount > 0 ? `+${amount.toFixed(2)}` : amount.toFixed(2)
         }<br />`;
       }
     } else {
@@ -481,7 +494,6 @@ function onBonusSelected(bonus) {
   } else if (bonus.type == 'ability') {
     player.items.push({ ...ITEM_TYPES.find((it) => it.name == bonus.name) });
   }
-  renderPlayerStats();
   hideLevelUpScreen();
 }
 
@@ -501,7 +513,7 @@ function handleKeyDown(e) {
       return false;
     case 'escape':
       togglePause();
-      break;
+      return false;
     case 'a':
       player.inputs.left = true;
       triggerResume = true;
@@ -527,6 +539,7 @@ function handleKeyDown(e) {
 function handleKeyUp(e) {
   switch (e.key.toLowerCase()) {
     case 'space':
+    case ' ':
       return false;
     case 'a':
       player.inputs.left = false;

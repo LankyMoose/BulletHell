@@ -16,6 +16,9 @@ export const levelUpScreen = document.getElementById('levelup');
 export const levelUpOptionsEl = document.getElementById('levelup_options');
 export const pauseScreen = document.getElementById('pause');
 export const playerStatsEl = document.getElementById('player_stats');
+export const playerStatsWrapper = document.getElementById(
+  'player_stats_container'
+);
 export const submitScoreDiv = document.getElementById('submit_score');
 export const submitScoreButton = document.getElementById('submit_button');
 export const canvas = document.querySelector('canvas');
@@ -143,7 +146,7 @@ export const BONUS_TYPES = [
     modifiers: [
       {
         key: 'bulletCooldown',
-        amounts: [-3, -7, -10, -15],
+        amounts: [-12, -16, -20, -26],
       },
     ],
   },
@@ -233,8 +236,8 @@ export const ITEM_TYPES = [
   {
     name: 'Laser',
     isAbility: true,
-    cooldown: 5000 / 16,
-    currentTick: 0,
+    cooldown: 5000,
+    currentTick: 5000,
     trigger: (player, cx, cy) => {
       console.log('kamehameha!');
       addAbilityEffect(
@@ -245,8 +248,8 @@ export const ITEM_TYPES = [
   {
     name: 'Explode',
     isAbility: true,
-    cooldown: 3000 / 16,
-    currentTick: 0,
+    cooldown: 3000,
+    currentTick: 3000,
     trigger: (player, cx, cy) => {
       console.log('solar flare!');
       addAbilityEffect(new SolarFlare(player.x, player.y, 20));
@@ -255,8 +258,8 @@ export const ITEM_TYPES = [
   {
     name: 'Slash',
     isAbility: true,
-    cooldown: 1000 / 16,
-    currentTick: 0,
+    cooldown: 1000,
+    currentTick: 1000,
     trigger: (player, cx, cy) => {
       console.log('slash!');
       addAbilityEffect(

@@ -107,7 +107,7 @@ export class Player extends Circle {
     this.speed = 0.5;
     this.bulletSpeed = 17.5;
     this.maxSpeed = 10;
-    this.bulletCooldown = 400 / 16;
+    this.bulletCooldown = 400;
     this.bulletTick = 0;
     this.damage = 6;
     this.critChance = 10;
@@ -177,7 +177,7 @@ export class Player extends Circle {
     }
 
     super.update();
-    this.bulletTick += 1;
+    this.bulletTick += 16;
     if (this.bulletTick >= this.bulletCooldown) {
       this.shootBullets();
       this.bulletTick = 0;
@@ -185,7 +185,7 @@ export class Player extends Circle {
 
     const abilities = this.items.filter((i) => i.isAbility);
     for (let ability of abilities) {
-      ability.currentTick += 1;
+      ability.currentTick += 16;
       if (ability.currentTick >= ability.cooldown) {
         ability.trigger(
           this,
