@@ -58,12 +58,12 @@ export const PLAYER_STAT_DISPLAYS = [
     displayText: 'Max Speed',
   },
   {
-    key: 'shootSpeed',
+    key: 'bulletCooldown',
     displayText: 'Bullet Cooldown',
   },
   {
     key: 'damage',
-    displayText: 'Damage',
+    displayText: 'Bullet Damage',
   },
   {
     key: 'critChance',
@@ -142,14 +142,8 @@ export const BONUS_TYPES = [
     rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
-        key: 'shootSpeed',
+        key: 'bulletCooldown',
         amounts: [-3, -7, -10, -15],
-        triggers: [
-          () => {
-            window.clearShootInterval();
-            window.setShootInterval();
-          },
-        ],
       },
     ],
   },
@@ -192,17 +186,20 @@ export const BONUS_TYPES = [
   {
     type: 'ability',
     name: 'Laser',
-    weight: 10,
+    //weight: 10,
+    weight: 500,
   },
   {
     type: 'ability',
     name: 'Explode',
-    weight: 7,
+    //weight: 7,
+    weight: 500,
   },
   {
     type: 'ability',
     name: 'Slash',
-    weight: 10,
+    //weight: 10,
+    weight: 500,
   },
 ];
 
@@ -236,8 +233,10 @@ export const ITEM_TYPES = [
   {
     name: 'Laser',
     isAbility: true,
-    cooldown: 5000,
+    cooldown: 5000 / 16,
+    currentTick: 0,
     trigger: (player, cx, cy) => {
+      console.log('kamehameha!');
       addAbilityEffect(
         new Kamehameha(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
       );
@@ -246,16 +245,20 @@ export const ITEM_TYPES = [
   {
     name: 'Explode',
     isAbility: true,
-    cooldown: 3000,
+    cooldown: 3000 / 16,
+    currentTick: 0,
     trigger: (player, cx, cy) => {
+      console.log('solar flare!');
       addAbilityEffect(new SolarFlare(player.x, player.y, 20));
     },
   },
   {
     name: 'Slash',
     isAbility: true,
-    cooldown: 1000,
+    cooldown: 1000 / 16,
+    currentTick: 0,
     trigger: (player, cx, cy) => {
+      console.log('slash!');
       addAbilityEffect(
         new Slash(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
       );

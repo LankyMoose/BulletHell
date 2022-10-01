@@ -78,7 +78,6 @@ import { detectCollision, radians_to_degrees, rotate } from './util.js';
 import { loadScores, submitScore } from './firebase.js';
 //import {  } from './util.js';
 
-let playerShootTimer;
 let enemySpawnInterval;
 let enemySpawnTime = 1000;
 let gameRunning = false;
@@ -361,8 +360,6 @@ function startGame() {
   player.color = playerColorEl.value;
   main();
   attachEventHandlers();
-  window.setShootInterval();
-  player.startAbilityCooldowns();
   renderPlayerStats();
 }
 
@@ -380,10 +377,8 @@ function pauseGame() {
   console.log('game pause');
   clearAnimId();
   window.clearInterval(enemySpawnInterval);
-  window.clearShootInterval();
   gameRunning = false;
   Object.assign(player.inputs, new Player().inputs);
-  player.stopAbilityCooldowns();
 }
 
 function renderPlayerStats() {
@@ -399,16 +394,12 @@ function resumeGame() {
   window.start = performance.now();
   gameRunning = true;
   enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
-  player.startAbilityCooldowns();
-  window.setShootInterval();
   main();
 }
 
 function endGame() {
   clearAnimId(animId);
   window.clearInterval(enemySpawnInterval);
-  window.clearShootInterval();
-  player.stopAbilityCooldowns();
 
   gameRunning = false;
   menu.classList.remove('hide');
@@ -566,15 +557,6 @@ submitScoreButton.addEventListener('click', async () => {
 });
 
 document.addEventListener('mousemove', (e) => (player.lastMouseMove = e));
-
-window.clearShootInterval = function () {
-  window.clearInterval(playerShootTimer);
-};
-window.setShootInterval = function () {
-  playerShootTimer = window.setInterval(() => {
-    if (player.lastMouseMove) Player.shoot();
-  }, player.shootSpeed);
-};
 
 addEventListener('resize', () => {
   const old = { x, y };

@@ -107,7 +107,8 @@ export class Player extends Circle {
     this.speed = 0.5;
     this.bulletSpeed = 17.5;
     this.maxSpeed = 10;
-    this.shootSpeed = 400;
+    this.bulletCooldown = 400 / 16;
+    this.bulletTick = 0;
     this.damage = 6;
     this.critChance = 10;
     this.critDamageMulti = 1.5;
@@ -176,13 +177,31 @@ export class Player extends Circle {
     }
 
     super.update();
+    this.bulletTick += 1;
+    if (this.bulletTick >= this.bulletCooldown) {
+      this.shootBullets();
+      this.bulletTick = 0;
+    }
+
+    const abilities = this.items.filter((i) => i.isAbility);
+    for (let ability of abilities) {
+      ability.currentTick += 1;
+      if (ability.currentTick >= ability.cooldown) {
+        ability.trigger(
+          this,
+          this.lastMouseMove.clientX,
+          this.lastMouseMove.clientY
+        );
+        ability.currentTick = 0;
+      }
+    }
   }
   draw(lagOffset) {
     super.draw(lagOffset);
     if (debug) strokeCircle(this);
   }
 
-  shootSingle(clientX, clientY) {
+  shootSingleBullet(clientX, clientY) {
     const angle = Math.atan2(clientY - this.y, clientX - this.x);
     const vel = {
       x: Math.cos(angle) * this.bulletSpeed,
@@ -191,7 +210,7 @@ export class Player extends Circle {
     addBullet(new Bullet(this.x, this.y, BULLET_SIZE, BULLET_COLOR, vel));
   }
 
-  shootMultiple(clientX, clientY) {
+  shootMultipleBullets(clientX, clientY) {
     let bulletCount = 1;
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i];
@@ -238,7 +257,7 @@ export class Player extends Circle {
       addBullet(new Bullet(player.x, player.y, BULLET_SIZE, BULLET_COLOR, vel));
     }
 
-    if (bulletCount % 2 == 1) player.shootSingle(clientX, clientY);
+    if (bulletCount % 2 == 1) player.shootSingleBullet(clientX, clientY);
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
@@ -258,7 +277,7 @@ export class Player extends Circle {
     }
   }
 
-  static shoot() {
+  shootBullets() {
     if (!animId) return;
     const { clientX, clientY } = player.lastMouseMove;
     if (!allowPlayerShoot) return;
@@ -267,37 +286,14 @@ export class Player extends Circle {
       (i) => i.modifiers && i.modifiers.some((m) => m.key == 'bulletsFired')
     );
     if (!bulletMods.length) {
-      player.shootSingle(clientX, clientY);
+      player.shootSingleBullet(clientX, clientY);
     } else {
-      player.shootMultiple(clientX, clientY);
+      player.shootMultipleBullets(clientX, clientY);
     }
   }
 
   onLevelUp() {
     this.xp = 1;
-  }
-
-  triggerAbility(ability, mouseEvt) {
-    console.log('triggering ability...', ability);
-    ability.trigger(this, mouseEvt.clientX, mouseEvt.clientY);
-  }
-
-  startAbilityCooldowns() {
-    this.stopAbilityCooldowns();
-    const abilities = this.items.filter((i) => i.isAbility);
-    for (let ability of abilities) {
-      this.cooldownRefs.push(
-        window.setInterval(() => {
-          this.triggerAbility(ability, this.lastMouseMove);
-        }, ability.cooldown)
-      );
-    }
-  }
-  stopAbilityCooldowns() {
-    for (let cdRef of this.cooldownRefs) {
-      window.clearInterval(cdRef);
-    }
-    this.cooldownRefs = [];
   }
 }
 
