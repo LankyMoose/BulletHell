@@ -186,20 +186,20 @@ export const BONUS_TYPES = [
   {
     type: 'ability',
     name: 'Laser',
-    //weight: 10,
-    weight: 500,
+    weight: 10,
+    //weight: 500,
   },
   {
     type: 'ability',
     name: 'Explode',
-    //weight: 7,
-    weight: 500,
+    weight: 7,
+    //weight: 500,
   },
   {
     type: 'ability',
     name: 'Slash',
-    //weight: 10,
-    weight: 500,
+    weight: 10,
+    //weight: 500,
   },
 ];
 
