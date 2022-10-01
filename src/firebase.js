@@ -8,6 +8,7 @@ import {
   get,
   orderByChild,
   limitToLast,
+  child,
 } from 'firebase/database';
 
 // TODO: Replace the following with your app's Firebase project configuration
@@ -42,6 +43,11 @@ export const userData = {
     userData.subscriptions.forEach((fn) => fn(userData));
   },
 };
+const handleAuthStateChange = async (usr) => {
+  if (!usr) return userData.clearValue();
+  const score = await loadScore(usr.uid);
+  userData.setValue(usr, score);
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app, firebaseConfig.databaseURL);
@@ -50,11 +56,7 @@ provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
 
 const auth = getAuth();
 auth.useDeviceLanguage();
-auth.onAuthStateChanged(async (usr) => {
-  if (!usr) return userData.clearValue();
-  const score = await loadScore(usr.uid);
-  userData.setValue(usr, score);
-});
+auth.onAuthStateChanged(handleAuthStateChange);
 
 async function writeUserData(userId, username, profile_picture, score, kills) {
   try {
@@ -62,7 +64,6 @@ async function writeUserData(userId, username, profile_picture, score, kills) {
       username,
       score,
       profile_picture,
-      kills,
     });
     return true;
   } catch (error) {
@@ -70,13 +71,17 @@ async function writeUserData(userId, username, profile_picture, score, kills) {
     return false;
   }
 }
+
+export const login = async () => {
+  const result = await signInWithPopup(auth, provider);
+  if (!result.user) throw new Error('failed to authenticate');
+  handleAuthStateChange(result.user);
+  return true;
+};
+
 export const submitScore = async (score, kills) => {
   try {
-    if (!userData.user) {
-      const result = await signInWithPopup(auth, provider);
-      if (!result.user) throw new Error('failed to authenticate');
-      userData.setValue(result.user, 0);
-    }
+    if (!userData.user) await login();
 
     if (
       score < userData.topScore &&
@@ -120,8 +125,6 @@ export const loadScores = async () => {
 };
 
 export const logout = async () => {
-  console.log('logging out..');
   await auth.signOut();
   userData.clearValue();
-  console.log('logged out?');
 };

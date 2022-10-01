@@ -22,6 +22,9 @@ export const playerStatsWrapper = document.getElementById(
 );
 export const submitScoreDiv = document.getElementById('submit_score');
 export const submitScoreButton = document.getElementById('submit_button');
+export const signInDiv = document.getElementById('sign_in');
+export const signInButton = document.getElementById('sign_in_button');
+
 export const canvas = document.querySelector('canvas');
 export const c = canvas.getContext('2d');
 canvas.width = innerWidth;

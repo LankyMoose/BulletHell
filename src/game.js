@@ -74,10 +74,18 @@ import {
   leaderboard,
   playerStatsWrapper,
   userContainer,
+  signInDiv,
+  signInButton,
 } from './constants.js';
 
 import { detectCollision, radians_to_degrees, rotate } from './util.js';
-import { loadScores, logout, submitScore, userData } from './firebase.js';
+import {
+  loadScores,
+  login,
+  logout,
+  submitScore,
+  userData,
+} from './firebase.js';
 //import {  } from './util.js';
 
 userData.subscribe((res) => {
@@ -349,7 +357,9 @@ function startGame() {
   window.start = performance.now();
   resetScore();
   submitScoreDiv.style.display = 'none';
+  signInDiv.style.display = 'none';
   submitScoreButton.setAttribute('disabled', '');
+  signInButton.setAttribute('disabled', '');
   startButton.setAttribute('disabled', '');
   gameRunning = true;
   menu.classList.add('hide');
@@ -439,8 +449,14 @@ function endGame() {
 
   removeEventHandlers();
   startButton.removeAttribute('disabled');
-  submitScoreDiv.style.display = 'block';
-  submitScoreButton.removeAttribute('disabled');
+  if (userData.user) {
+    submitScoreDiv.style.display = 'block';
+    submitScoreButton.removeAttribute('disabled');
+  } else {
+    signInDiv.style.display = 'block';
+    signInButton.removeAttribute('disabled');
+  }
+
   renderLeaderboard();
 }
 
@@ -579,6 +595,16 @@ submitScoreButton.addEventListener('click', async () => {
   }
 });
 
+signInButton.addEventListener('click', async () => {
+  const res = await login();
+  if (res) {
+    signInDiv.style.display = 'none';
+    signInButton.setAttribute('disabled', '');
+    submitScoreDiv.style.display = 'block';
+    submitScoreButton.removeAttribute('disabled');
+  }
+});
+
 document.addEventListener('mousemove', (e) => (player.lastMouseMove = e));
 document.addEventListener('contextmenu', (e) => {
   e.preventDefault();
@@ -637,7 +663,6 @@ function renderUser(userData) {
         innerText: 'Log out',
         type: 'button',
         onclick: () => {
-          console.log('log out btn clicked...');
           logout();
         },
       })
