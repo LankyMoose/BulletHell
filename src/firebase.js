@@ -23,63 +23,91 @@ const firebaseConfig = {
 };
 //https://project-pewpew-default-rtdb.asia-southeast1.firebasedatabase.app
 //UserCredential.user
-let user = null;
-export const getUser = () => user;
+export const userData = {
+  user: null,
+  topScore: 0,
+  subscriptions: [],
+  subscribe: (cb) => userData.subscriptions.push(cb),
+  clearValue: () => {
+    userData.user = null;
+    userData.topScore = 0;
+    userData.subscriptions.forEach((fn) => fn(userData));
+  },
+  setValue: (user, score) => {
+    userData.user = {
+      uid: user.uid,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    };
+    userData.topScore = score;
+    userData.subscriptions.forEach((fn) => fn(userData));
+  },
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app, firebaseConfig.databaseURL);
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
 
-async function writeUserData(userId, name, imageUrl, score) {
+const auth = getAuth();
+auth.useDeviceLanguage();
+auth.onAuthStateChanged(async (usr) => {
+  if (!usr) return userData.clearValue();
+  const score = await loadScore(usr.uid);
+  userData.setValue(usr, score);
+});
+
+async function writeUserData(userId, username, profile_picture, score, kills) {
   try {
     await set(ref(db, 'scores/' + userId), {
-      username: name,
-      score: score,
-      profile_picture: imageUrl,
+      username,
+      score,
+      profile_picture,
+      kills,
     });
     return true;
   } catch (error) {
     console.error('failed to add score record', error);
+    return false;
   }
 }
-
-const auth = getAuth();
-auth.useDeviceLanguage();
-
-export const submitScore = async (score) => {
-  console.log('submitScore');
+export const submitScore = async (score, kills) => {
   try {
-    const result = await signInWithPopup(auth, provider);
-    //const credential = GoogleAuthProvider.credentialFromResult(result);
-    //const token = credential.accessToken;
-    const { uid, displayName, photoURL } = result.user;
-    //console.log('auth success', result);
-    user = {
-      uid,
-      displayName,
-      photoURL,
-    };
-    console.log('writing score record', result.user);
+    if (!user) {
+      const result = await signInWithPopup(auth, provider);
+      if (!result.user) throw new Error('failed to authenticate');
+    }
 
-    const res = await writeUserData(
+    if (
+      score < userData.topScore &&
+      !prompt(
+        `Are you sure you want to submit this score? It's less than your current top score!`
+      )
+    )
+      return false;
+
+    const success = await writeUserData(
       user.uid,
       user.displayName,
       user.photoURL,
-      score
+      score,
+      kills
     );
-    return res;
+    if (success) userData.setValue(userData.user, score);
+    return success;
   } catch (error) {
-    console.error('failed to authenticate', error);
-    // const errorCode = error.code;
-    // const errorMessage = error.message;
-    // // The email of the user's account used.
-    // const email = error.customData.email;
-    // // The AuthCredential type that was used.
-    // const credential = GoogleAuthProvider.credentialFromError(error);
+    return false;
   }
 };
-
+export const loadScore = async (uid) => {
+  const q = query(ref(db, `scores/${uid}`));
+  const res = [];
+  const snapshot = await get(q);
+  snapshot.forEach((childSnapshot) => {
+    res.push(childSnapshot.val());
+  });
+  return res.length > 0 ? res[1] : 0;
+};
 export const loadScores = async () => {
   const q = query(ref(db, 'scores'), orderByChild('score'), limitToLast(10));
   //const q = query(child(db, 'scores'), orderByChild('score'), limitToLast(5));
@@ -89,4 +117,8 @@ export const loadScores = async () => {
     res.push(childSnapshot.val());
   });
   return res.reverse();
+};
+
+export const logout = async () => {
+  auth.signOut();
 };

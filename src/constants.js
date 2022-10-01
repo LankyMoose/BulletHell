@@ -3,6 +3,7 @@ import { Kamehameha, Slash, SolarFlare } from './lib.js';
 export const menu = document.getElementById('menu');
 export const leaderboard = document.getElementById('leaderboard');
 export const startButton = document.getElementById('startButton');
+export const userContainer = document.getElementById('user');
 export const playerColorEl = document.getElementById('player_color');
 export const scoreEl = document.getElementById('scoreEl');
 export const menuScoreEl = document.getElementById('menuScoreEl');
@@ -239,7 +240,6 @@ export const ITEM_TYPES = [
     cooldown: 5000,
     currentTick: 5000,
     trigger: (player, cx, cy) => {
-      console.log('kamehameha!');
       addAbilityEffect(
         new Kamehameha(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
       );
@@ -251,7 +251,6 @@ export const ITEM_TYPES = [
     cooldown: 3000,
     currentTick: 3000,
     trigger: (player, cx, cy) => {
-      console.log('solar flare!');
       addAbilityEffect(new SolarFlare(player.x, player.y, 20));
     },
   },
@@ -261,7 +260,6 @@ export const ITEM_TYPES = [
     cooldown: 1000,
     currentTick: 1000,
     trigger: (player, cx, cy) => {
-      console.log('slash!');
       addAbilityEffect(
         new Slash(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
       );

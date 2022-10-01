@@ -80,7 +80,7 @@ export class Circle {
           this.r * 2
         );
       } catch (error) {
-        console.log('img fail', this.image);
+        console.error('img failed to be drawn', this.image);
       }
     }
     this.postDraw();
@@ -546,7 +546,7 @@ export class Kamehameha extends Circle {
     this.angle =
       Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
-    this.damage = 10;
+    this.damage = 6;
   }
 
   update() {
@@ -580,7 +580,7 @@ export class SolarFlare extends Circle {
     super(x, y, r, 'yellow', { x: 0, y: 0 });
     this.remainingFrames = 20;
     this.shapeType = 'circle';
-    this.damage = 10;
+    this.damage = 6;
   }
 
   update() {
@@ -611,7 +611,7 @@ export class Slash extends Circle {
     //this.angle = Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.angle = Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
-    this.damage = 10;
+    this.damage = 6;
   }
 
   update() {

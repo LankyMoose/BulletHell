@@ -73,11 +73,16 @@ import {
   submitScoreButton,
   leaderboard,
   playerStatsWrapper,
+  userContainer,
 } from './constants.js';
 
 import { detectCollision, radians_to_degrees, rotate } from './util.js';
-import { loadScores, submitScore } from './firebase.js';
+import { loadScores, logout, submitScore, userData } from './firebase.js';
 //import {  } from './util.js';
+
+userData.subscribe((res) => {
+  renderUser(res);
+});
 
 let enemySpawnInterval;
 let enemySpawnTime = 1000;
@@ -345,7 +350,7 @@ function startGame() {
   resetScore();
   submitScoreDiv.style.display = 'none';
   submitScoreButton.setAttribute('disabled', '');
-
+  startButton.setAttribute('disabled', '');
   gameRunning = true;
   menu.classList.add('hide');
   clearBullets();
@@ -389,7 +394,6 @@ function resumeGame() {
 
 function renderPlayerStats() {
   playerStatsWrapper.style.opacity = 1;
-  console.log(playerStatsWrapper);
   playerStatsEl.innerHTML = '';
   Object.entries(player).forEach(([k, v]) => {
     const displayKey = PLAYER_STAT_DISPLAYS.find((item) => item.key == k);
@@ -404,6 +408,11 @@ function hidePlayerStats() {
   playerStatsWrapper.style.opacity = 0;
 }
 
+let subData = {
+  score: 0,
+  kills: 0,
+};
+
 function endGame() {
   clearAnimId(animId);
   window.clearInterval(enemySpawnInterval);
@@ -415,6 +424,11 @@ function endGame() {
   menuKillsEl.innerText = player.kills;
   killsEl.innerText = 0;
 
+  subData = {
+    score,
+    kills: player.kills,
+  };
+
   resetPlayer();
   renderPlayerLife();
   heatBarEl.value = 0;
@@ -424,7 +438,7 @@ function endGame() {
   enemySpawnTime = 1000;
 
   removeEventHandlers();
-
+  startButton.removeAttribute('disabled');
   submitScoreDiv.style.display = 'block';
   submitScoreButton.removeAttribute('disabled');
   renderLeaderboard();
@@ -458,7 +472,6 @@ function showLevelUpScreen() {
       btn.dataset.rarity = b.rarity;
       for (let mod of b.modifiers) {
         const amount = mod.amounts[b.rarity];
-        console.log('mod amount', amount, amount.toFixed(2));
         const displayKey = PLAYER_STAT_DISPLAYS.find(
           (item) => item.key == mod.key
         );
@@ -474,14 +487,10 @@ function showLevelUpScreen() {
 }
 
 function onBonusSelected(bonus) {
-  console.log('bonus selected', bonus);
   if (bonus.type == 'attribute') {
     bonus.modifiers.forEach((m) => {
-      //console.log(`gained ${m.key}: ${m.amounts[bonus.rarity]}`);
-      //console.log(`prev value: ${player[m.key]}`);
       const amount = m.amounts[bonus.rarity];
       player[m.key] += amount;
-      //console.log(`new value: ${player[m.key]}`);
       if (m.triggers) {
         m.triggers.forEach((t) => t(player, amount));
       }
@@ -558,14 +567,23 @@ startButton.addEventListener('click', () => {
 });
 
 submitScoreButton.addEventListener('click', async () => {
-  console.log('submitting score...');
-  const res = await submitScore(score);
-  if (res) alert('score submitted!');
-  renderLeaderboard();
+  submitScoreButton.setAttribute('disabled', '');
+  const success = await submitScore(subData.score, subData.kills);
+  submitScoreButton.removeAttribute('disabled');
+  if (success) {
+    submitScoreDiv.style.display = 'none';
+    alert('score submitted!');
+    renderLeaderboard();
+  }
+  alert('failed to submit your score :C');
 });
 
 document.addEventListener('mousemove', (e) => (player.lastMouseMove = e));
-
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  e.stopPropagation();
+});
 addEventListener('resize', () => {
   const old = { x, y };
   canvas.width = innerWidth;
@@ -600,3 +618,30 @@ async function renderLeaderboard() {
 }
 
 renderLeaderboard();
+
+function renderUser(userData) {
+  userContainer.innerHTML = '';
+  if (userData.user) {
+    const userDataRow = Object.assign(document.createElement('div'), {
+      className: 'user-data',
+    });
+    userDataRow.append(
+      Object.assign(document.createElement('img'), {
+        src: userData.user.photoURL,
+      }),
+      Object.assign(document.createElement('span'), {
+        innerText: userData.user.displayName,
+      }),
+      Object.assign(document.createElement('button'), {
+        innerText: 'Log out',
+        onclick: logout(),
+      })
+    );
+    userContainer.appendChild(userDataRow);
+  }
+  userContainer.appendChild(
+    Object.assign(document.createElement('span'), {
+      innerText: `Your top score: ${userData.topScore}`,
+    })
+  );
+}

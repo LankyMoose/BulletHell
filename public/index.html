@@ -30,7 +30,7 @@
         color: #777;
         margin: 0;
       }
-      #menu button {
+      .styledButton {
         background-color: green;
         color: #fff;
         border: 0;
@@ -46,12 +46,13 @@
         box-shadow: 3px 3px 5px -3px rgba(0, 0, 0, 0.5),
           inset 3px 3px 5px rgba(255, 255, 255, 0.5);
         transition: background 0.05s linear;
+        opacity: 0.8;
       }
-      button:hover {
-        background-color: #5386e8;
+      .styledButton:hover {
+        opacity: 1;
       }
-      button:active {
-        background-color: #2357bb;
+      .styledButton:active {
+        text-size-adjust: 0 0 3px black;
       }
       canvas {
         width: 100%;
@@ -249,7 +250,7 @@
       #leaderboard_wrapper {
         background: #fafafa;
         border-radius: 2em;
-        padding: 2em 4em;
+        padding: 2em 3em;
         margin-bottom: 1rem;
         text-align: center;
         box-shadow: 0 0 50px black, inset 0 0 10px black;
@@ -262,6 +263,22 @@
         padding: 0;
         font-size: small;
         font-weight: bold;
+      }
+      .user-data {
+        display: flex;
+        gap: 1em;
+        align-items: center;
+        padding: 1em;
+        background: #eee;
+        border-radius: 1em;
+        margin-bottom: 1em;
+        cursor: pointer;
+        box-shadow: none;
+        border: 2px solid rgba(0, 0, 0, 0.3);
+      }
+      .user-data img {
+        border-radius: 50%;
+        max-width: 50px;
       }
     </style>
   </head>
@@ -327,12 +344,17 @@
         <div id="submit_score" style="display: none; margin-top: 2em">
           <button
             id="submit_button"
+            class="styledButton"
             style="background-color: #346fe1; font-size: 1em; padding: 1em"
             type="button"
             disabled
           >
             Submit Score
           </button>
+        </div>
+        <hr style="opacity: 0.5; margin-bottom: 1rem; margin-top: 1rem" />
+        <div id="user">
+          <span>Your top score: 0</span>
         </div>
       </div>
       <div class="inner">
@@ -354,7 +376,9 @@
           </div>
         </div>
         <div>
-          <button type="button" id="startButton">Start Game</button>
+          <button type="button" id="startButton" class="styledButton">
+            Start Game
+          </button>
         </div>
         <div>
           <label>Player Color: </label>
