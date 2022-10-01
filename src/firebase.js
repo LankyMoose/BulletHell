@@ -88,9 +88,9 @@ export const submitScore = async (score, kills) => {
       return false;
 
     const success = await writeUserData(
-      user.uid,
-      user.displayName,
-      user.photoURL,
+      userData.user.uid,
+      userData.user.displayName,
+      userData.user.photoURL,
       score,
       kills
     );
