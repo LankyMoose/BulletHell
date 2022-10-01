@@ -82,13 +82,13 @@ export const PLAYER_STAT_DISPLAYS = [
 export const BONUS_TYPES = [
   {
     type: 'attribute',
-    name: '+ Damage',
+    name: '+ Bullet Damage',
     weight: 5,
-    rarity_weights: [6, 3, 1],
+    rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
         key: 'damage',
-        amounts: [2, 4, 8],
+        amounts: [1, 3, 5, 8],
       },
     ],
   },
@@ -96,11 +96,11 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Max Health',
     weight: 5,
-    rarity_weights: [6, 3, 1],
+    rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
         key: 'maxLife',
-        amounts: [20, 50, 80],
+        amounts: [10, 20, 50, 80],
         triggers: [
           (player, amount) => {
             const percent = player.maxLife / amount;
@@ -115,11 +115,11 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Max Speed',
     weight: 5,
-    rarity_weights: [6, 3, 1],
+    rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
         key: 'maxSpeed',
-        amounts: [2, 5, 8],
+        amounts: [2, 4, 8, 12],
       },
     ],
   },
@@ -127,11 +127,11 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Bullet Speed',
     weight: 5,
-    rarity_weights: [6, 3, 1],
+    rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
         key: 'bulletSpeed',
-        amounts: [1, 3, 5],
+        amounts: [2, 4, 7, 12],
       },
     ],
   },
@@ -139,11 +139,11 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '- Bullet Cooldown',
     weight: 5,
-    rarity_weights: [6, 3, 1],
+    rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
         key: 'shootSpeed',
-        amounts: [-4, -10, -18],
+        amounts: [-3, -7, -10, -15],
         triggers: [
           () => {
             window.clearShootInterval();
@@ -157,11 +157,11 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ XP Multiplier',
     weight: 8,
-    rarity_weights: [6, 3, 1],
+    rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
         key: 'xpMulti',
-        amounts: [0.4, 1, 2],
+        amounts: [0.4, 1, 2, 4],
       },
     ],
   },
@@ -169,11 +169,11 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Critical Chance',
     weight: 5,
-    rarity_weights: [6, 3, 1],
+    rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
         key: 'critChance',
-        amounts: [4, 8, 16],
+        amounts: [4, 7, 12, 18],
       },
     ],
   },
@@ -181,11 +181,11 @@ export const BONUS_TYPES = [
     type: 'attribute',
     name: '+ Critical Multiplier',
     weight: 5,
-    rarity_weights: [6, 3, 1],
+    rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
         key: 'critDamageMulti',
-        amounts: [0.07, 0.15, 0.35],
+        amounts: [0.07, 0.15, 0.35, 0.5],
       },
     ],
   },
@@ -236,7 +236,7 @@ export const ITEM_TYPES = [
   {
     name: 'Laser',
     isAbility: true,
-    cooldown: 2000,
+    cooldown: 5000,
     trigger: (player, cx, cy) => {
       addAbilityEffect(
         new Kamehameha(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
@@ -246,7 +246,7 @@ export const ITEM_TYPES = [
   {
     name: 'Explode',
     isAbility: true,
-    cooldown: 2000,
+    cooldown: 3000,
     trigger: (player, cx, cy) => {
       addAbilityEffect(new SolarFlare(player.x, player.y, 20));
     },
@@ -254,7 +254,7 @@ export const ITEM_TYPES = [
   {
     name: 'Slash',
     isAbility: true,
-    cooldown: 2000,
+    cooldown: 1000,
     trigger: (player, cx, cy) => {
       addAbilityEffect(
         new Slash(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)

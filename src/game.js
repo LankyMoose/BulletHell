@@ -174,53 +174,55 @@ function update() {
         }
       }
     }
-    for (let j = 0; j < abilityEffects.length; j++) {
-      const ae = abilityEffects[j];
-      if (ae.shapeType == 'square') {
-        const angle = radians_to_degrees(ae.angle);
-        const rotatedEnemyCoords = rotate(
-          player.x,
-          player.y,
-          e.x,
-          e.y,
-          angle,
-          true
-        );
-        const projectedEnemy = {
-          x: rotatedEnemyCoords.x,
-          y: rotatedEnemyCoords.y,
-          r: e.r,
-        };
-        if (detectCollision(ae, projectedEnemy)) {
-          let isCrit = false;
-          if (player.critChance > 0) {
-            isCrit = player.critChance / 100 > Math.random();
-          }
-          const damage = Math.floor(
-            isCrit ? player.damage * player.critDamageMulti : player.damage
+    if (!enemyDestroyed) {
+      for (let j = 0; j < abilityEffects.length; j++) {
+        const ae = abilityEffects[j];
+        if (ae.shapeType == 'square') {
+          const angle = radians_to_degrees(ae.angle);
+          const rotatedEnemyCoords = rotate(
+            player.x,
+            player.y,
+            e.x,
+            e.y,
+            angle,
+            true
           );
-          addDamageText(new DamageText(e.x, e.y, damage, isCrit));
-          if (e.r - damage > Enemy.minSize) {
-            e.r -= damage;
-          } else {
-            enemyDestroyed = true;
+          const projectedEnemy = {
+            x: rotatedEnemyCoords.x,
+            y: rotatedEnemyCoords.y,
+            r: e.r,
+          };
+          if (detectCollision(ae, projectedEnemy)) {
+            let isCrit = false;
+            if (player.critChance > 0) {
+              isCrit = player.critChance / 100 > Math.random();
+            }
+            const damage = Math.floor(
+              isCrit ? ae.damage * player.critDamageMulti : ae.damage
+            );
+            addDamageText(new DamageText(e.x, e.y, damage, isCrit));
+            if (e.r - damage > Enemy.minSize) {
+              e.r -= damage;
+            } else {
+              enemyDestroyed = true;
+            }
           }
-        }
-      } else {
-        const dist = Math.hypot(ae.x - e.x, ae.y - e.y);
-        if (dist - e.r - ae.r < 1) {
-          let isCrit = false;
-          if (player.critChance > 0) {
-            isCrit = player.critChance / 100 > Math.random();
-          }
-          const damage = Math.floor(
-            isCrit ? player.damage * player.critDamageMulti : player.damage
-          );
-          addDamageText(new DamageText(e.x, e.y, damage, isCrit));
-          if (e.r - damage > Enemy.minSize) {
-            e.r -= damage;
-          } else {
-            enemyDestroyed = true;
+        } else {
+          const dist = Math.hypot(ae.x - e.x, ae.y - e.y);
+          if (dist - e.r - ae.r < 1) {
+            let isCrit = false;
+            if (player.critChance > 0) {
+              isCrit = player.critChance / 100 > Math.random();
+            }
+            const damage = Math.floor(
+              isCrit ? player.damage * player.critDamageMulti : player.damage
+            );
+            addDamageText(new DamageText(e.x, e.y, damage, isCrit));
+            if (e.r - damage > Enemy.minSize) {
+              e.r -= damage;
+            } else {
+              enemyDestroyed = true;
+            }
           }
         }
       }
@@ -281,6 +283,7 @@ function queuePlayerLevelUp() {
     player.level++;
     player.next_level *= XP_REQ_MULTI_PER_LEVEL;
     player.onLevelUp();
+    handleProgression();
     showLevelUpScreen();
   });
 }

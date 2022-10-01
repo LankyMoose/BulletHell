@@ -108,7 +108,7 @@ export class Player extends Circle {
     this.bulletSpeed = 17.5;
     this.maxSpeed = 10;
     this.shootSpeed = 400;
-    this.damage = 10;
+    this.damage = 6;
     this.critChance = 10;
     this.critDamageMulti = 1.5;
     this.kills = 0;
@@ -533,6 +533,7 @@ export class Kamehameha extends Circle {
     this.angle =
       Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
+    this.damage = 10;
   }
 
   update() {
@@ -566,6 +567,7 @@ export class SolarFlare extends Circle {
     super(x, y, r, 'yellow', { x: 0, y: 0 });
     this.remainingFrames = 20;
     this.shapeType = 'circle';
+    this.damage = 10;
   }
 
   update() {
@@ -591,11 +593,12 @@ export class Slash extends Circle {
     this.remainingFrames = this.totalFrames;
     this.targetX = clientX;
     this.targetY = clientY;
-    this.h = 100;
+    this.h = 150;
     this.w = 20;
     //this.angle = Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.angle = Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
+    this.damage = 10;
   }
 
   update() {
@@ -623,7 +626,7 @@ export class Slash extends Circle {
 
 // ability ideas
 // forked lightning ? - seems expensive to compute and draw
-// melee slash/roundhouse attack - yes
+// orbiting projectile?
 //
 
 // game ideas
