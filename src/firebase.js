@@ -120,5 +120,8 @@ export const loadScores = async () => {
 };
 
 export const logout = async () => {
-  auth.signOut();
+  console.log('logging out..');
+  await auth.signOut();
+  userData.clearValue();
+  console.log('logged out?');
 };

@@ -635,7 +635,11 @@ function renderUser(userData) {
       }),
       Object.assign(document.createElement('button'), {
         innerText: 'Log out',
-        onclick: logout(),
+        type: 'button',
+        onclick: () => {
+          console.log('log out btn clicked...');
+          logout();
+        },
       })
     );
     userContainer.appendChild(userDataRow);
