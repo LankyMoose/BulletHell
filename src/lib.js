@@ -278,14 +278,14 @@ export class Player extends Circle {
   }
 
   triggerAbility(ability, mouseEvt) {
-    ability.trigger(mouseEvt.clientX, mouseEvt.clientY, this);
+    console.log('triggering ability...', ability);
+    ability.trigger(this, mouseEvt.clientX, mouseEvt.clientY);
   }
 
   startAbilityCooldowns() {
     this.stopAbilityCooldowns();
     const abilities = this.items.filter((i) => i.isAbility);
     for (let ability of abilities) {
-      console.log('activating ability...', ability);
       this.cooldownRefs.push(
         window.setInterval(() => {
           this.triggerAbility(ability, this.lastMouseMove);
@@ -321,6 +321,7 @@ export class Enemy extends Circle {
     this.cur_frame = 0;
     this.cur_image = 0;
     this.speed = 1;
+    this.aggroRange = 500;
     this.images = {
       left: ['img_demon', 'img_demon_open'],
       right: ['img_demon_r', 'img_demon_r_open'],
@@ -334,10 +335,10 @@ export class Enemy extends Circle {
       },
     };
   }
-  update() {
+
+  followPlayer() {
     let speedMod = this.speed + player.level / 5;
     if (speedMod <= 1) speedMod = 1;
-
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
     const vel = {
       x: Math.cos(angle) * speedMod,
@@ -348,8 +349,13 @@ export class Enemy extends Circle {
       x: vel.x,
       y: vel.y,
     });
-
+  }
+  update() {
     super.update();
+    const dist = Math.hypot(this.x - player.x, this.y - player.y);
+    if (dist - player.r - this.r < this.aggroRange) {
+      this.followPlayer();
+    }
     this.cur_frame++;
     if (this.cur_frame > this.img_update_frames) Enemy.setImage(this);
   }
@@ -371,6 +377,7 @@ export class Enemy extends Circle {
     };
     const newEnemy = new Enemy(coords.x, coords.y, rad, 'transparent', vel);
     Enemy.setImage(newEnemy);
+    newEnemy.followPlayer();
     addEnemy(newEnemy);
   }
 
@@ -576,3 +583,48 @@ export class SolarFlare extends Circle {
     this.remainingFrames -= 1;
   }
 }
+
+export class Slash extends Circle {
+  constructor(x, y, r, color, vel, clientX, clientY) {
+    super(x, y, r, color, vel);
+    this.totalFrames = 14;
+    this.remainingFrames = this.totalFrames;
+    this.targetX = clientX;
+    this.targetY = clientY;
+    this.h = 100;
+    this.w = 20;
+    //this.angle = Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
+    this.angle = Math.atan2(this.y - this.targetY, this.x - this.targetX);
+    this.shapeType = 'square';
+  }
+
+  update() {
+    this.x = player.x;
+    this.y = player.y;
+    this.angle += Math.PI / this.totalFrames;
+    this.remainingFrames -= 1;
+  }
+
+  draw(lagOffset) {
+    this.preDraw(lagOffset);
+    c.save();
+    const cos = Math.cos(this.angle);
+    const sin = Math.sin(this.angle);
+    c.transform(cos, sin, -sin, cos, this.renderX, this.renderY);
+    c.beginPath();
+    c.rect(0 - this.w / 2, 0 + player.r, this.w, this.h);
+    c.fillStyle = this.color;
+    c.fill();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.restore();
+    this.postDraw();
+  }
+}
+
+// ability ideas
+// forked lightning ? - seems expensive to compute and draw
+// melee slash/roundhouse attack - yes
+//
+
+// game ideas
+// black hole spawns, transforms graphics rendering and different enemies?

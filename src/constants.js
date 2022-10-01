@@ -1,4 +1,4 @@
-import { Kamehameha, SolarFlare } from './lib.js';
+import { Kamehameha, Slash, SolarFlare } from './lib.js';
 
 export const menu = document.getElementById('menu');
 export const leaderboard = document.getElementById('leaderboard');
@@ -199,6 +199,11 @@ export const BONUS_TYPES = [
     name: 'Explode',
     weight: 7,
   },
+  {
+    type: 'ability',
+    name: 'Slash',
+    weight: 10,
+  },
 ];
 
 export const ITEM_TYPES = [
@@ -232,7 +237,7 @@ export const ITEM_TYPES = [
     name: 'Laser',
     isAbility: true,
     cooldown: 2000,
-    trigger: (cx, cy, player) => {
+    trigger: (player, cx, cy) => {
       addAbilityEffect(
         new Kamehameha(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
       );
@@ -242,8 +247,18 @@ export const ITEM_TYPES = [
     name: 'Explode',
     isAbility: true,
     cooldown: 2000,
-    trigger: (cx, cy, player) => {
+    trigger: (player, cx, cy) => {
       addAbilityEffect(new SolarFlare(player.x, player.y, 20));
+    },
+  },
+  {
+    name: 'Slash',
+    isAbility: true,
+    cooldown: 2000,
+    trigger: (player, cx, cy) => {
+      addAbilityEffect(
+        new Slash(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
+      );
     },
   },
 ];

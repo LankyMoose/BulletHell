@@ -228,22 +228,12 @@ function update() {
 
     if (enemyDestroyed) {
       enemiesToRemove.push(i);
-
-      nextFrameActionQueue.push(() => {
-        player.xp += XP_PER_KILL + e.r * player.xpMulti;
-        if (player.xp >= player.next_level) {
-          player.level++;
-          player.next_level *= XP_REQ_MULTI_PER_LEVEL;
-          player.onLevelUp();
-          pauseGame();
-          showLevelUpScreen();
-        }
-
-        addScore(e.killValue);
-        player.kills++;
-        player.heat += 5 - Math.log(5);
-        handleProgression();
-      });
+      player.xp += XP_PER_KILL + e.r * player.xpMulti;
+      addScore(e.killValue);
+      player.kills++;
+      player.heat += 5 - Math.log(5);
+      handleProgression();
+      if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
   }
   for (let index of enemiesToRemove) {
@@ -284,6 +274,15 @@ function update() {
 
   player.heat -= 0.025;
   if (player.heat < 0) player.heat = 0;
+}
+
+function queuePlayerLevelUp() {
+  nextFrameActionQueue.push(() => {
+    player.level++;
+    player.next_level *= XP_REQ_MULTI_PER_LEVEL;
+    player.onLevelUp();
+    showLevelUpScreen();
+  });
 }
 
 function render(lagOffset) {
@@ -375,6 +374,7 @@ function togglePause() {
 }
 
 function pauseGame() {
+  console.log('game pause');
   clearAnimId();
   window.clearInterval(enemySpawnInterval);
   window.clearShootInterval();
@@ -426,6 +426,7 @@ function endGame() {
 
   submitScoreDiv.style.display = 'block';
   submitScoreButton.removeAttribute('disabled');
+  renderLeaderboard();
 }
 
 window.renderPlayerLife = () => {
@@ -436,8 +437,10 @@ function hideLevelUpScreen() {
   levelUpScreenShowing = false;
   levelUpOptionsEl.innerHTML = '';
   levelUpScreen.classList.add('hide');
+  resumeGame();
 }
 function showLevelUpScreen() {
+  pauseGame();
   levelUpScreenShowing = true;
   levelUpScreen.classList.remove('hide');
   const bonusSet = new BonusSet();
@@ -486,7 +489,6 @@ function onBonusSelected(bonus) {
   }
   renderPlayerStats();
   hideLevelUpScreen();
-  resumeGame();
 }
 
 function attachEventHandlers() {
@@ -557,6 +559,7 @@ submitScoreButton.addEventListener('click', async () => {
   console.log('submitting score...');
   const res = await submitScore(score);
   if (res) alert('score submitted!');
+  renderLeaderboard();
 });
 
 document.addEventListener('mousemove', (e) => (player.lastMouseMove = e));
@@ -586,6 +589,7 @@ addEventListener('resize', () => {
 });
 
 async function renderLeaderboard() {
+  leaderboard.innerHTML = 'Loading...';
   const scores = await loadScores();
   leaderboard.innerHTML = `
     <ol>
@@ -602,6 +606,4 @@ async function renderLeaderboard() {
   `;
 }
 
-(async () => {
-  renderLeaderboard();
-})();
+renderLeaderboard();
