@@ -5,7 +5,6 @@ import {
   ref,
   set,
   query,
-  child,
   get,
   orderByChild,
   limitToLast,
@@ -81,7 +80,7 @@ export const submitScore = async (score, kills) => {
 
     if (
       score < userData.topScore &&
-      !prompt(
+      !confirm(
         `Are you sure you want to submit this score? It's less than your current top score!`
       )
     )
