@@ -363,6 +363,8 @@ function startGame() {
   startButton.setAttribute('disabled', '');
   gameRunning = true;
   menu.classList.add('hide');
+  window.document.activeElement?.blur();
+  canvas.focus();
   clearBullets();
   clearEnemies();
   clearParticles();
