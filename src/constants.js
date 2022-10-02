@@ -1,4 +1,10 @@
-import { Kamehameha, Slash, SolarFlare } from './lib.js';
+import {
+  addBonusToPool,
+  Kamehameha,
+  removeBonusFromPool,
+  Slash,
+  SolarFlare,
+} from './lib';
 
 export const menu = document.getElementById('menu');
 export const leaderboard = document.getElementById('leaderboard');
@@ -70,7 +76,11 @@ export const PLAYER_STAT_DISPLAYS = [
   },
   {
     key: 'damage',
-    displayText: 'Bullet Damage',
+    displayText: 'Damage',
+  },
+  {
+    key: 'size',
+    displayText: 'Size',
   },
   {
     key: 'critChance',
@@ -209,6 +219,80 @@ export const BONUS_TYPES = [
     //weight: 500,
   },
 ];
+const BONUS_UPGRADES = [
+  {
+    type: 'upgrade',
+    name: 'Slash',
+    weight: 4,
+    rarity_weights: [9, 6, 4],
+    modifiers: [
+      {
+        key: 'damage',
+        amounts: [1, 2, 3],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Slash',
+    weight: 4,
+    rarity_weights: [9, 6, 4],
+    modifiers: [
+      {
+        key: 'size',
+        amounts: [8, 16, 24],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Explode',
+    weight: 5,
+    rarity_weights: [9, 6, 4],
+    modifiers: [
+      {
+        key: 'damage',
+        amounts: [1, 2, 4],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Explode',
+    weight: 5,
+    rarity_weights: [9, 6, 4],
+    modifiers: [
+      {
+        key: 'size',
+        amounts: [8, 16, 24],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Laser',
+    weight: 5,
+    rarity_weights: [9, 6, 4],
+    modifiers: [
+      {
+        key: 'damage',
+        amounts: [1, 2, 3],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Laser',
+    weight: 5,
+    rarity_weights: [9, 6, 4],
+    modifiers: [
+      {
+        key: 'size',
+        amounts: [3, 6, 9],
+      },
+    ],
+  },
+];
 
 export const ITEM_TYPES = [
   {
@@ -240,32 +324,60 @@ export const ITEM_TYPES = [
   {
     name: 'Laser',
     isAbility: true,
-    cooldown: 5000,
-    currentTick: 5000,
-    trigger: (player, cx, cy) => {
-      addAbilityEffect(
-        new Kamehameha(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
-      );
+    cooldown: 4e3,
+    remainingMs: 32,
+    size: 22,
+    damage: 3,
+    trigger: (player, self, cx, cy) => {
+      addAbilityEffect(new Kamehameha(player.x, player.y, self, cx, cy));
+    },
+    onAdded: (bonus) => {
+      removeBonusFromPool(bonus);
+      for (const upgrade of BONUS_UPGRADES.filter(
+        (bu) => bu.name == bonus.name
+      )) {
+        addBonusToPool(upgrade);
+      }
     },
   },
   {
     name: 'Explode',
     isAbility: true,
-    cooldown: 3000,
-    currentTick: 3000,
-    trigger: (player, cx, cy) => {
-      addAbilityEffect(new SolarFlare(player.x, player.y, 20));
+    cooldown: 8e3,
+    remainingMs: 32,
+    size: 50,
+    damage: 4,
+    trigger: (player, self, cx, cy) => {
+      addAbilityEffect(new SolarFlare(player.x, player.y, self));
+    },
+    onAdded: (bonus) => {
+      removeBonusFromPool(bonus);
+      for (const upgrade of BONUS_UPGRADES.filter(
+        (bu) => bu.name == bonus.name
+      )) {
+        addBonusToPool(upgrade);
+      }
     },
   },
   {
     name: 'Slash',
     isAbility: true,
-    cooldown: 1000,
-    currentTick: 1000,
-    trigger: (player, cx, cy) => {
+    cooldown: 1.5e3,
+    remainingMs: 32,
+    size: 150,
+    damage: 3,
+    trigger: (player, self, cx, cy) => {
       addAbilityEffect(
-        new Slash(player.x, player.y, 20, 'yellow', { x: 0, y: 0 }, cx, cy)
+        new Slash(player.x, player.y, self, 'yellow', { x: 0, y: 0 }, cx, cy)
       );
+    },
+    onAdded: (bonus) => {
+      removeBonusFromPool(bonus);
+      for (const upgrade of BONUS_UPGRADES.filter(
+        (bu) => bu.name == bonus.name
+      )) {
+        addBonusToPool(upgrade);
+      }
     },
   },
 ];

@@ -198,14 +198,15 @@ export class Player extends Circle {
 
     const abilities = this.items.filter((i) => i.isAbility);
     for (let ability of abilities) {
-      ability.currentTick += 16;
-      if (ability.currentTick >= ability.cooldown) {
+      ability.remainingMs -= 16;
+      if (ability.remainingMs <= 0) {
         ability.trigger(
           this,
+          ability,
           this.lastMouseMove.clientX,
           this.lastMouseMove.clientY
         );
-        ability.currentTick = 0;
+        ability.remainingMs = ability.cooldown;
       }
     }
   }
@@ -455,6 +456,41 @@ export class Item extends Circle {
   }
 }
 
+let bonusPool = [...BONUS_TYPES];
+export const resetBonusPool = () => (bonusPool = [...BONUS_TYPES]);
+export const addBonusToPool = (bonus) => bonusPool.push(bonus);
+export const removeBonusFromPool = (bonus) => {
+  for (let i = 0; i < bonusPool.length; i++) {
+    if (bonusPool[i].name == bonus.name) {
+      bonusPool.splice(i, 1);
+    }
+  }
+};
+export const handleBonusSelection = (bonus) => {
+  if (bonus.type == 'attribute') {
+    bonus.modifiers.forEach((m) => {
+      const amount = m.amounts[bonus.rarity];
+      player[m.key] += amount;
+      if (m.triggers) {
+        m.triggers.forEach((t) => t(player, amount));
+      }
+    });
+  } else if (bonus.type == 'ability') {
+    const itemDef = { ...ITEM_TYPES.find((it) => it.name == bonus.name) };
+    player.items.push(itemDef);
+    if (itemDef.onAdded) itemDef.onAdded(bonus);
+  } else if ((bonus.type = 'upgrade')) {
+    const playerItem = player.items.find((i) => i.name == bonus.name);
+    bonus.modifiers.forEach((m) => {
+      const amount = m.amounts[bonus.rarity];
+      playerItem[m.key] += amount;
+      if (m.triggers) {
+        m.triggers.forEach((t) => t(player, amount));
+      }
+    });
+  }
+};
+
 export class Bonus {
   constructor(type, name, modifiers, rarity) {
     this.type = type;
@@ -469,26 +505,21 @@ export class BonusSet {
     this.generate();
   }
   generate() {
-    const filteredBonuses = BONUS_TYPES.filter((bt) => {
-      return (
-        bt.type !== 'ability' || !player.items.some((i) => i.name == bt.name)
-      );
-    });
     while (this.items.length < 3) {
-      const wm = getWeightMap(filteredBonuses);
+      const wm = getWeightMap(bonusPool);
 
       const newItemIndex = getRandomWeightMapIndex(wm);
-      const itemDef = filteredBonuses[newItemIndex];
+      const bonusDef = bonusPool[newItemIndex];
 
-      if (!this.items.some((x) => x.name == itemDef.name)) {
+      if (!this.items.some((x) => x.name == bonusDef.name)) {
         let rarity = 0;
-        if (itemDef.rarity_weights) {
-          const rarityWeightMap = getWeightMap(itemDef.rarity_weights);
+        if (bonusDef.rarity_weights) {
+          const rarityWeightMap = getWeightMap(bonusDef.rarity_weights);
           rarity = getRandomWeightMapIndex(rarityWeightMap);
         }
 
         this.items.push(
-          new Bonus(itemDef.type, itemDef.name, itemDef.modifiers, rarity)
+          new Bonus(bonusDef.type, bonusDef.name, bonusDef.modifiers, rarity)
         );
       }
     }
@@ -536,17 +567,17 @@ export class DamageText {
 }
 
 export class Kamehameha extends Circle {
-  constructor(x, y, r, color, vel, clientX, clientY) {
-    super(x, y, r, color, vel);
+  constructor(x, y, itemInstance, clientX, clientY) {
+    super(x, y, itemInstance.size, 'yellow', { x: 0, y: 0 });
     this.remainingFrames = 40;
     this.targetX = clientX;
     this.targetY = clientY;
     this.h = 5;
-    this.w = 20;
+    this.w = this.r;
     this.angle =
       Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
-    this.damage = 6;
+    this.damage = itemInstance.damage;
   }
 
   update() {
@@ -576,11 +607,11 @@ export class Kamehameha extends Circle {
 }
 
 export class SolarFlare extends Circle {
-  constructor(x, y, r) {
-    super(x, y, r, 'yellow', { x: 0, y: 0 });
+  constructor(x, y, itemInstance) {
+    super(x, y, itemInstance.size, 'yellow', { x: 0, y: 0 });
     this.remainingFrames = 20;
     this.shapeType = 'circle';
-    this.damage = 6;
+    this.damage = itemInstance.damage;
   }
 
   update() {
@@ -591,7 +622,7 @@ export class SolarFlare extends Circle {
     //   this.w--;
     // }
     if (this.remainingFrames > 10) {
-      this.r += 7;
+      this.r += 8;
     } else {
       this.alpha -= 0.1;
     }
@@ -600,18 +631,18 @@ export class SolarFlare extends Circle {
 }
 
 export class Slash extends Circle {
-  constructor(x, y, r, color, vel, clientX, clientY) {
-    super(x, y, r, color, vel);
+  constructor(x, y, itemInstance, color, vel, clientX, clientY) {
+    super(x, y, itemInstance.size, color, vel);
     this.totalFrames = 14;
     this.remainingFrames = this.totalFrames;
     this.targetX = clientX;
     this.targetY = clientY;
-    this.h = 150;
+    this.h = this.r;
     this.w = 20;
     //this.angle = Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.angle = Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
-    this.damage = 6;
+    this.damage = itemInstance.damage;
   }
 
   update() {
@@ -638,9 +669,15 @@ export class Slash extends Circle {
 }
 
 // ability ideas
-// forked lightning ? - seems expensive to compute and draw
-// orbiting projectile?
-//
+// orbiting projectiles
+// AOE temporal field
+// dash
+// gravity field (throwable?)
+// consider i-frames?
+// bullet speed a bit weak?
 
 // game ideas
 // black hole spawns, transforms graphics rendering and different enemies?
+// add life bar
+
+// possible issue - mutli bullets dropping at same time?

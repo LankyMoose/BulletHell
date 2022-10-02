@@ -5,7 +5,7 @@ window.lag = 0;
 window.requestAnimationFrame =
   window.requestAnimationFrame ||
   function (callback) {
-    window.setTimeout(callback, window.frameRate);
+    window.setTimeout(callback, window.frameDuration);
   };
 
 import {
@@ -17,6 +17,8 @@ import {
   BonusSet,
   DamageText,
   resetPlayer,
+  handleBonusSelection,
+  resetBonusPool,
 } from './lib.js';
 
 import {
@@ -354,6 +356,7 @@ function handleProgression() {
 
 function startGame() {
   if (gameRunning) return false;
+  resetBonusPool();
   window.start = performance.now();
   resetScore();
   submitScoreDiv.style.display = 'none';
@@ -481,41 +484,43 @@ function showLevelUpScreen() {
   bonusSet.items.forEach((b) => {
     const btn = Object.assign(document.createElement('button'), {
       type: 'button',
-      innerHTML: b.name,
+      innerHTML: b.name + '<br />',
       onclick: () => {
         onBonusSelected(b);
       },
     });
-    if (b.type == 'attribute') {
-      btn.dataset.rarity = b.rarity;
-      for (let mod of b.modifiers) {
-        const amount = mod.amounts[b.rarity];
-        const displayKey = PLAYER_STAT_DISPLAYS.find(
-          (item) => item.key == mod.key
-        );
-        btn.innerHTML = `${displayKey.displayText}: ${
-          amount > 0 ? `+${amount.toFixed(2)}` : amount.toFixed(2)
-        }<br />`;
-      }
-    } else {
-      btn.dataset.item = true;
+    switch (b.type) {
+      case 'attribute':
+        btn.dataset.rarity = b.rarity;
+        btn.innerHTML = '';
+        renderBonusModifiers(btn, b);
+        break;
+      case 'ability':
+        btn.dataset.item = true;
+        break;
+      case 'upgrade':
+        btn.dataset.rarity = b.rarity;
+        renderBonusModifiers(btn, b);
+        break;
+      default:
+        break;
     }
     levelUpOptionsEl.appendChild(btn);
   });
 }
 
-function onBonusSelected(bonus) {
-  if (bonus.type == 'attribute') {
-    bonus.modifiers.forEach((m) => {
-      const amount = m.amounts[bonus.rarity];
-      player[m.key] += amount;
-      if (m.triggers) {
-        m.triggers.forEach((t) => t(player, amount));
-      }
-    });
-  } else if (bonus.type == 'ability') {
-    player.items.push({ ...ITEM_TYPES.find((it) => it.name == bonus.name) });
+function renderBonusModifiers(btn, bonus) {
+  for (let mod of bonus.modifiers) {
+    const amount = mod.amounts[bonus.rarity];
+    const displayKey = PLAYER_STAT_DISPLAYS.find((item) => item.key == mod.key);
+    btn.innerHTML += `${displayKey.displayText}: ${
+      amount > 0 ? `+${amount.toFixed(2)}` : amount.toFixed(2)
+    }<br />`;
   }
+}
+
+function onBonusSelected(bonus) {
+  handleBonusSelection(bonus);
   hideLevelUpScreen();
 }
 
