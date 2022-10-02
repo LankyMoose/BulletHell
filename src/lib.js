@@ -134,7 +134,7 @@ export class Player extends Circle {
     super(...arguments);
     this.speed = 0.5;
     this.bulletSpeed = 17.5;
-    this.maxSpeed = 10;
+    this.maxSpeed = 7;
     this.bulletCooldown = 400;
     this.bulletTick = 0;
     this.damage = 6;
@@ -156,35 +156,82 @@ export class Player extends Circle {
     this.next_level = 1000;
     this.life = 100;
     this.maxLife = 100;
-    this.friction = 0.9;
+    this.friction = 0.8;
     this.cooldownRefs = [];
     this.lastMouseMove = null;
   }
+  applyVelocity() {
+    let dirX = -this.inputs.left + this.inputs.right;
+    let dirY = -this.inputs.up + this.inputs.down;
+
+    if (dirX !== 0 && dirY !== 0) {
+      dirX *= Math.SQRT1_2;
+      dirY *= Math.SQRT1_2;
+      console.log(dirX, dirY);
+    }
+
+    this.vel.x += this.speed * dirX;
+    if (dirY !== 0) {
+      if (this.vel.x > this.maxSpeed / 2) {
+        this.vel.x = this.maxSpeed / 2;
+      } else if (this.vel.x < -this.maxSpeed / 2) {
+        this.vel.x = -this.maxSpeed / 2;
+      }
+    } else {
+      if (this.vel.x > this.maxSpeed) {
+        this.vel.x = this.maxSpeed;
+      } else if (this.vel.x < -this.maxSpeed) {
+        this.vel.x = -this.maxSpeed;
+      }
+    }
+    this.vel.y += this.speed * dirY;
+    if (dirX !== 0) {
+      if (this.vel.y > this.maxSpeed / 2) {
+        this.vel.y = this.maxSpeed / 2;
+      } else if (this.vel.y < -this.maxSpeed / 2) {
+        this.vel.y = -this.maxSpeed / 2;
+      }
+    } else {
+      if (this.vel.y > this.maxSpeed) {
+        this.vel.y = this.maxSpeed;
+      } else if (this.vel.y < -this.maxSpeed) {
+        this.vel.y = -this.maxSpeed;
+      }
+    }
+
+    if (!dirX) this.vel.x *= this.friction;
+    if (!dirY) this.vel.y *= this.friction;
+  }
   update() {
-    let inputDown = false;
     if (this.inputs.left) {
       this.vel.x -= this.speed;
-      inputDown = true;
     }
     if (this.inputs.right) {
       this.vel.x += this.speed;
-      inputDown = true;
     }
     if (this.inputs.down) {
       this.vel.y += this.speed;
-      inputDown = true;
     }
     if (this.inputs.up) {
       this.vel.y -= this.speed;
-      inputDown = true;
     }
     if (this.vel.x > this.maxSpeed) this.vel.x = this.maxSpeed;
     if (this.vel.x < -this.maxSpeed) this.vel.x = -this.maxSpeed;
     if (this.vel.y > this.maxSpeed) this.vel.y = this.maxSpeed;
     if (this.vel.y < -this.maxSpeed) this.vel.y = -this.maxSpeed;
 
-    if (!inputDown) {
+    if (
+      (!this.inputs.left && !this.inputs.right) ||
+      (this.inputs.left && !this.inputs.right && this.vel.x > 0) ||
+      (this.inputs.right && !this.inputs.left && this.vel.x < 0)
+    ) {
       this.vel.x *= this.friction;
+    }
+    if (
+      (!this.inputs.up && !this.inputs.down) ||
+      (this.inputs.up && !this.inputs.down && this.vel.y > 0) ||
+      (this.inputs.down && !this.inputs.up && this.vel.y < 0)
+    ) {
       this.vel.y *= this.friction;
     }
     this.enforceMapBoundaries();
@@ -640,7 +687,8 @@ export class Slash extends Circle {
     this.h = this.r;
     this.w = 20;
     //this.angle = Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
-    this.angle = Math.atan2(this.y - this.targetY, this.x - this.targetX);
+    this.angle =
+      Math.PI + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
     this.damage = itemInstance.damage;
   }
@@ -648,7 +696,7 @@ export class Slash extends Circle {
   update() {
     this.x = player.x;
     this.y = player.y;
-    this.angle += Math.PI / this.totalFrames;
+    this.angle -= Math.PI / this.totalFrames;
     this.remainingFrames -= 1;
   }
 

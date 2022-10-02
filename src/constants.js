@@ -136,7 +136,7 @@ export const BONUS_TYPES = [
     modifiers: [
       {
         key: 'maxSpeed',
-        amounts: [2, 4, 8, 12],
+        amounts: [1, 2, 3, 5],
       },
     ],
   },
