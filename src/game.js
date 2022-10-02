@@ -329,6 +329,38 @@ function render(lagOffset) {
   for (const ae of abilityEffects) {
     ae.draw(lagOffset);
   }
+  renderAbilityIndicators();
+}
+
+function renderAbilityIndicators() {
+  const playerAbilities = player.items.filter((i) => i.isAbility);
+  for (let i = 0; i < playerAbilities.length; i++) {
+    const ability = playerAbilities[i];
+    const iconHeight = 24;
+    const iconWidth = 100;
+    const gap = 10 * i;
+    const leftOffset = i * iconWidth + 69;
+    const topOffset = canvas.height - iconHeight - iconHeight - 10;
+    const curMs = ability.cooldown - ability.remainingMs;
+    const percent = curMs / ability.cooldown;
+    const padding = 4;
+    c.save();
+    c.font = '14px sans-serif';
+    c.fillStyle = 'yellow';
+    c.globalAlpha = 0.25;
+    c.fillRect(leftOffset + gap, topOffset, iconWidth, iconHeight);
+    c.fillRect(leftOffset + gap, topOffset, iconWidth * percent, iconHeight);
+    c.globalAlpha = 1;
+    c.fillStyle = 'white';
+    c.fillText(
+      ability.name,
+      leftOffset + gap + padding,
+      topOffset + padding + 14,
+      iconWidth
+    );
+
+    c.restore();
+  }
 }
 
 function handleProgression() {
