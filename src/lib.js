@@ -156,7 +156,7 @@ export class Player extends Circle {
     this.next_level = 1000;
     this.life = 100;
     this.maxLife = 100;
-    this.friction = FRICTION;
+    this.friction = 0.9;
     this.cooldownRefs = [];
     this.lastMouseMove = null;
   }
