@@ -13,17 +13,19 @@ import {
   addItem,
   canvas,
   BONUS_TYPES,
+  EVENT_TYPES,
 } from './constants.js';
 
 import {
   rotate,
   randomScreenEdgeCoords,
   randomCoords,
+  getRandomByWeight,
   getWeightMap,
   getRandomWeightMapIndex,
 } from './util.js';
-const debug = false;
-const allowEnemySpawn = true;
+export const debug = true;
+const allowEnemySpawn = false;
 const allowPlayerShoot = true;
 function strokeCircle(circle) {
   c.beginPath();
@@ -48,6 +50,7 @@ export class Circle {
     this.color = color;
     this.alpha = 1;
     this.vel = vel;
+    this.fixed = false;
   }
 
   preDraw(lagOffset) {
@@ -87,6 +90,7 @@ export class Circle {
   }
 
   updatePosition() {
+    if (this.fixed) return;
     if (this.vel && !isNaN(this.vel?.y)) this.y += this.vel.y;
     if (this.vel && !isNaN(this.vel?.x)) this.x += this.vel.x;
   }
@@ -392,6 +396,8 @@ export class Enemy extends Circle {
       },
     };
     this.enteredMap = false;
+    this.fixed = false;
+    this.invulnerable = false;
   }
 
   followPlayer() {
@@ -410,12 +416,15 @@ export class Enemy extends Circle {
   }
   update() {
     super.update();
-    const dist = Math.hypot(this.x - player.x, this.y - player.y);
-    if (dist - player.r - this.r < this.aggroRange) {
-      this.followPlayer();
+    if (!this.fixed) {
+      console.log('...not fixed?');
+      const dist = Math.hypot(this.x - player.x, this.y - player.y);
+      if (dist - player.r - this.r < this.aggroRange) {
+        this.followPlayer();
+      }
+      if (!this.enteredMap && this.inMap()) this.enteredMap = true;
+      if (this.enteredMap) this.enforceMapBoundaries();
     }
-    if (!this.enteredMap && this.inMap()) this.enteredMap = true;
-    if (this.enteredMap) this.enforceMapBoundaries();
 
     this.cur_frame++;
     if (this.cur_frame > this.img_update_frames) Enemy.setImage(this);
@@ -425,8 +434,8 @@ export class Enemy extends Circle {
     if (debug) strokeCircle(this);
   }
 
-  static spawn(coords) {
-    if (!allowEnemySpawn) return;
+  static spawn(coords, fixed, invulnerable) {
+    if (!allowEnemySpawn && !fixed) return;
     if (!document.hasFocus()) return;
     const rad = Math.random() * (60 - Enemy.minSize) + Enemy.minSize;
     if (!coords) coords = randomScreenEdgeCoords(rad);
@@ -436,9 +445,15 @@ export class Enemy extends Circle {
       x: Math.cos(angle) * ENEMY_SPEED,
       y: Math.sin(angle) * ENEMY_SPEED,
     };
+    if (fixed) {
+      vel.x = 0;
+      vel.y = 0;
+    }
     const newEnemy = new Enemy(coords.x, coords.y, rad, 'transparent', vel);
+    newEnemy.fixed = fixed;
+    newEnemy.invulnerable = invulnerable;
     Enemy.setImage(newEnemy);
-    newEnemy.followPlayer();
+    if (!fixed) newEnemy.followPlayer();
     addEnemy(newEnemy);
   }
 
@@ -485,8 +500,7 @@ export class Item extends Circle {
 
     const spawnableItems = ITEM_TYPES.filter((it) => it.weight);
 
-    const wm = getWeightMap(spawnableItems);
-    const newItemIndex = getRandomWeightMapIndex(wm);
+    const newItemIndex = getRandomByWeight(spawnableItems);
 
     newItem.itemType = spawnableItems[newItemIndex];
 
@@ -553,9 +567,7 @@ export class BonusSet {
   }
   generate() {
     while (this.items.length < 3) {
-      const wm = getWeightMap(bonusPool);
-
-      const newItemIndex = getRandomWeightMapIndex(wm);
+      const newItemIndex = getRandomByWeight(bonusPool);
       const bonusDef = bonusPool[newItemIndex];
 
       if (!this.items.some((x) => x.name == bonusDef.name)) {

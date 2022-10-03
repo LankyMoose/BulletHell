@@ -1,10 +1,13 @@
 import {
   addBonusToPool,
+  Enemy,
   Kamehameha,
+  player,
   removeBonusFromPool,
   Slash,
   SolarFlare,
 } from './lib';
+import { getRandomByWeight } from './util';
 
 export const menu = document.getElementById('menu');
 export const leaderboard = document.getElementById('leaderboard');
@@ -381,6 +384,46 @@ export const ITEM_TYPES = [
     },
   },
 ];
+
+export const EVENT_TYPES = [
+  {
+    name: 'Horde',
+    weight: 5,
+    cooldown: 2000,
+    remainingMs: 0,
+    activations: 1,
+    functions: [
+      () => {
+        for (let i = 0; i < player.level / 2; i++) {
+          Enemy.spawn();
+        }
+      },
+    ],
+    vfx: [
+      (self) => {
+        c.save();
+        c.fillStyle = 'rgba(255,0,0,' + 1 - self.remainingMs / 1000 + ')';
+        c.fillRect(0, 0, canvas.width, canvas.height);
+        c.fillStyle = 'white';
+        const fs = 24;
+        c.font = fs + 'px sans-serif';
+        c.fillText('Horde!', canvas.width / 2, 100);
+        c.restore();
+      },
+    ],
+  },
+];
+
+export const EVENT_VFX = [{}];
+
+export let events = [];
+export const addEvent = (e) => events.push(b);
+export const removeEvent = (i) => events.splice(i, 1);
+export const clearEvents = () => (events = []);
+export const randomEvent = () => {
+  const evtIndex = getRandomByWeight(EVENT_TYPES);
+  return EVENT_TYPES[evtIndex];
+};
 
 export let bullets = [];
 export const addBullet = (b) => bullets.push(b);

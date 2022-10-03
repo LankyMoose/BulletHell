@@ -19,6 +19,7 @@ import {
   resetPlayer,
   handleBonusSelection,
   resetBonusPool,
+  debug,
 } from './lib.js';
 
 import {
@@ -68,7 +69,6 @@ import {
   lifeEl,
   abilityEffects,
   removeAbilityEffect,
-  ITEM_TYPES,
   clearAnimId,
   playerColorEl,
   submitScoreDiv,
@@ -78,6 +78,9 @@ import {
   userContainer,
   signInDiv,
   signInButton,
+  events,
+  removeEvent,
+  randomEvent,
 } from './constants.js';
 
 import { detectCollision, radians_to_degrees, rotate } from './util.js';
@@ -127,6 +130,7 @@ function main() {
 
 function update() {
   player.update();
+  if (debug) player.xp += 10 * player.xpMulti;
 
   for (let i = 0; i < bullets.length; i++) {
     const b = bullets[i];
@@ -177,6 +181,7 @@ function update() {
 
         addDamageText(new DamageText(b.x, b.y, damage, isCrit));
         bulletsToRemove.push(j);
+        if (e.invulnerable) continue;
         if (e.r - damage > Enemy.minSize) {
           e.r -= damage;
         } else {
@@ -188,6 +193,7 @@ function update() {
       for (let j = 0; j < abilityEffects.length; j++) {
         const ae = abilityEffects[j];
         if (ae.shapeType == 'square') {
+          // todo: need to remove .5 enemy (or player?) R from this angle...
           const angle = radians_to_degrees(ae.angle);
           const rotatedEnemyCoords = rotate(
             player.x,
@@ -202,8 +208,10 @@ function update() {
             y: rotatedEnemyCoords.y,
             r: e.r,
           };
+          if (debug) ae.color = 'yellow';
           if (detectCollision(ae, projectedEnemy)) {
             let isCrit = false;
+            if (debug) ae.color = 'red';
             if (player.critChance > 0) {
               isCrit = player.critChance / 100 > Math.random();
             }
@@ -211,6 +219,7 @@ function update() {
               isCrit ? ae.damage * player.critDamageMulti : ae.damage
             );
             addDamageText(new DamageText(e.x, e.y, damage, isCrit));
+            if (e.invulnerable) continue;
             if (e.r - damage > Enemy.minSize) {
               e.r -= damage;
             } else {
@@ -228,6 +237,8 @@ function update() {
               isCrit ? player.damage * player.critDamageMulti : player.damage
             );
             addDamageText(new DamageText(e.x, e.y, damage, isCrit));
+            if (e.invulnerable) continue;
+
             if (e.r - damage > Enemy.minSize) {
               e.r -= damage;
             } else {
@@ -243,7 +254,8 @@ function update() {
       player.xp += XP_PER_KILL + e.initialR * player.xpMulti;
       addScore(e.killValue);
       player.kills++;
-      player.heat += 5 - Math.log(5);
+      //player.heat += 5 - Math.log(5);
+      player.heat += 10;
       handleProgression();
       if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
@@ -283,8 +295,32 @@ function update() {
     ae.update();
     if (ae.remainingFrames <= 0) removeAbilityEffect(i);
   }
+  for (let i = 0; i < events.length; i++) {
+    const evt = events[i];
+    if (evt.activations == 0 && evt.remainingMs <= 0) {
+      removeEvent(i);
+      continue;
+    }
+    evt.remainingMs -= 16;
 
-  player.heat -= 0.025;
+    if (evt.remainingMs <= 0 && evt.activations > 0) {
+      console.log('triggering event');
+      evt.functions.forEach((f) => f(evt));
+      if (evt.activations > 0) evt.remainingMs = evt.cooldown;
+      evt.activations -= 1;
+    }
+    // cooldown: 2000,
+    // remainingMs: 0,
+    // activations: 1,
+  }
+
+  if (debug) {
+    if (player.xp >= player.next_level) queuePlayerLevelUp();
+    handleProgression();
+  }
+
+  player.heat -= 0.0125;
+  //player.heat -= 0.0;
   if (player.heat < 0) player.heat = 0;
 }
 
@@ -328,6 +364,11 @@ function render(lagOffset) {
   }
   for (const ae of abilityEffects) {
     ae.draw(lagOffset);
+  }
+  for (const evt of events) {
+    for (const vfx of evt.vfx) {
+      vfx(evt);
+    }
   }
   renderAbilityIndicators();
 }
@@ -376,9 +417,9 @@ function handleProgression() {
     Item.spawn();
   }
   if (player.heat >= player.maxHeat) {
-    for (let i = 0; i < player.level / 2; i++) {
-      Enemy.spawn();
-    }
+    const newEvt = randomEvent();
+    events.push({ ...newEvt });
+    console.log('added event', newEvt);
     player.heat = 0;
   }
   heatBarEl.value = player.heat;
@@ -404,6 +445,12 @@ function startGame() {
   clearEnemies();
   clearParticles();
   clearItems();
+  if (debug)
+    Enemy.spawn(
+      { x: canvas.width / 2 + 100, y: canvas.height / 2 - 100 },
+      true,
+      true
+    );
   enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   player.color = playerColorEl.value;
   main();
