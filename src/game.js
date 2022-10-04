@@ -1,12 +1,21 @@
 window.fps = 60;
 window.start = performance.now();
 window.frameDuration = 1000 / window.fps;
+window.animFrameDuration = window.frameDuration;
 window.lag = 0;
-window.requestAnimationFrame =
-  window.requestAnimationFrame ||
-  function (callback) {
-    window.setTimeout(callback, window.frameDuration);
-  };
+
+window.requestAnimationFrame = (function () {
+  return (
+    window.requestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    function (callback) {
+      window.setTimeout(callback, window.frameDuration);
+    }
+  );
+})();
 
 import {
   Player,
@@ -20,6 +29,7 @@ import {
   handleBonusSelection,
   resetBonusPool,
   debug,
+  maxLevel,
 } from './lib.js';
 
 import {
@@ -83,7 +93,7 @@ import {
   randomEvent,
 } from './constants.js';
 
-import { detectCollision, radians_to_degrees, rotate } from './util.js';
+import { rectCircleCollision, radians_to_degrees, rotate } from './util.js';
 import {
   loadScores,
   login,
@@ -128,9 +138,11 @@ function main() {
   heatBarEl.value = player.heat;
 }
 
+let debugRenders = [];
+
 function update() {
   player.update();
-  if (debug) player.xp += 10 * player.xpMulti;
+  if (debug) player.xp += 50 * player.xpMulti;
 
   for (let i = 0; i < bullets.length; i++) {
     const b = bullets[i];
@@ -193,25 +205,18 @@ function update() {
       for (let j = 0; j < abilityEffects.length; j++) {
         const ae = abilityEffects[j];
         if (ae.shapeType == 'square') {
-          // todo: need to remove .5 enemy (or player?) R from this angle...
+          // todo: need to remove .5 enemy (or player?) radius from this angle...
           const angle = radians_to_degrees(ae.angle);
-          const rotatedEnemyCoords = rotate(
-            player.x,
-            player.y,
-            e.x,
-            e.y,
-            angle,
-            true
-          );
+          const rotatedEnemyCoords = rotate(ae.x, ae.y, e.x, e.y, angle, true);
           const projectedEnemy = {
             x: rotatedEnemyCoords.x,
             y: rotatedEnemyCoords.y,
             r: e.r,
           };
           if (debug) ae.color = 'yellow';
-          if (detectCollision(ae, projectedEnemy)) {
-            let isCrit = false;
+          if (rectCircleCollision(ae, projectedEnemy)) {
             if (debug) ae.color = 'red';
+            let isCrit = false;
             if (player.critChance > 0) {
               isCrit = player.critChance / 100 > Math.random();
             }
@@ -254,8 +259,8 @@ function update() {
       player.xp += XP_PER_KILL + e.initialR * player.xpMulti;
       addScore(e.killValue);
       player.kills++;
-      //player.heat += 5 - Math.log(5);
-      player.heat += 10;
+      player.heat += 5 - Math.log(5);
+      //player.heat += 10;
       handleProgression();
       if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
@@ -271,11 +276,7 @@ function update() {
     p.update();
     if (p.alpha <= 0) removeParticle(i);
   }
-  for (let i = 0; i < damageTexts.length; i++) {
-    const d = damageTexts[i];
-    d.update();
-    if (d.alpha <= 0) removeDamageText(i);
-  }
+
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     const dist = Math.hypot(player.x - item.x, player.y - item.y);
@@ -301,17 +302,18 @@ function update() {
       removeEvent(i);
       continue;
     }
-    evt.remainingMs -= 16;
+    evt.remainingMs -= window.animFrameDuration;
 
     if (evt.remainingMs <= 0 && evt.activations > 0) {
-      console.log('triggering event');
       evt.functions.forEach((f) => f(evt));
       if (evt.activations > 0) evt.remainingMs = evt.cooldown;
       evt.activations -= 1;
     }
-    // cooldown: 2000,
-    // remainingMs: 0,
-    // activations: 1,
+  }
+  for (let i = 0; i < damageTexts.length; i++) {
+    const d = damageTexts[i];
+    d.update();
+    if (d.alpha <= 0) removeDamageText(i);
   }
 
   if (debug) {
@@ -325,6 +327,7 @@ function update() {
 }
 
 function queuePlayerLevelUp() {
+  if (player.level >= maxLevel) return;
   nextFrameActionQueue.push(() => {
     player.level++;
     player.next_level *= XP_REQ_MULTI_PER_LEVEL;
@@ -335,17 +338,6 @@ function queuePlayerLevelUp() {
 }
 
 function render(lagOffset) {
-  // for (const sprite of [
-  //   player,
-  //   ...bullets,
-  //   ...enemies,
-  //   ...particles,
-  //   ...damageTexts,
-  //   ...items,
-  //   ...abilityEffects,
-  // ]) {
-  //   sprite.draw(lagOffset);
-  // }
   player.draw(lagOffset);
   for (const bullet of bullets) {
     bullet.draw(lagOffset);
@@ -355,9 +347,6 @@ function render(lagOffset) {
   }
   for (const particle of particles) {
     particle.draw(lagOffset);
-  }
-  for (const dt of damageTexts) {
-    dt.draw(lagOffset);
   }
   for (const item of items) {
     item.draw(lagOffset);
@@ -370,10 +359,15 @@ function render(lagOffset) {
       vfx(evt);
     }
   }
-  renderAbilityIndicators();
+  for (const dt of damageTexts) {
+    dt.draw(lagOffset);
+  }
+  renderAbilityCooldowns();
+  debugRenders.forEach((f) => f());
+  debugRenders = [];
 }
 
-function renderAbilityIndicators() {
+function renderAbilityCooldowns() {
   const playerAbilities = player.items.filter((i) => i.isAbility);
   for (let i = 0; i < playerAbilities.length; i++) {
     const ability = playerAbilities[i];
@@ -413,7 +407,7 @@ function handleProgression() {
     window.clearInterval(enemySpawnInterval);
     enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   }
-  if (player.kills % 10 == 0 && items.length <= 2) {
+  if (!debug && player.kills % 10 == 0 && items.length <= 2) {
     Item.spawn();
   }
   if (player.heat >= player.maxHeat) {

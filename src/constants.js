@@ -286,7 +286,7 @@ const BONUS_UPGRADES = [
   {
     type: 'upgrade',
     name: 'Laser',
-    weight: 5,
+    weight: 500,
     rarity_weights: [9, 6, 4],
     modifiers: [
       {
@@ -328,6 +328,7 @@ export const ITEM_TYPES = [
     name: 'Laser',
     isAbility: true,
     cooldown: 4e3,
+    //cooldown: 1e3,
     remainingMs: 32,
     size: 22,
     damage: 3,
@@ -402,7 +403,8 @@ export const EVENT_TYPES = [
     vfx: [
       (self) => {
         c.save();
-        c.fillStyle = 'rgba(255,0,0,' + 1 - self.remainingMs / 1000 + ')';
+        c.globalAlpha = 0.5;
+        c.fillStyle = 'red';
         c.fillRect(0, 0, canvas.width, canvas.height);
         c.fillStyle = 'white';
         const fs = 24;

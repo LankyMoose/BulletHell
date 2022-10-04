@@ -24,9 +24,10 @@ import {
   getWeightMap,
   getRandomWeightMapIndex,
 } from './util.js';
-export const debug = true;
-const allowEnemySpawn = false;
+export const debug = false;
+const allowEnemySpawn = true;
 const allowPlayerShoot = true;
+export const maxLevel = 5;
 function strokeCircle(circle) {
   c.beginPath();
   c.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, false);
@@ -36,7 +37,7 @@ function strokeCircle(circle) {
   c.restore();
 }
 
-export class Circle {
+export class Sprite {
   constructor(x, y, r, color, vel) {
     this.x = x;
     this.oldX = x;
@@ -133,7 +134,7 @@ export class Circle {
   }
 }
 
-export class Player extends Circle {
+export class Player extends Sprite {
   constructor() {
     super(...arguments);
     this.speed = 0.5;
@@ -241,7 +242,7 @@ export class Player extends Circle {
     this.enforceMapBoundaries();
 
     super.update();
-    this.bulletTick += 16;
+    this.bulletTick += window.animFrameDuration;
     if (this.bulletTick >= this.bulletCooldown) {
       this.shootBullets();
       this.bulletTick = 0;
@@ -249,7 +250,7 @@ export class Player extends Circle {
 
     const abilities = this.items.filter((i) => i.isAbility);
     for (let ability of abilities) {
-      ability.remainingMs -= 16;
+      ability.remainingMs -= window.animFrameDuration;
       if (ability.remainingMs <= 0) {
         ability.trigger(
           this,
@@ -368,13 +369,13 @@ export const resetPlayer = () => {
   player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
 };
 
-export class Bullet extends Circle {
+export class Bullet extends Sprite {
   constructor() {
     super(...arguments);
   }
 }
 
-export class Enemy extends Circle {
+export class Enemy extends Sprite {
   static minSize = 20;
   constructor() {
     super(...arguments);
@@ -472,7 +473,7 @@ export class Enemy extends Circle {
   }
 }
 
-export class Particle extends Circle {
+export class Particle extends Sprite {
   constructor() {
     super(...arguments);
   }
@@ -484,7 +485,7 @@ export class Particle extends Circle {
   }
 }
 
-export class Item extends Circle {
+export class Item extends Sprite {
   constructor() {
     super(...arguments);
     this.itemType = null;
@@ -625,7 +626,7 @@ export class DamageText {
   }
 }
 
-export class Kamehameha extends Circle {
+export class Kamehameha extends Sprite {
   constructor(x, y, itemInstance, clientX, clientY) {
     super(x, y, itemInstance.size, 'yellow', { x: 0, y: 0 });
     this.remainingFrames = 40;
@@ -652,20 +653,18 @@ export class Kamehameha extends Circle {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    const cos = Math.cos(this.angle);
-    const sin = Math.sin(this.angle);
-    c.transform(cos, sin, -sin, cos, this.renderX, this.renderY);
+    c.translate(this.x, this.y);
+    c.rotate(this.angle);
     c.beginPath();
     c.rect(0 - this.w / 2, 0 + player.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
-    c.setTransform(1, 0, 0, 1, 0, 0);
     c.restore();
     this.postDraw();
   }
 }
 
-export class SolarFlare extends Circle {
+export class SolarFlare extends Sprite {
   constructor(x, y, itemInstance) {
     super(x, y, itemInstance.size, 'yellow', { x: 0, y: 0 });
     this.remainingFrames = 20;
@@ -689,7 +688,7 @@ export class SolarFlare extends Circle {
   }
 }
 
-export class Slash extends Circle {
+export class Slash extends Sprite {
   constructor(x, y, itemInstance, color, vel, clientX, clientY) {
     super(x, y, itemInstance.size, color, vel);
     this.totalFrames = 14;

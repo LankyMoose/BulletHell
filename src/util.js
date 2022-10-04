@@ -54,13 +54,13 @@ export function randomCoords() {
     y: Math.random() * canvas.height,
   };
 }
-export function detectCollision(rect, circle) {
+export function rectCircleCollision(rect, circle) {
   var cx, cy;
 
   if (circle.x < rect.x) {
-    cx = rect.x;
+    cx = rect.x - rect.w / 2;
   } else if (circle.x > rect.x + rect.w) {
-    cx = rect.x + rect.w;
+    cx = rect.x + rect.w / 2;
   } else {
     cx = circle.x;
   }
