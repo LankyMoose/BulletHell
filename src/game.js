@@ -260,7 +260,7 @@ function update() {
       addScore(e.killValue);
       player.kills++;
       player.heat += 5 - Math.log(5);
-      //player.heat += 10;
+      //player.heat += 30;
       handleProgression();
       if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
@@ -372,14 +372,16 @@ function renderAbilityCooldowns() {
   for (let i = 0; i < playerAbilities.length; i++) {
     const ability = playerAbilities[i];
     const iconHeight = 24;
-    const iconWidth = 100;
+    const iconWidth = 60;
     const gap = 10 * i;
-    const leftOffset = i * iconWidth + 69;
-    const topOffset = canvas.height - iconHeight - iconHeight - 10;
+    let leftOffset = i * iconWidth + canvas.width / 2;
+    leftOffset -= playerAbilities.length * (iconWidth / 2);
+    const topOffset = iconHeight + 10;
     const curMs = ability.cooldown - ability.remainingMs;
     const percent = curMs / ability.cooldown;
     const padding = 4;
     c.save();
+    c.textAlign = 'center';
     c.font = '14px sans-serif';
     c.fillStyle = 'yellow';
     c.globalAlpha = 0.25;
@@ -389,7 +391,7 @@ function renderAbilityCooldowns() {
     c.fillStyle = 'white';
     c.fillText(
       ability.name,
-      leftOffset + gap + padding,
+      leftOffset + gap + padding + iconWidth / 2,
       topOffset + padding + 14,
       iconWidth
     );
@@ -441,9 +443,12 @@ function startGame() {
   clearItems();
   if (debug)
     Enemy.spawn(
-      { x: canvas.width / 2 + 100, y: canvas.height / 2 - 100 },
-      true,
-      true
+      {
+        fixed: true,
+        invulnerable: true,
+        r: 50,
+      },
+      { x: canvas.width / 2 + 100, y: canvas.height / 2 - 100 }
     );
   enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   player.color = playerColorEl.value;

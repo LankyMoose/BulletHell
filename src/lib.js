@@ -27,7 +27,7 @@ import {
 export const debug = false;
 const allowEnemySpawn = true;
 const allowPlayerShoot = true;
-export const maxLevel = 5;
+export const maxLevel = Infinity;
 function strokeCircle(circle) {
   c.beginPath();
   c.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, false);
@@ -38,7 +38,7 @@ function strokeCircle(circle) {
 }
 
 export class Sprite {
-  constructor(x, y, r, color, vel) {
+  constructor(x, y, r, color, vel, renderGlow, glowSize) {
     this.x = x;
     this.oldX = x;
     this.renderX = x;
@@ -52,6 +52,8 @@ export class Sprite {
     this.alpha = 1;
     this.vel = vel;
     this.fixed = false;
+    this.renderGlow = renderGlow;
+    this.glowSize = glowSize;
   }
 
   preDraw(lagOffset) {
@@ -68,6 +70,10 @@ export class Sprite {
     this.preDraw(lagOffset);
     c.save();
     c.globalAlpha = this.alpha;
+    if (this.renderGlow) {
+      c.shadowColor = this.color;
+      c.shadowBlur = 10;
+    }
     c.beginPath();
     c.arc(this.renderX, this.renderY, this.r, 0, Math.PI * 2, false);
     c.fillStyle = this.color;
@@ -418,7 +424,6 @@ export class Enemy extends Sprite {
   update() {
     super.update();
     if (!this.fixed) {
-      console.log('...not fixed?');
       const dist = Math.hypot(this.x - player.x, this.y - player.y);
       if (dist - player.r - this.r < this.aggroRange) {
         this.followPlayer();
@@ -435,8 +440,8 @@ export class Enemy extends Sprite {
     if (debug) strokeCircle(this);
   }
 
-  static spawn(coords, fixed, invulnerable) {
-    if (!allowEnemySpawn && !fixed) return;
+  static spawn(coords, config) {
+    if (!allowEnemySpawn && config?.fixed == false) return;
     if (!document.hasFocus()) return;
     const rad = Math.random() * (60 - Enemy.minSize) + Enemy.minSize;
     if (!coords) coords = randomScreenEdgeCoords(rad);
@@ -446,15 +451,16 @@ export class Enemy extends Sprite {
       x: Math.cos(angle) * ENEMY_SPEED,
       y: Math.sin(angle) * ENEMY_SPEED,
     };
-    if (fixed) {
+    if (config?.fixed) {
       vel.x = 0;
       vel.y = 0;
     }
     const newEnemy = new Enemy(coords.x, coords.y, rad, 'transparent', vel);
-    newEnemy.fixed = fixed;
-    newEnemy.invulnerable = invulnerable;
+    newEnemy.fixed = config?.fixed;
+    newEnemy.invulnerable = config?.invulnerable;
+    if (config?.r) newEnemy.r = config.r;
     Enemy.setImage(newEnemy);
-    if (!fixed) newEnemy.followPlayer();
+    if (config?.fixed) newEnemy.followPlayer();
     addEnemy(newEnemy);
   }
 
@@ -628,7 +634,7 @@ export class DamageText {
 
 export class Kamehameha extends Sprite {
   constructor(x, y, itemInstance, clientX, clientY) {
-    super(x, y, itemInstance.size, 'yellow', { x: 0, y: 0 });
+    super(x, y, itemInstance.size, 'aqua', { x: 0, y: 0 });
     this.remainingFrames = 40;
     this.targetX = clientX;
     this.targetY = clientY;
@@ -656,6 +662,8 @@ export class Kamehameha extends Sprite {
     c.translate(this.x, this.y);
     c.rotate(this.angle);
     c.beginPath();
+    c.shadowColor = this.color;
+    c.shadowBlur = 20;
     c.rect(0 - this.w / 2, 0 + player.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
@@ -666,10 +674,11 @@ export class Kamehameha extends Sprite {
 
 export class SolarFlare extends Sprite {
   constructor(x, y, itemInstance) {
-    super(x, y, itemInstance.size, 'yellow', { x: 0, y: 0 });
+    super(x, y, itemInstance.size, 'yellow', { x: 0, y: 0 }, true, 70);
     this.remainingFrames = 20;
     this.shapeType = 'circle';
     this.damage = itemInstance.damage;
+    this.alpha = 0.7;
   }
 
   update() {
@@ -682,7 +691,7 @@ export class SolarFlare extends Sprite {
     if (this.remainingFrames > 10) {
       this.r += 8;
     } else {
-      this.alpha -= 0.1;
+      this.alpha -= 0.5;
     }
     this.remainingFrames -= 1;
   }
@@ -696,7 +705,7 @@ export class Slash extends Sprite {
     this.targetX = clientX;
     this.targetY = clientY;
     this.h = this.r;
-    this.w = 20;
+    this.w = 13;
     //this.angle = Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.angle =
       Math.PI + Math.atan2(this.y - this.targetY, this.x - this.targetX);
@@ -714,9 +723,10 @@ export class Slash extends Sprite {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    const cos = Math.cos(this.angle);
-    const sin = Math.sin(this.angle);
-    c.transform(cos, sin, -sin, cos, this.renderX, this.renderY);
+    c.translate(this.x, this.y);
+    c.rotate(this.angle);
+    c.shadowColor = this.color;
+    c.shadowBlur = 10;
     c.beginPath();
     c.rect(0 - this.w / 2, 0 + player.r, this.w, this.h);
     c.fillStyle = this.color;
@@ -731,12 +741,12 @@ export class Slash extends Sprite {
 // orbiting projectiles
 // AOE temporal field
 // dash
-// gravity field (throwable?)
 // consider i-frames?
 // bullet speed a bit weak?
 
 // game ideas
-// black hole spawns, transforms graphics rendering and different enemies?
+// black hole spawns, transforms graphics rendering and different enemies? - https://codepen.io/akm2/pen/AGgarW
+// shadows? - https://codepen.io/mladen___/pen/gbvqBo
 // add life bar
 
 // possible issue - mutli bullets dropping at same time?

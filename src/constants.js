@@ -331,7 +331,7 @@ export const ITEM_TYPES = [
     //cooldown: 1e3,
     remainingMs: 32,
     size: 22,
-    damage: 3,
+    damage: 2,
     trigger: (player, self, cx, cy) => {
       addAbilityEffect(new Kamehameha(player.x, player.y, self, cx, cy));
     },
@@ -368,11 +368,19 @@ export const ITEM_TYPES = [
     isAbility: true,
     cooldown: 1.5e3,
     remainingMs: 32,
-    size: 150,
+    size: 100,
     damage: 3,
     trigger: (player, self, cx, cy) => {
       addAbilityEffect(
-        new Slash(player.x, player.y, self, 'yellow', { x: 0, y: 0 }, cx, cy)
+        new Slash(
+          player.x,
+          player.y,
+          self,
+          player.color,
+          { x: 0, y: 0 },
+          cx,
+          cy
+        )
       );
     },
     onAdded: (bonus) => {
@@ -395,28 +403,33 @@ export const EVENT_TYPES = [
     activations: 1,
     functions: [
       () => {
-        for (let i = 0; i < player.level / 2; i++) {
-          Enemy.spawn();
+        for (let i = 0; i < player.level; i++) {
+          Enemy.spawn({ r: 20 });
         }
       },
     ],
     vfx: [
       (self) => {
         c.save();
-        c.globalAlpha = 0.5;
+        let percent = 1 - (self.remainingMs || 1) / self.cooldown;
+        if (percent > 0.5) percent = 1 - percent;
+        if (percent < 0) percent = 0;
+        c.globalAlpha = percent * 0.3;
+
+        console.log('alpha', c.globalAlpha);
         c.fillStyle = 'red';
         c.fillRect(0, 0, canvas.width, canvas.height);
+        c.globalAlpha = 1;
         c.fillStyle = 'white';
-        const fs = 24;
+        const fs = 36;
         c.font = fs + 'px sans-serif';
+        c.textAlign = 'center';
         c.fillText('Horde!', canvas.width / 2, 100);
         c.restore();
       },
     ],
   },
 ];
-
-export const EVENT_VFX = [{}];
 
 export let events = [];
 export const addEvent = (e) => events.push(b);
