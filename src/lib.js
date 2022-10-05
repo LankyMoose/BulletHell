@@ -13,7 +13,8 @@ import {
   addItem,
   canvas,
   BONUS_TYPES,
-  EVENT_TYPES,
+  addParticle,
+  addDamageText,
 } from './constants.js';
 
 import {
@@ -23,6 +24,8 @@ import {
   getRandomByWeight,
   getWeightMap,
   getRandomWeightMapIndex,
+  radians_to_degrees,
+  rectCircleCollision,
 } from './util.js';
 export const debug = false;
 const allowEnemySpawn = true;
@@ -72,7 +75,7 @@ export class Sprite {
     c.globalAlpha = this.alpha;
     if (this.renderGlow) {
       c.shadowColor = this.color;
-      c.shadowBlur = 10;
+      c.shadowBlur = this.glowSize;
     }
     c.beginPath();
     c.arc(this.renderX, this.renderY, this.r, 0, Math.PI * 2, false);
@@ -98,8 +101,8 @@ export class Sprite {
 
   updatePosition() {
     if (this.fixed) return;
-    if (this.vel && !isNaN(this.vel?.y)) this.y += this.vel.y;
-    if (this.vel && !isNaN(this.vel?.x)) this.x += this.vel.x;
+    if (this.vel && !isNaN(this.vel.y)) this.y += this.vel.y;
+    if (this.vel && !isNaN(this.vel.x)) this.x += this.vel.x;
   }
 
   applyGlobalScale() {
@@ -148,7 +151,6 @@ export class Player extends Sprite {
     this.maxSpeed = 7;
     this.bulletCooldown = 400;
     this.bulletTick = 0;
-    this.damage = 6;
     this.critChance = 10;
     this.critDamageMulti = 1.5;
     this.kills = 0;
@@ -375,7 +377,42 @@ export const resetPlayer = () => {
   player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
 };
 
-export class Bullet extends Sprite {
+export class Projectile extends Sprite {
+  constructor() {
+    super(...arguments);
+    this.damage = 6;
+  }
+  handleEnemyCollision(e) {
+    return Projectile.handleEnemyCollision(this, e);
+  }
+  static handleEnemyCollision(self, e) {
+    const dist = Math.hypot(self.x - e.x, self.y - e.y);
+    if (dist - e.r - self.r < 1) {
+      for (let i = 0; i < e.r * 15; i++) {
+        addParticle(
+          new Particle(self.x, self.y, Math.random() * 2, 'darkred', {
+            x: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
+            y: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
+          })
+        );
+      }
+      let isCrit = false;
+      if (player.critChance > 0) {
+        isCrit = player.critChance / 100 > Math.random();
+      }
+      const damage = Math.floor(
+        isCrit ? self.damage * player.critDamageMulti : self.damage
+      );
+
+      addDamageText(new DamageText(self.x, self.y, damage, isCrit));
+      if (e.invulnerable) return [true, false];
+      return e.takeDamage(damage);
+    }
+    return [false, false];
+  }
+}
+
+export class Bullet extends Projectile {
   constructor() {
     super(...arguments);
   }
@@ -440,10 +477,11 @@ export class Enemy extends Sprite {
     if (debug) strokeCircle(this);
   }
 
-  static spawn(coords, config) {
-    if (!allowEnemySpawn && config?.fixed == false) return;
-    if (!document.hasFocus()) return;
-    const rad = Math.random() * (60 - Enemy.minSize) + Enemy.minSize;
+  static spawn(config, coords) {
+    if (!allowEnemySpawn) return;
+    //if (!document.hasFocus()) return;
+    const rad =
+      config?.r ?? Math.random() * (60 - Enemy.minSize) + Enemy.minSize;
     if (!coords) coords = randomScreenEdgeCoords(rad);
 
     const angle = Math.atan2(player.y - coords.y, player.x - coords.x);
@@ -451,17 +489,12 @@ export class Enemy extends Sprite {
       x: Math.cos(angle) * ENEMY_SPEED,
       y: Math.sin(angle) * ENEMY_SPEED,
     };
-    if (config?.fixed) {
-      vel.x = 0;
-      vel.y = 0;
-    }
     const newEnemy = new Enemy(coords.x, coords.y, rad, 'transparent', vel);
     newEnemy.fixed = config?.fixed;
     newEnemy.invulnerable = config?.invulnerable;
-    if (config?.r) newEnemy.r = config.r;
     Enemy.setImage(newEnemy);
-    if (config?.fixed) newEnemy.followPlayer();
     addEnemy(newEnemy);
+    if (!config?.fixed) newEnemy.followPlayer();
   }
 
   static setImage(enemy) {
@@ -476,6 +509,15 @@ export class Enemy extends Sprite {
       imgDir =
         enemy.x > player.x ? enemy.images.down.left : enemy.images.down.right;
     enemy.image = document.getElementById(imgDir[enemy.cur_image]);
+  }
+
+  takeDamage(damage) {
+    if (this.r - damage > Enemy.minSize) {
+      this.r -= damage;
+      return [true, false];
+    } else {
+      return [true, true];
+    }
   }
 }
 
@@ -560,11 +602,12 @@ export const handleBonusSelection = (bonus) => {
 };
 
 export class Bonus {
-  constructor(type, name, modifiers, rarity) {
+  constructor(type, name, modifiers, rarity, color) {
     this.type = type;
     this.name = name;
     this.modifiers = modifiers;
     this.rarity = rarity;
+    this.color = color;
   }
 }
 export class BonusSet {
@@ -583,9 +626,20 @@ export class BonusSet {
           const rarityWeightMap = getWeightMap(bonusDef.rarity_weights);
           rarity = getRandomWeightMapIndex(rarityWeightMap);
         }
+        let color = null;
+        if (bonusDef.type == 'ability') {
+          const itemDef = ITEM_TYPES.find((i) => i.name == bonusDef.name);
+          color = itemDef.getColor();
+        }
 
         this.items.push(
-          new Bonus(bonusDef.type, bonusDef.name, bonusDef.modifiers, rarity)
+          new Bonus(
+            bonusDef.type,
+            bonusDef.name,
+            bonusDef.modifiers,
+            rarity,
+            color
+          )
         );
       }
     }
@@ -632,9 +686,45 @@ export class DamageText {
   }
 }
 
-export class Kamehameha extends Sprite {
+export class Ability extends Sprite {
+  constructor() {
+    super(...arguments);
+  }
+  handleEnemyCollision(e) {
+    if (this.shapeType == 'square') {
+      // todo: need to remove .5 enemy (or player?) radius from this angle...
+      const angle = radians_to_degrees(this.angle);
+      const rotatedEnemyCoords = rotate(this.x, this.y, e.x, e.y, angle, true);
+      const projectedEnemy = {
+        x: rotatedEnemyCoords.x,
+        y: rotatedEnemyCoords.y,
+        r: e.r,
+      };
+      if (debug) this.color = 'yellow';
+      if (rectCircleCollision(this, projectedEnemy)) {
+        if (debug) this.color = 'red';
+        let isCrit = false;
+        if (player.critChance > 0) {
+          isCrit = player.critChance / 100 > Math.random();
+        }
+        const damage = Math.floor(
+          isCrit ? this.damage * player.critDamageMulti : this.damage
+        );
+        addDamageText(new DamageText(e.x, e.y, damage, isCrit));
+        if (e.invulnerable) return [true, false];
+        return e.takeDamage(damage);
+      }
+    } else {
+      return Projectile.handleEnemyCollision(this, e);
+    }
+
+    return [false, false];
+  }
+}
+
+export class Kamehameha extends Ability {
   constructor(x, y, itemInstance, clientX, clientY) {
-    super(x, y, itemInstance.size, 'aqua', { x: 0, y: 0 });
+    super(x, y, itemInstance.size, itemInstance.getColor(), { x: 0, y: 0 });
     this.remainingFrames = 40;
     this.targetX = clientX;
     this.targetY = clientY;
@@ -672,13 +762,21 @@ export class Kamehameha extends Sprite {
   }
 }
 
-export class SolarFlare extends Sprite {
+export class SolarFlare extends Ability {
   constructor(x, y, itemInstance) {
-    super(x, y, itemInstance.size, 'yellow', { x: 0, y: 0 }, true, 70);
+    super(
+      x,
+      y,
+      itemInstance.size,
+      itemInstance.getColor(),
+      { x: 0, y: 0 },
+      true,
+      70
+    );
     this.remainingFrames = 20;
     this.shapeType = 'circle';
     this.damage = itemInstance.damage;
-    this.alpha = 0.7;
+    this.alpha = 0;
   }
 
   update() {
@@ -690,16 +788,17 @@ export class SolarFlare extends Sprite {
     // }
     if (this.remainingFrames > 10) {
       this.r += 8;
+      this.alpha += 0.7;
     } else {
-      this.alpha -= 0.5;
+      this.alpha -= 0.7;
     }
     this.remainingFrames -= 1;
   }
 }
 
-export class Slash extends Sprite {
-  constructor(x, y, itemInstance, color, vel, clientX, clientY) {
-    super(x, y, itemInstance.size, color, vel);
+export class Slash extends Ability {
+  constructor(x, y, itemInstance, vel, clientX, clientY) {
+    super(x, y, itemInstance.size, itemInstance.getColor(), vel);
     this.totalFrames = 14;
     this.remainingFrames = this.totalFrames;
     this.targetX = clientX;

@@ -169,88 +169,21 @@ function update() {
     e.update();
     const num_bullets = bullets.length;
     for (let j = 0; j < num_bullets; j++) {
-      const b = bullets[j];
-      const dist = Math.hypot(b.x - e.x, b.y - e.y);
-      if (dist - e.r - b.r < 1) {
+      if (enemyDestroyed) break;
+      const [hit, kill] = bullets[j].handleEnemyCollision(e);
+      enemyDestroyed = kill;
+      if (hit) {
         addScore(100);
         scoreEl.innerText = score;
-
-        for (let k = 0; k < e.r * 15; k++) {
-          addParticle(
-            new Particle(b.x, b.y, Math.random() * 2, 'darkred', {
-              x: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
-              y: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
-            })
-          );
-        }
-        let isCrit = false;
-        if (player.critChance > 0) {
-          isCrit = player.critChance / 100 > Math.random();
-        }
-        const damage = Math.floor(
-          isCrit ? player.damage * player.critDamageMulti : player.damage
-        );
-
-        addDamageText(new DamageText(b.x, b.y, damage, isCrit));
         bulletsToRemove.push(j);
-        if (e.invulnerable) continue;
-        if (e.r - damage > Enemy.minSize) {
-          e.r -= damage;
-        } else {
-          enemyDestroyed = true;
-        }
       }
     }
     if (!enemyDestroyed) {
       for (let j = 0; j < abilityEffects.length; j++) {
         const ae = abilityEffects[j];
-        if (ae.shapeType == 'square') {
-          // todo: need to remove .5 enemy (or player?) radius from this angle...
-          const angle = radians_to_degrees(ae.angle);
-          const rotatedEnemyCoords = rotate(ae.x, ae.y, e.x, e.y, angle, true);
-          const projectedEnemy = {
-            x: rotatedEnemyCoords.x,
-            y: rotatedEnemyCoords.y,
-            r: e.r,
-          };
-          if (debug) ae.color = 'yellow';
-          if (rectCircleCollision(ae, projectedEnemy)) {
-            if (debug) ae.color = 'red';
-            let isCrit = false;
-            if (player.critChance > 0) {
-              isCrit = player.critChance / 100 > Math.random();
-            }
-            const damage = Math.floor(
-              isCrit ? ae.damage * player.critDamageMulti : ae.damage
-            );
-            addDamageText(new DamageText(e.x, e.y, damage, isCrit));
-            if (e.invulnerable) continue;
-            if (e.r - damage > Enemy.minSize) {
-              e.r -= damage;
-            } else {
-              enemyDestroyed = true;
-            }
-          }
-        } else {
-          const dist = Math.hypot(ae.x - e.x, ae.y - e.y);
-          if (dist - e.r - ae.r < 1) {
-            let isCrit = false;
-            if (player.critChance > 0) {
-              isCrit = player.critChance / 100 > Math.random();
-            }
-            const damage = Math.floor(
-              isCrit ? player.damage * player.critDamageMulti : player.damage
-            );
-            addDamageText(new DamageText(e.x, e.y, damage, isCrit));
-            if (e.invulnerable) continue;
-
-            if (e.r - damage > Enemy.minSize) {
-              e.r -= damage;
-            } else {
-              enemyDestroyed = true;
-            }
-          }
-        }
+        const [hit, kill] = ae.handleEnemyCollision(e);
+        enemyDestroyed = kill;
+        //if (hit) removeBullet(j);
       }
     }
 
@@ -259,7 +192,7 @@ function update() {
       player.xp += XP_PER_KILL + e.initialR * player.xpMulti;
       addScore(e.killValue);
       player.kills++;
-      player.heat += 5 - Math.log(5);
+      player.heat += e.r * 0.15;
       //player.heat += 30;
       handleProgression();
       if (player.xp >= player.next_level) queuePlayerLevelUp();
@@ -321,7 +254,7 @@ function update() {
     handleProgression();
   }
 
-  player.heat -= 0.0125;
+  player.heat -= 0.025;
   //player.heat -= 0.0;
   if (player.heat < 0) player.heat = 0;
 }
@@ -383,7 +316,7 @@ function renderAbilityCooldowns() {
     c.save();
     c.textAlign = 'center';
     c.font = '14px sans-serif';
-    c.fillStyle = 'yellow';
+    c.fillStyle = ability.getColor();
     c.globalAlpha = 0.25;
     c.fillRect(leftOffset + gap, topOffset, iconWidth, iconHeight);
     c.fillRect(leftOffset + gap, topOffset, iconWidth * percent, iconHeight);
@@ -575,6 +508,8 @@ function showLevelUpScreen() {
         break;
       case 'ability':
         btn.dataset.item = true;
+        btn.style.backgroundColor = b.color;
+        console.log('btn color', b.color);
         break;
       case 'upgrade':
         btn.dataset.rarity = b.rarity;

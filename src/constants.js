@@ -326,6 +326,7 @@ export const ITEM_TYPES = [
   },
   {
     name: 'Laser',
+    getColor: () => 'aqua',
     isAbility: true,
     cooldown: 4e3,
     //cooldown: 1e3,
@@ -346,6 +347,7 @@ export const ITEM_TYPES = [
   },
   {
     name: 'Explode',
+    getColor: () => 'rgba(255,255,0,.7)',
     isAbility: true,
     cooldown: 8e3,
     remainingMs: 32,
@@ -365,6 +367,7 @@ export const ITEM_TYPES = [
   },
   {
     name: 'Slash',
+    getColor: () => 'rgba(255,255,255,.8)',
     isAbility: true,
     cooldown: 1.5e3,
     remainingMs: 32,
@@ -372,15 +375,7 @@ export const ITEM_TYPES = [
     damage: 3,
     trigger: (player, self, cx, cy) => {
       addAbilityEffect(
-        new Slash(
-          player.x,
-          player.y,
-          self,
-          player.color,
-          { x: 0, y: 0 },
-          cx,
-          cy
-        )
+        new Slash(player.x, player.y, self, { x: 0, y: 0 }, cx, cy)
       );
     },
     onAdded: (bonus) => {
@@ -403,8 +398,8 @@ export const EVENT_TYPES = [
     activations: 1,
     functions: [
       () => {
-        for (let i = 0; i < player.level; i++) {
-          Enemy.spawn({ r: 20 });
+        for (let i = 0; i < player.level * 1.2; i++) {
+          Enemy.spawn({ r: 18 });
         }
       },
     ],
@@ -416,7 +411,6 @@ export const EVENT_TYPES = [
         if (percent < 0) percent = 0;
         c.globalAlpha = percent * 0.3;
 
-        console.log('alpha', c.globalAlpha);
         c.fillStyle = 'red';
         c.fillRect(0, 0, canvas.width, canvas.height);
         c.globalAlpha = 1;
