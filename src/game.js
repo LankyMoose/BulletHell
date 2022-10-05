@@ -610,6 +610,7 @@ submitScoreButton.addEventListener('click', async () => {
     submitScoreDiv.style.display = 'none';
     alert('score submitted!');
     renderLeaderboard();
+    subData.score = 0;
   } else {
     alert('failed to submit your score :C');
   }
@@ -686,8 +687,10 @@ function renderUser(userData) {
           await logout();
           submitScoreDiv.style.display = 'none';
           submitScoreButton.setAttribute('disabled', '');
-          signInDiv.style.display = 'block';
-          signInButton.removeAttribute('disabled');
+          if (subData.score > 0) {
+            signInDiv.style.display = 'block';
+            signInButton.removeAttribute('disabled');
+          }
         },
       })
     );
