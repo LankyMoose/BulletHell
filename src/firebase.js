@@ -52,7 +52,7 @@ const handleAuthStateChange = async (usr) => {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app, firebaseConfig.databaseURL);
 const provider = new GoogleAuthProvider();
-provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+//provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
 
 const auth = getAuth();
 auth.useDeviceLanguage();
@@ -81,6 +81,7 @@ export const login = async () => {
 
 export const submitScore = async (score, kills) => {
   try {
+    if (isNaN(score)) return false;
     if (!userData.user) await login();
 
     if (
