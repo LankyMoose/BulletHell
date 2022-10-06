@@ -21,11 +21,8 @@ import {
   Player,
   player,
   Enemy,
-  Particle,
   Item,
   BonusSet,
-  DamageText,
-  resetPlayer,
   handleBonusSelection,
   resetBonusPool,
   debug,
@@ -52,7 +49,6 @@ import {
   clearEnemies,
   removeEnemy,
   particles,
-  addParticle,
   removeParticle,
   clearParticles,
   items,
@@ -88,12 +84,24 @@ import {
   userContainer,
   signInDiv,
   signInButton,
-  events,
   removeEvent,
   randomEvent,
+  blackHoles,
+  removeBlackHole,
+  clearBlackHoles,
+  enemySpawnTime,
+  setEnemySpawnTime,
+  resetEnemySpawnTime,
+  resetPlayer,
+  turrets,
+  enemyBullets,
+  removeEnemyBullet,
+  clearTurrets,
+  clearEnemyBullets,
+  addEvent,
+  events,
 } from './constants.js';
 
-import { rectCircleCollision, radians_to_degrees, rotate } from './util.js';
 import {
   loadScores,
   login,
@@ -107,8 +115,6 @@ userData.subscribe((res) => {
   renderUser(res);
 });
 
-let enemySpawnInterval;
-let enemySpawnTime = 1000;
 let gameRunning = false;
 let levelUpScreenShowing = false;
 
@@ -133,6 +139,11 @@ function main() {
     update();
     window.lag -= window.frameDuration;
   }
+  setEnemySpawnTime(enemySpawnTime - window.frameDuration);
+  if (enemySpawnTime <= 0) {
+    Enemy.spawn();
+    resetEnemySpawnTime();
+  }
   render(window.lag / window.frameDuration);
 
   heatBarEl.value = player.heat;
@@ -141,24 +152,49 @@ function main() {
 let debugRenders = [];
 
 function update() {
-  player.update();
   if (debug) player.xp += 50 * player.xpMulti;
+  for (let i = 0; i < blackHoles.length; i++) {
+    const bh = blackHoles[i];
+    bh.update();
+    if (bh.remainingFrames <= 0) removeBlackHole(i);
+  }
+  player.update();
+  let playerLifeChanged = false;
 
   for (let i = 0; i < bullets.length; i++) {
     const b = bullets[i];
     b.update();
     if (!b.inMap()) removeBullet(i);
   }
+  for (let i = 0; i < enemyBullets.length; i++) {
+    const b = enemyBullets[i];
+
+    b.update();
+    if (!b.inMap()) {
+      removeEnemyBullet(i);
+    } else {
+      const dist = Math.hypot(player.x - b.x, player.y - b.y);
+      if (!player.invulnerable && dist - b.r - player.r < 0.01) {
+        player.life -= b.damage;
+        playerLifeChanged = true;
+        removeEnemyBullet(i);
+      }
+      if (player.life <= 0) {
+        return endGame();
+      }
+    }
+  }
   // investigate pooling?
   const enemiesToRemove = [];
   const bulletsToRemove = [];
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i];
+    e.update();
     let enemyDestroyed = false;
     const dist = Math.hypot(player.x - e.x, player.y - e.y);
-    if (dist - e.r - player.r < 0.01) {
-      player.life -= 3;
-      renderPlayerLife();
+    if (!player.invulnerable && dist - e.r - player.r < 0.01) {
+      player.life -= e.damage;
+      playerLifeChanged = true;
       if (player.life <= 0) {
         return endGame();
       } else {
@@ -166,7 +202,6 @@ function update() {
         player.vel.y += e.vel.y * 3;
       }
     }
-    e.update();
     const num_bullets = bullets.length;
     for (let j = 0; j < num_bullets; j++) {
       if (enemyDestroyed) break;
@@ -204,6 +239,11 @@ function update() {
   for (let index of bulletsToRemove) {
     removeBullet(index);
   }
+  if (playerLifeChanged) renderPlayerLife();
+
+  for (let i = 0; i < turrets.length; i++) {
+    turrets[i].update();
+  }
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
     p.update();
@@ -229,10 +269,20 @@ function update() {
     ae.update();
     if (ae.remainingFrames <= 0) removeAbilityEffect(i);
   }
-  for (let i = 0; i < events.length; i++) {
+
+  const eventsToRemove = [];
+  const evtNum = events.length;
+  for (let i = 0; i < evtNum; i++) {
     const evt = events[i];
+    if (!evt) throw new Error('trying to execute non-existing event');
     if (evt.activations == 0 && evt.remainingMs <= 0) {
-      removeEvent(i);
+      if (evt.onExit) {
+        for (const fn of evt.onExit) {
+          fn();
+        }
+      }
+      //removeEvent(i);
+      eventsToRemove.push(i);
       continue;
     }
     evt.remainingMs -= window.animFrameDuration;
@@ -243,16 +293,19 @@ function update() {
       evt.activations -= 1;
     }
   }
+  for (let index of eventsToRemove) {
+    removeEvent(index);
+  }
   for (let i = 0; i < damageTexts.length; i++) {
     const d = damageTexts[i];
     d.update();
     if (d.alpha <= 0) removeDamageText(i);
   }
 
-  if (debug) {
-    if (player.xp >= player.next_level) queuePlayerLevelUp();
-    handleProgression();
-  }
+  // if (debug) {
+  //   if (player.xp >= player.next_level) queuePlayerLevelUp();
+  //   handleProgression();
+  // }
 
   player.heat -= 0.025;
   //player.heat -= 0.0;
@@ -271,12 +324,24 @@ function queuePlayerLevelUp() {
 }
 
 function render(lagOffset) {
-  player.draw(lagOffset);
+  for (const bh of blackHoles) {
+    bh.draw(lagOffset);
+  }
   for (const bullet of bullets) {
     bullet.draw(lagOffset);
   }
+
+  player.draw(lagOffset);
+
+  for (const bullet of enemyBullets) {
+    bullet.draw(lagOffset);
+  }
+
   for (const enemy of enemies) {
     enemy.draw(lagOffset);
+  }
+  for (const turret of turrets) {
+    turret.draw(lagOffset);
   }
   for (const particle of particles) {
     particle.draw(lagOffset);
@@ -288,9 +353,10 @@ function render(lagOffset) {
     ae.draw(lagOffset);
   }
   for (const evt of events) {
-    for (const vfx of evt.vfx) {
-      vfx(evt);
-    }
+    if (evt.vfx)
+      for (const vfx of evt.vfx) {
+        vfx(evt);
+      }
   }
   for (const dt of damageTexts) {
     dt.draw(lagOffset);
@@ -337,18 +403,13 @@ function handleProgression() {
   scoreEl.innerText = score;
   killsEl.innerText = player.kills;
 
-  if (player.kills % 20 == 0) {
-    enemySpawnTime -= 4;
-    window.clearInterval(enemySpawnInterval);
-    enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
-  }
   if (!debug && player.kills % 10 == 0 && items.length <= 2) {
     Item.spawn();
   }
-  if (player.heat >= player.maxHeat) {
-    const newEvt = randomEvent();
-    events.push({ ...newEvt });
-    console.log('added event', newEvt);
+  if (player.heat >= player.maxHeat && events.length == 0) {
+    const evt = randomEvent();
+    if (!evt) throw new Error('failed to get random event ');
+    addEvent({ ...evt });
     player.heat = 0;
   }
   heatBarEl.value = player.heat;
@@ -374,6 +435,9 @@ function startGame() {
   clearEnemies();
   clearParticles();
   clearItems();
+  clearBlackHoles();
+  clearTurrets();
+  clearEnemyBullets();
   if (debug)
     Enemy.spawn(
       {
@@ -383,7 +447,6 @@ function startGame() {
       },
       { x: canvas.width / 2 + 100, y: canvas.height / 2 - 100 }
     );
-  enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   player.color = playerColorEl.value;
   main();
   attachEventHandlers();
@@ -402,7 +465,7 @@ function togglePause() {
 function pauseGame() {
   canvas.style.filter = 'blur(2px)';
   clearAnimId();
-  window.clearInterval(enemySpawnInterval);
+
   gameRunning = false;
   Object.assign(player.inputs, new Player().inputs);
   renderPlayerStats();
@@ -414,7 +477,6 @@ function resumeGame() {
   hidePlayerStats();
   window.start = performance.now();
   gameRunning = true;
-  enemySpawnInterval = window.setInterval(Enemy.spawn, enemySpawnTime);
   main();
 }
 
@@ -441,7 +503,6 @@ let subData = {
 
 function endGame() {
   clearAnimId(animId);
-  window.clearInterval(enemySpawnInterval);
 
   gameRunning = false;
   menu.classList.remove('hide');
@@ -460,8 +521,6 @@ function endGame() {
   heatBarEl.value = 0;
   xpBarEl.value = 0;
   lvlEl.innerHTML = 1;
-  enemySpawnInterval = null;
-  enemySpawnTime = 1000;
 
   removeEventHandlers();
   startButton.removeAttribute('disabled');
@@ -509,7 +568,6 @@ function showLevelUpScreen() {
       case 'ability':
         btn.dataset.item = true;
         btn.style.backgroundColor = b.color;
-        console.log('btn color', b.color);
         break;
       case 'upgrade':
         btn.dataset.rarity = b.rarity;
@@ -540,10 +598,16 @@ function onBonusSelected(bonus) {
 function attachEventHandlers() {
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
+  canvas.addEventListener('click', onClick);
 }
 function removeEventHandlers() {
   window.removeEventListener('keydown', handleKeyDown);
   window.removeEventListener('keyup', handleKeyUp);
+  canvas.removeEventListener('click', onClick);
+}
+
+function onClick(e) {
+  //addBlackHole(new BlackHole(x, y));
 }
 
 function handleKeyDown(e) {
@@ -632,6 +696,7 @@ document.addEventListener('contextmenu', (e) => {
   e.stopImmediatePropagation();
   e.stopPropagation();
 });
+
 addEventListener('resize', () => {
   const old = { x, y };
   canvas.width = innerWidth;

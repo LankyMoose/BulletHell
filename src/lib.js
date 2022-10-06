@@ -7,7 +7,6 @@ import {
   x,
   y,
   c,
-  animId,
   addBullet,
   addEnemy,
   addItem,
@@ -15,6 +14,16 @@ import {
   BONUS_TYPES,
   addParticle,
   addDamageText,
+  blackHoles,
+  addBlackHole,
+  allowEnemySpawn,
+  allowPlayerShoot,
+  allowAbilities,
+  addTurret,
+  addEnemyBullet,
+  EVENT_TYPES,
+  events,
+  addEvent,
 } from './constants.js';
 
 import {
@@ -28,8 +37,6 @@ import {
   rectCircleCollision,
 } from './util.js';
 export const debug = false;
-const allowEnemySpawn = true;
-const allowPlayerShoot = true;
 export const maxLevel = Infinity;
 function strokeCircle(circle) {
   c.beginPath();
@@ -57,6 +64,8 @@ export class Sprite {
     this.fixed = false;
     this.renderGlow = renderGlow;
     this.glowSize = glowSize;
+    this.invulnerable = false;
+    this.isInBlackHole = false;
   }
 
   preDraw(lagOffset) {
@@ -109,6 +118,21 @@ export class Sprite {
     //this.r = this.initialR * scaleMod;
   }
 
+  applyGravity() {
+    if (!blackHoles.length) return (this.isInBlackHole = false);
+    for (const bh of blackHoles) {
+      const angle = Math.atan2(bh.y - this.y, bh.x - this.x);
+      const vel = {
+        x: Math.cos(angle) * bh.pullForce,
+        y: Math.sin(angle) * bh.pullForce,
+      };
+      this.vel.x += vel.x;
+      this.vel.y += vel.y;
+      const dist = Math.hypot(this.x - bh.x, this.y - bh.y);
+      this.isInBlackHole = dist - bh.r - this.r < 1;
+    }
+  }
+
   update() {
     this.updatePosition();
     this.applyGlobalScale();
@@ -143,6 +167,159 @@ export class Sprite {
   }
 }
 
+export class Boss extends Sprite {
+  constructor() {
+    super(...arguments);
+    this.speed = 1;
+  }
+
+  static spawn(coords) {
+    if (!coords) coords = randomScreenEdgeCoords(150);
+    addEnemy(
+      new Boss(coords.x, coords.y, 250, 'red', {
+        x: 0,
+        y: 0,
+      })
+    );
+  }
+
+  update() {
+    super.update();
+    this.updateBullets();
+    this.followPlayer();
+  }
+  updateBullets() {
+    this.bulletTick += window.animFrameDuration;
+    if (this.bulletTick >= this.bulletCooldown) {
+      this.shoot();
+      this.bulletTick = 0;
+    }
+  }
+  followPlayer() {
+    let speedMod = this.speed + player.level / 5;
+    if (speedMod <= 1) speedMod = 1;
+    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+    this.vel = {
+      x: Math.cos(angle) * speedMod,
+      y: Math.sin(angle) * speedMod,
+    };
+  }
+
+  shoot() {
+    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+    const vel = {
+      x: Math.cos(angle) * this.bulletSpeed,
+      y: Math.sin(angle) * this.bulletSpeed,
+    };
+    addEnemyBullet(new Bullet(this.x, this.y, 50, 'red', vel));
+  }
+  takeDamage(damage) {
+    if (this.r - damage > Enemy.minSize) {
+      this.r -= damage;
+      return [true, false];
+    } else {
+      const evt = events.find((e) => e.name == `Redball the great`);
+      evt.cooldown = 0;
+      evt.remainingMs = 0;
+      return [true, true];
+    }
+  }
+}
+
+export class Turret extends Sprite {
+  constructor() {
+    super(...arguments);
+    this.bulletCooldown = 800;
+    this.bulletTick = 0;
+    this.bulletSpeed = 3;
+  }
+  update() {
+    super.update();
+    this.updateBullets();
+  }
+  static spawn(coords) {
+    if (!coords) coords = randomCoords();
+    const rad = 42;
+    const newItem = new Turret(coords.x, coords.y, rad, 'purple', {
+      x: 0,
+      y: 0,
+    });
+
+    addTurret(newItem);
+  }
+
+  updateBullets() {
+    this.bulletTick += window.animFrameDuration;
+    if (this.bulletTick >= this.bulletCooldown) {
+      this.shoot();
+      this.bulletTick = 0;
+    }
+  }
+
+  shoot() {
+    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+    const vel = {
+      x: Math.cos(angle) * this.bulletSpeed,
+      y: Math.sin(angle) * this.bulletSpeed,
+    };
+    addEnemyBullet(new Bullet(this.x, this.y, 10, 'purple', vel));
+  }
+}
+
+export class BlackHole extends Sprite {
+  constructor(x, y) {
+    super(x, y, 0, 'black', { x: 0, y: 0 });
+    this.totalFrames = Math.floor(4e3 / 16);
+    this.remainingFrames = this.totalFrames;
+    this.pullForce = 0.1;
+  }
+
+  update() {
+    if (this.remainingFrames > this.totalFrames * 0.7) {
+      this.r += 2 + this.remainingFrames / this.totalFrames;
+    } else if (this.remainingFrames < this.totalFrames * 0.1) {
+      this.r = this.r * 0.9;
+    } else {
+      this.r += 10 + 100 * (this.remainingFrames / this.totalFrames);
+    }
+    if (this.r < 0) this.r = 0.01;
+    this.pullForce += this.remainingFrames / this.totalFrames / 5;
+    this.remainingFrames -= 1;
+  }
+  draw(lagOffset) {
+    this.preDraw(lagOffset);
+    c.save();
+    let grd = c.createRadialGradient(
+      this.renderX,
+      this.renderY,
+      this.r * 0.8,
+      this.renderX,
+      this.renderY,
+      this.r
+    );
+    grd.addColorStop(0, 'black');
+    grd.addColorStop(
+      0.9,
+      Math.random() < 0.2
+        ? 'rgba(103, 181, 191, 0.5)'
+        : 'rgba(103, 181, 191, 0.46)'
+    );
+    c.fillStyle = grd;
+
+    c.beginPath();
+    c.arc(this.renderX, this.renderY, this.r, 0, Math.PI * 2, false);
+    c.fill();
+    c.restore();
+
+    this.postDraw();
+  }
+
+  static spawn() {
+    const newBh = new BlackHole(x, y);
+    addBlackHole(newBh);
+  }
+}
+
 export class Player extends Sprite {
   constructor() {
     super(...arguments);
@@ -173,49 +350,7 @@ export class Player extends Sprite {
     this.cooldownRefs = [];
     this.lastMouseMove = null;
   }
-  applyVelocity() {
-    let dirX = -this.inputs.left + this.inputs.right;
-    let dirY = -this.inputs.up + this.inputs.down;
-
-    if (dirX !== 0 && dirY !== 0) {
-      dirX *= Math.SQRT1_2;
-      dirY *= Math.SQRT1_2;
-      console.log(dirX, dirY);
-    }
-
-    this.vel.x += this.speed * dirX;
-    if (dirY !== 0) {
-      if (this.vel.x > this.maxSpeed / 2) {
-        this.vel.x = this.maxSpeed / 2;
-      } else if (this.vel.x < -this.maxSpeed / 2) {
-        this.vel.x = -this.maxSpeed / 2;
-      }
-    } else {
-      if (this.vel.x > this.maxSpeed) {
-        this.vel.x = this.maxSpeed;
-      } else if (this.vel.x < -this.maxSpeed) {
-        this.vel.x = -this.maxSpeed;
-      }
-    }
-    this.vel.y += this.speed * dirY;
-    if (dirX !== 0) {
-      if (this.vel.y > this.maxSpeed / 2) {
-        this.vel.y = this.maxSpeed / 2;
-      } else if (this.vel.y < -this.maxSpeed / 2) {
-        this.vel.y = -this.maxSpeed / 2;
-      }
-    } else {
-      if (this.vel.y > this.maxSpeed) {
-        this.vel.y = this.maxSpeed;
-      } else if (this.vel.y < -this.maxSpeed) {
-        this.vel.y = -this.maxSpeed;
-      }
-    }
-
-    if (!dirX) this.vel.x *= this.friction;
-    if (!dirY) this.vel.y *= this.friction;
-  }
-  update() {
+  getVelocity() {
     if (this.inputs.left) {
       this.vel.x -= this.speed;
     }
@@ -247,15 +382,18 @@ export class Player extends Sprite {
     ) {
       this.vel.y *= this.friction;
     }
+  }
+  update() {
+    this.applyGravity();
+    this.getVelocity();
     this.enforceMapBoundaries();
-
     super.update();
-    this.bulletTick += window.animFrameDuration;
-    if (this.bulletTick >= this.bulletCooldown) {
-      this.shootBullets();
-      this.bulletTick = 0;
-    }
+    this.updateBullets();
+    this.updateAbilities();
+  }
 
+  updateAbilities() {
+    if (!allowAbilities) return;
     const abilities = this.items.filter((i) => i.isAbility);
     for (let ability of abilities) {
       ability.remainingMs -= window.animFrameDuration;
@@ -350,11 +488,16 @@ export class Player extends Sprite {
       addBullet(new Bullet(player.x, player.y, BULLET_SIZE, BULLET_COLOR, vel));
     }
   }
-
+  updateBullets() {
+    this.bulletTick += window.animFrameDuration;
+    if (this.bulletTick >= this.bulletCooldown) {
+      this.shootBullets();
+      this.bulletTick = 0;
+    }
+  }
   shootBullets() {
-    if (!animId) return;
-    const { clientX, clientY } = player.lastMouseMove;
     if (!allowPlayerShoot) return;
+    const { clientX, clientY } = player.lastMouseMove;
 
     const bulletMods = player.items.filter(
       (i) => i.modifiers && i.modifiers.some((m) => m.key == 'bulletsFired')
@@ -368,14 +511,16 @@ export class Player extends Sprite {
 
   onLevelUp() {
     this.xp = 1;
+    if (this.level % 5 == 0) {
+      //this.heat = 0;
+      const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
+      if (!evt) throw new Error("failed to get event 'Prepare yourself'");
+      addEvent({ ...evt });
+    }
   }
 }
 
 export let player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
-
-export const resetPlayer = () => {
-  player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
-};
 
 export class Projectile extends Sprite {
   constructor() {
@@ -386,6 +531,7 @@ export class Projectile extends Sprite {
     return Projectile.handleEnemyCollision(this, e);
   }
   static handleEnemyCollision(self, e) {
+    if (!debug && (self.invulnerable || e.invulnerable)) return [false, false];
     const dist = Math.hypot(self.x - e.x, self.y - e.y);
     if (dist - e.r - self.r < 1) {
       for (let i = 0; i < e.r * 15; i++) {
@@ -409,6 +555,10 @@ export class Projectile extends Sprite {
       return e.takeDamage(damage);
     }
     return [false, false];
+  }
+  update() {
+    this.applyGravity();
+    super.update();
   }
 }
 
@@ -441,22 +591,22 @@ export class Enemy extends Sprite {
     };
     this.enteredMap = false;
     this.fixed = false;
-    this.invulnerable = false;
+    this.damage = 5;
   }
 
   followPlayer() {
     let speedMod = this.speed + player.level / 5;
     if (speedMod <= 1) speedMod = 1;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
-    const vel = {
+    this.vel = {
       x: Math.cos(angle) * speedMod,
       y: Math.sin(angle) * speedMod,
     };
 
-    gsap.to(this.vel, {
-      x: vel.x,
-      y: vel.y,
-    });
+    // gsap.to(this.vel, {
+    //   x: vel.x,
+    //   y: vel.y,
+    // });
   }
   update() {
     super.update();
@@ -467,6 +617,7 @@ export class Enemy extends Sprite {
       }
       if (!this.enteredMap && this.inMap()) this.enteredMap = true;
       if (this.enteredMap) this.enforceMapBoundaries();
+      this.applyGravity();
     }
 
     this.cur_frame++;
@@ -691,8 +842,8 @@ export class Ability extends Sprite {
     super(...arguments);
   }
   handleEnemyCollision(e) {
+    if (!debug && (self.invulnerable || e.invulnerable)) return [false, false];
     if (this.shapeType == 'square') {
-      // todo: need to remove .5 enemy (or player?) radius from this angle...
       const angle = radians_to_degrees(this.angle);
       const rotatedEnemyCoords = rotate(this.x, this.y, e.x, e.y, angle, true);
       const projectedEnemy = {
@@ -781,11 +932,6 @@ export class SolarFlare extends Ability {
 
   update() {
     super.update();
-    // if (this.remainingFrames > 30) {
-    //   this.w++;
-    // } else if (this.w > 1) {
-    //   this.w--;
-    // }
     if (this.remainingFrames > 10) {
       this.r += 8;
       this.alpha += 0.7;
@@ -847,5 +993,9 @@ export class Slash extends Ability {
 // black hole spawns, transforms graphics rendering and different enemies? - https://codepen.io/akm2/pen/AGgarW
 // shadows? - https://codepen.io/mladen___/pen/gbvqBo
 // add life bar
+
+// make game map/world
+// capture points?
+// protecc the mvp
 
 // possible issue - mutli bullets dropping at same time?

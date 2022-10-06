@@ -8,7 +8,6 @@ import {
   get,
   orderByChild,
   limitToLast,
-  child,
 } from 'firebase/database';
 
 // TODO: Replace the following with your app's Firebase project configuration

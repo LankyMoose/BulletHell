@@ -1,13 +1,17 @@
 import {
   addBonusToPool,
+  BlackHole,
+  Boss,
   Enemy,
   Kamehameha,
+  Player,
   player,
   removeBonusFromPool,
   Slash,
   SolarFlare,
-} from './lib';
-import { getRandomByWeight } from './util';
+  Turret,
+} from './lib.js';
+import { getRandomByWeight } from './util.js';
 
 export const menu = document.getElementById('menu');
 export const leaderboard = document.getElementById('leaderboard');
@@ -43,14 +47,6 @@ export let y = canvas.height / 2;
 
 export const XP_PER_KILL = 100;
 export const XP_REQ_MULTI_PER_LEVEL = 1.2;
-
-export let animId;
-export const setAnimId = (id) => (animId = id);
-export const clearAnimId = () => {
-  window.cancelAnimationFrame(animId);
-  animId = null;
-};
-
 export const FRICTION = 0.97;
 export const BULLET_COLOR = 'rgba(255,255,255,.75)';
 export const BULLET_SIZE = 5;
@@ -286,12 +282,12 @@ const BONUS_UPGRADES = [
   {
     type: 'upgrade',
     name: 'Laser',
-    weight: 500,
+    weight: 5,
     rarity_weights: [9, 6, 4],
     modifiers: [
       {
         key: 'size',
-        amounts: [3, 6, 9],
+        amounts: [5, 12, 18],
       },
     ],
   },
@@ -389,10 +385,20 @@ export const ITEM_TYPES = [
   },
 ];
 
+const renderEventName = (name) => {
+  c.save();
+  c.fillStyle = 'white';
+  const fs = 36;
+  c.font = fs + 'px sans-serif';
+  c.textAlign = 'center';
+  c.fillText(name, canvas.width / 2, 100);
+  c.restore();
+};
+
 export const EVENT_TYPES = [
   {
     name: 'Horde',
-    weight: 5,
+    weight: 1,
     cooldown: 2000,
     remainingMs: 0,
     activations: 1,
@@ -410,34 +416,157 @@ export const EVENT_TYPES = [
         if (percent > 0.5) percent = 1 - percent;
         if (percent < 0) percent = 0;
         c.globalAlpha = percent * 0.3;
-
         c.fillStyle = 'red';
         c.fillRect(0, 0, canvas.width, canvas.height);
-        c.globalAlpha = 1;
-        c.fillStyle = 'white';
-        const fs = 36;
-        c.font = fs + 'px sans-serif';
-        c.textAlign = 'center';
-        c.fillText('Horde!', canvas.width / 2, 100);
         c.restore();
+        renderEventName('Horde!');
+      },
+    ],
+    onExit: [],
+  },
+  {
+    name: 'Prepare yourself!',
+    weight: 0,
+    cooldown: 4e3,
+    remainingMs: 0,
+    activations: 1,
+    functions: [
+      () => {
+        BlackHole.spawn();
+        player.invulnerable = true;
+        setAllowEnemySpawn(false);
+        setAllowPlayerShoot(false);
+        setAllowAbilities(false);
+        setTimeout(() => {
+          clearEnemies();
+          clearBullets();
+          clearItems();
+        }, 1000);
+      },
+    ],
+    vfx: [
+      (self) => {
+        renderEventName('Prepare yourself!');
+      },
+    ],
+    onExit: [
+      () => {
+        const evt = EVENT_TYPES.find((e) => e.name == `Redball the great`);
+        if (!evt) throw new Error("failed to get event 'Redball the great'");
+        addEvent({ ...evt });
+        setAllowPlayerShoot(true);
+        setAllowAbilities(true);
+        player.invulnerable = false;
+      },
+    ],
+  },
+  {
+    name: `Redball the great`,
+    weight: 0,
+    cooldown: Infinity,
+    remainingMs: 0,
+    activations: 1,
+    functions: [
+      () => {
+        for (let i = 0; i < 5 + player.level / 2; i++) {
+          Turret.spawn();
+        }
+        Boss.spawn();
+      },
+    ],
+    vfx: [
+      (self) => {
+        renderEventName(`Redball the great`);
+      },
+    ],
+    onExit: [
+      () => {
+        const evt = EVENT_TYPES.find((e) => e.name == 'Enemy felled!');
+        if (!evt) throw new Error("failed to get event 'Enemy felled'");
+        addEvent({ ...evt });
+      },
+    ],
+  },
+  {
+    name: 'Great enemy felled!',
+    weight: 0,
+    cooldown: 4e3,
+    remainingMs: 0,
+    activations: 1,
+    functions: [
+      () => {
+        BlackHole.spawn();
+        setAllowEnemySpawn(false);
+        setAllowPlayerShoot(false);
+        setAllowAbilities(false);
+        player.invulnerable = true;
+        setTimeout(() => {
+          clearEnemies();
+          clearBullets();
+          clearTurrets();
+          clearEnemyBullets();
+        }, 1000);
+      },
+    ],
+    vfx: [
+      (self) => {
+        renderEventName('Enemy felled!');
+      },
+    ],
+    onExit: [
+      () => {
+        setAllowPlayerShoot(true);
+        setAllowEnemySpawn(true);
+        setAllowAbilities(true);
+        player.invulnerable = false;
       },
     ],
   },
 ];
 
+export let animId;
+export const setAnimId = (id) => (animId = id);
+export const clearAnimId = () => {
+  window.cancelAnimationFrame(animId);
+  animId = null;
+};
+export let enemySpawnTime = 1000;
+export const setEnemySpawnTime = (num) => (enemySpawnTime = num);
+export const resetEnemySpawnTime = () => (enemySpawnTime = 1000);
+
+export let allowEnemySpawn = true;
+export const setAllowEnemySpawn = (val) => (allowEnemySpawn = val);
+
+export let allowPlayerShoot = true;
+export let setAllowPlayerShoot = (val) => (allowPlayerShoot = val);
+
+export let allowAbilities = true;
+export let setAllowAbilities = (val) => (allowAbilities = val);
+
+export let blackHoles = [];
+export const addBlackHole = (bh) => blackHoles.push(bh);
+export const removeBlackHole = (i) => blackHoles.splice(i, 1);
+export const clearBlackHoles = () => (blackHoles = []);
+
 export let events = [];
-export const addEvent = (e) => events.push(b);
+export const addEvent = (e) => events.push(e);
 export const removeEvent = (i) => events.splice(i, 1);
 export const clearEvents = () => (events = []);
 export const randomEvent = () => {
-  const evtIndex = getRandomByWeight(EVENT_TYPES);
-  return EVENT_TYPES[evtIndex];
+  const filteredEvents = EVENT_TYPES.filter((e) => e.weight > 0);
+  const evtIndex = getRandomByWeight(filteredEvents);
+  return filteredEvents[evtIndex];
 };
 
 export let bullets = [];
 export const addBullet = (b) => bullets.push(b);
 export const removeBullet = (i) => bullets.splice(i, 1);
 export const clearBullets = () => (bullets = []);
+
+export let enemyBullets = [];
+export const addEnemyBullet = (b) => enemyBullets.push(b);
+export const removeEnemyBullet = (i) => enemyBullets.splice(i, 1);
+export const clearEnemyBullets = () => (enemyBullets = []);
 
 export let enemies = [];
 export const addEnemy = (e) => enemies.push(e);
@@ -453,6 +582,11 @@ export let items = [];
 export const addItem = (i) => items.push(i);
 export const removeItem = (i) => items.splice(i, 1);
 export const clearItems = () => (items = []);
+
+export let turrets = [];
+export const addTurret = (i) => turrets.push(i);
+export const removeTurret = (i) => turrets.splice(i, 1);
+export const clearTurrets = () => (turrets = []);
 
 export let abilityEffects = [];
 export const addAbilityEffect = (e) => abilityEffects.push(e);
@@ -470,3 +604,7 @@ export const resetScore = () => (score = 0);
 
 export const set_x = (val) => (x = val);
 export const set_y = (val) => (y = val);
+
+export const resetPlayer = () => {
+  player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
+};
