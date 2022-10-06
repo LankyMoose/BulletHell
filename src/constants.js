@@ -488,7 +488,7 @@ export const EVENT_TYPES = [
     ],
   },
   {
-    name: 'Great enemy felled!',
+    name: 'Enemy felled!',
     weight: 0,
     cooldown: 4e3,
     remainingMs: 0,
