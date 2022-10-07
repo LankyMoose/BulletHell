@@ -1076,23 +1076,3 @@ export class Slash extends Ability {
     this.postDraw();
   }
 }
-
-// ability ideas
-// orbiting projectiles
-// AOE temporal field
-// dash
-// consider i-frames?
-// bullet speed a bit weak?
-
-// general ideas
-// shadows? - https://codepen.io/mladen___/pen/gbvqBo
-// add life bar
-// exploding enemies
-// melee enemies (pokies) - bandana, dif. color
-// boss resistances
-
-// make game map/world
-// capture points?
-// protecc the mvp
-
-// possible issue - mutli bullets dropping at same time?
