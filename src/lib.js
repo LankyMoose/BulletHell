@@ -628,30 +628,9 @@ export class Projectile extends Sprite {
 }
 
 export class Bullet extends Projectile {
-  constructor(
-    x,
-    y,
-    r,
-    color,
-    vel,
-    renderGlow,
-    glowSize,
-    damage,
-    critChance,
-    critMulti
-  ) {
-    super(
-      x,
-      y,
-      r,
-      color,
-      vel,
-      renderGlow,
-      glowSize,
-      damage,
-      critChance,
-      critMulti
-    );
+  //prettier-ignore
+  constructor(x,y,r,color,vel,renderGlow,glowSize,damage,critChance,critMulti) {
+    super(...arguments);
   }
 }
 
@@ -916,11 +895,12 @@ export class DamageText {
 }
 
 export class Ability extends Sprite {
-  constructor(x, y, r, color, vel, renderGlow, glowSize, damage) {
+  constructor(x, y, r, color, vel, renderGlow, glowSize, damage, name) {
     super(x, y, r, color, vel, renderGlow, glowSize);
     this.damage = damage;
     this.critChance = player.critChance;
     this.critMulti = player.critDamageMulti;
+    this.name = name;
   }
   handleEnemyCollision(e) {
     if (!debug && e.invulnerable) return [false, false];
@@ -963,7 +943,8 @@ export class Kamehameha extends Ability {
       { x: 0, y: 0 },
       false,
       0,
-      itemInstance.damage
+      itemInstance.damage,
+      itemInstance.name
     );
     this.remainingFrames = 40;
     this.targetX = clientX;
@@ -1011,7 +992,8 @@ export class SolarFlare extends Ability {
       { x: 0, y: 0 },
       true,
       70,
-      itemInstance.damage
+      itemInstance.damage,
+      itemInstance.name
     );
     this.remainingFrames = 20;
     this.shapeType = 'circle';
@@ -1040,7 +1022,8 @@ export class Slash extends Ability {
       vel,
       false,
       0,
-      itemInstance.damage
+      itemInstance.damage,
+      itemInstance.name
     );
     this.totalFrames = 14;
     this.remainingFrames = this.totalFrames;
@@ -1085,16 +1068,37 @@ export class Vortex extends Ability {
       itemInstance.size,
       itemInstance.getColor(),
       { x: 0, y: 0 },
-      true,
+      false,
       0,
-      itemInstance.damage
+      itemInstance.damage,
+      itemInstance.name
     );
-    this.remainingFrames = Infinity;
+    this.remainingFrames = 1;
     this.shapeType = 'circle';
+    this.angle = 0;
+    this.destroyOnCollision = true;
   }
-
   update() {
     super.update();
-    // need to orbit the proj
+    const { x, y } = rotate(
+      player.x,
+      player.y,
+      player.x + 50,
+      player.y + 50,
+      this.angle
+    );
+    console.log('vortex coords', { x, y }, 'player coords', {
+      x: player.x,
+      y: player.y,
+    });
+    this.x = x;
+    this.y = y;
+    this.angle += 4;
   }
+  // draw(lagOffset) {
+  //   this.preDraw(lagOffset);
+  //   c.save();
+  //   c.translate(this.x, this.y);
+  //   c.rotate(this.angle);
+  // }
 }

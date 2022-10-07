@@ -217,8 +217,8 @@ export const BONUS_TYPES = [
   },
   {
     type: 'ability',
-    name: 'Vortext',
-    weight: 0,
+    name: 'Vortex',
+    weight: 10,
   },
 ];
 const BONUS_UPGRADES = [
@@ -387,15 +387,20 @@ export const ITEM_TYPES = [
     },
   },
   {
-    name: 'Vortext',
-    getColor: () => 'rgba(100, 255, 100, .8)',
+    name: 'Vortex',
+    getColor: () => 'rgba(0, 230, 0, .7)',
     isAbility: true,
     cooldown: 4e3,
     remainingMs: 32,
-    size: 20,
-    damage: 5,
+    size: 8,
+    damage: 20,
+    maxInstances: 3,
     trigger: (player, self, cx, cy) => {
-      addAbilityEffect(new Vortex(player.x, player.y, self));
+      if (
+        abilityEffects.filter((ae) => ae.name == 'Vortex').length <
+        self.maxInstances
+      )
+        addAbilityEffect(new Vortex(player.x, player.y, self));
     },
     onAdded: (bonus) => {
       removeBonusFromPool(bonus);

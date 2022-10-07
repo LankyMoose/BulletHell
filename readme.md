@@ -19,7 +19,10 @@ Open source bullet-hell game inspired by Vampire Survivors, Soulstone Survivors 
 - melee enemies (pokies) - bandana, dif. color
 - make game map/world
 
-#### _events_
+#### \_events\_
 
 - capture points?
 - protecc the mvp
+- offensive survival
+- defensive survival
+- terrain

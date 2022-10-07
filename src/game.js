@@ -186,6 +186,7 @@ function update() {
   // investigate pooling?
   const enemiesToRemove = [];
   const bulletsToRemove = [];
+  const abilitiesToRemove = [];
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i];
     e.update();
@@ -217,7 +218,7 @@ function update() {
         const ae = abilityEffects[j];
         const [hit, kill] = ae.handleEnemyCollision(e);
         enemyDestroyed = kill;
-        //if (hit) removeBullet(j);
+        if (hit && ae.destroyOnCollision) abilitiesToRemove.push(j);
       }
     }
 
@@ -232,11 +233,14 @@ function update() {
       if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
   }
-  for (let index of enemiesToRemove) {
+  for (const index of enemiesToRemove) {
     removeEnemy(index);
   }
-  for (let index of bulletsToRemove) {
+  for (const index of bulletsToRemove) {
     removeBullet(index);
+  }
+  for (const index of abilitiesToRemove) {
+    removeAbilityEffect(index);
   }
   if (playerLifeChanged) renderPlayerLife();
 
