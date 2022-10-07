@@ -67,7 +67,7 @@ import {
   levelUpOptionsEl,
   pauseScreen,
   playerStatsEl,
-  PLAYER_STAT_DISPLAYS,
+  STAT_DISPLAYS,
   damageTexts,
   removeDamageText,
   lifeEl,
@@ -487,7 +487,7 @@ function renderPlayerStats() {
   playerStatsWrapper.style.opacity = 1;
   playerStatsEl.innerHTML = '';
   Object.entries(player).forEach(([k, v]) => {
-    const displayKey = PLAYER_STAT_DISPLAYS.find((item) => item.key == k);
+    const displayKey = STAT_DISPLAYS.find((item) => item.key == k);
     if (!displayKey) return;
     playerStatsEl.innerHTML += `<p>${displayKey.displayText}: ${v.toFixed(
       2
@@ -586,7 +586,7 @@ function showLevelUpScreen() {
 function renderBonusModifiers(btn, bonus) {
   for (let mod of bonus.modifiers) {
     const amount = mod.amounts[bonus.rarity];
-    const displayKey = PLAYER_STAT_DISPLAYS.find((item) => item.key == mod.key);
+    const displayKey = STAT_DISPLAYS.find((item) => item.key == mod.key);
     btn.innerHTML += `${displayKey.displayText}: ${
       amount > 0 ? `+${amount.toFixed(2)}` : amount.toFixed(2)
     }<br />`;

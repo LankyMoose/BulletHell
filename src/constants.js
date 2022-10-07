@@ -51,7 +51,7 @@ export const BULLET_COLOR = 'rgba(255,255,255,.75)';
 export const BULLET_SIZE = 5;
 export const ENEMY_SPEED = 0.6;
 
-export const PLAYER_STAT_DISPLAYS = [
+export const STAT_DISPLAYS = [
   {
     key: 'xpMulti',
     displayText: 'XP Multiplier',
@@ -91,6 +91,10 @@ export const PLAYER_STAT_DISPLAYS = [
   {
     key: 'maxLife',
     displayText: 'Max Life',
+  },
+  {
+    key: 'maxInstances',
+    displayText: 'Number of instances',
   },
 ];
 
@@ -226,7 +230,7 @@ const BONUS_UPGRADES = [
     type: 'upgrade',
     name: 'Slash',
     weight: 4,
-    rarity_weights: [9, 6, 4],
+    rarity_weights: [9, 6, 2],
     modifiers: [
       {
         key: 'damage',
@@ -238,7 +242,7 @@ const BONUS_UPGRADES = [
     type: 'upgrade',
     name: 'Slash',
     weight: 4,
-    rarity_weights: [9, 6, 4],
+    rarity_weights: [9, 6, 2],
     modifiers: [
       {
         key: 'size',
@@ -250,7 +254,7 @@ const BONUS_UPGRADES = [
     type: 'upgrade',
     name: 'Explode',
     weight: 5,
-    rarity_weights: [9, 6, 4],
+    rarity_weights: [9, 6, 2],
     modifiers: [
       {
         key: 'damage',
@@ -262,7 +266,7 @@ const BONUS_UPGRADES = [
     type: 'upgrade',
     name: 'Explode',
     weight: 5,
-    rarity_weights: [9, 6, 4],
+    rarity_weights: [9, 6, 2],
     modifiers: [
       {
         key: 'size',
@@ -274,7 +278,7 @@ const BONUS_UPGRADES = [
     type: 'upgrade',
     name: 'Laser',
     weight: 5,
-    rarity_weights: [9, 6, 4],
+    rarity_weights: [9, 6, 2],
     modifiers: [
       {
         key: 'damage',
@@ -286,11 +290,35 @@ const BONUS_UPGRADES = [
     type: 'upgrade',
     name: 'Laser',
     weight: 5,
-    rarity_weights: [9, 6, 4],
+    rarity_weights: [9, 6, 2],
     modifiers: [
       {
         key: 'size',
         amounts: [5, 12, 18],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Vortex',
+    weight: 5,
+    rarity_weights: [0, 0, 9, 2],
+    modifiers: [
+      {
+        key: 'maxInstances',
+        amounts: [0, 0, 1, 2],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Vortex',
+    weight: 5,
+    rarity_weights: [9, 6, 2],
+    modifiers: [
+      {
+        key: 'damage',
+        amounts: [1, 2, 4],
       },
     ],
   },
@@ -404,6 +432,11 @@ export const ITEM_TYPES = [
     },
     onAdded: (bonus) => {
       removeBonusFromPool(bonus);
+      for (const upgrade of BONUS_UPGRADES.filter(
+        (bu) => bu.name == bonus.name
+      )) {
+        addBonusToPool(upgrade);
+      }
     },
   },
 ];
