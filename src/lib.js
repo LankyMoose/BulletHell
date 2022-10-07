@@ -1077,23 +1077,21 @@ export class Vortex extends Ability {
     this.shapeType = 'circle';
     this.angle = 0;
     this.destroyOnCollision = true;
+    this.offset = player.r;
   }
   update() {
     super.update();
     const { x, y } = rotate(
       player.x,
       player.y,
-      player.x + 50,
-      player.y + 50,
+      player.x + this.offset,
+      player.y + this.offset,
       this.angle
     );
-    console.log('vortex coords', { x, y }, 'player coords', {
-      x: player.x,
-      y: player.y,
-    });
     this.x = x;
     this.y = y;
     this.angle += 4;
+    if (this.offset <= 50) this.offset++;
   }
   // draw(lagOffset) {
   //   this.preDraw(lagOffset);

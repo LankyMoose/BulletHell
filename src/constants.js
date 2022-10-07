@@ -302,11 +302,11 @@ const BONUS_UPGRADES = [
     type: 'upgrade',
     name: 'Vortex',
     weight: 5,
-    rarity_weights: [0, 0, 9, 2],
+    rarity_weights: [9, 2],
     modifiers: [
       {
         key: 'maxInstances',
-        amounts: [0, 0, 1, 2],
+        amounts: [1, 2],
       },
     ],
   },

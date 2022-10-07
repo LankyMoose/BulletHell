@@ -6,7 +6,6 @@ Open source bullet-hell game inspired by Vampire Survivors, Soulstone Survivors 
 
 #### _abilities_
 
-- orbiting projectiles
 - AOE temporal field
 - dash
 - consider i-frames?
