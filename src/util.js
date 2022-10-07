@@ -1,3 +1,4 @@
+'use strict';
 import { canvas } from './constants.js';
 /*
  CX @ Origin X  

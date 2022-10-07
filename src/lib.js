@@ -1,3 +1,5 @@
+'use strict';
+import { game } from './state';
 import {
   FRICTION,
   BULLET_COLOR,
@@ -7,23 +9,8 @@ import {
   x,
   y,
   c,
-  addBullet,
-  addEnemy,
-  addItem,
   canvas,
-  addParticle,
-  addDamageText,
-  blackHoles,
-  addBlackHole,
-  allowEnemySpawn,
-  allowPlayerShoot,
-  allowAbilities,
-  addTurret,
-  addEnemyBullet,
   EVENT_TYPES,
-  events,
-  addEvent,
-  bonusPool,
 } from './constants.js';
 
 import {
@@ -65,7 +52,6 @@ export class Sprite {
     this.renderGlow = renderGlow;
     this.glowSize = glowSize;
     this.invulnerable = false;
-    this.isInBlackHole = false;
   }
 
   preDraw(lagOffset) {
@@ -119,8 +105,7 @@ export class Sprite {
   }
 
   applyGravity() {
-    if (!blackHoles.length) return (this.isInBlackHole = false);
-    for (const bh of blackHoles) {
+    for (const bh of game.entities.blackHoles.value) {
       const angle = Math.atan2(bh.y - this.y, bh.x - this.x);
       const vel = {
         x: Math.cos(angle) * bh.pullForce,
@@ -128,8 +113,6 @@ export class Sprite {
       };
       this.vel.x += vel.x;
       this.vel.y += vel.y;
-      const dist = Math.hypot(this.x - bh.x, this.y - bh.y);
-      this.isInBlackHole = dist - bh.r - this.r < 1;
     }
   }
 
@@ -180,7 +163,7 @@ export class Boss extends Sprite {
 
   static spawn(coords) {
     if (!coords) coords = randomScreenEdgeCoords(150);
-    addEnemy(
+    game.entities.enemies.add(
       new Boss(coords.x, coords.y, 250, 'red', {
         x: 0,
         y: 0,
@@ -201,6 +184,7 @@ export class Boss extends Sprite {
     }
   }
   followPlayer() {
+    const player = game.entities.player.value;
     let speedMod = this.speed + player.level / 8;
     if (speedMod <= 1) speedMod = 1;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -211,12 +195,13 @@ export class Boss extends Sprite {
   }
 
   shoot() {
+    const player = game.entities.player.value;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
     const vel = {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
-    addEnemyBullet(
+    game.entities.enemyBullets.add(
       new Bullet(this.x, this.y, 50, 'crimson', vel, false, 0, 20, 10, 1.5)
     );
   }
@@ -225,7 +210,9 @@ export class Boss extends Sprite {
       this.r -= damage;
       return [true, false];
     } else {
-      const evt = events.find((e) => e.name == `Redball the great`);
+      const evt = game.entities.events.value.find(
+        (e) => e.name == `Redball the great`
+      );
       if (evt) {
         evt.cooldown = 0;
         evt.remainingMs = 0;
@@ -253,8 +240,7 @@ export class Turret extends Sprite {
       x: 0,
       y: 0,
     });
-
-    addTurret(newItem);
+    game.entities.turrets.add(newItem);
   }
 
   updateBullets() {
@@ -266,12 +252,13 @@ export class Turret extends Sprite {
   }
 
   shoot() {
+    const player = game.entities.player.value;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
     const vel = {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
-    addEnemyBullet(
+    game.entities.enemyBullets.add(
       new Bullet(this.x, this.y, 20, 'purple', vel, false, 0, 10, 10, 1.2)
     );
   }
@@ -327,7 +314,7 @@ export class BlackHole extends Sprite {
 
   static spawn() {
     const newBh = new BlackHole(x, y);
-    addBlackHole(newBh);
+    game.entities.blackHoles.add(newBh);
   }
 }
 
@@ -406,7 +393,7 @@ export class Player extends Sprite {
   }
 
   updateAbilities() {
-    if (!allowAbilities) return;
+    if (!game.settings.player.allowAbilities.value) return;
     const abilities = this.items.filter((i) => i.isAbility);
     for (let ability of abilities) {
       ability.remainingMs -= window.animFrameDuration;
@@ -432,7 +419,7 @@ export class Player extends Sprite {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
-    addBullet(
+    game.entities.bullets.add(
       new Bullet(
         this.x,
         this.y,
@@ -464,7 +451,7 @@ export class Player extends Sprite {
       if (!item.permanent) {
         item.duration--;
         if (item.duration <= 0) {
-          player.items.splice(i, 1);
+          this.items.splice(i, 1);
         }
       }
     }
@@ -479,23 +466,23 @@ export class Player extends Sprite {
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
-        player.x,
-        player.y,
+        this.x,
+        this.y,
         clientX,
         clientY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread,
         true
       );
-      const angle = Math.atan2(target.y - player.y, target.x - player.x);
+      const angle = Math.atan2(target.y - this.y, target.x - this.x);
 
       const vel = {
-        x: Math.cos(angle) * player.bulletSpeed,
-        y: Math.sin(angle) * player.bulletSpeed,
+        x: Math.cos(angle) * this.bulletSpeed,
+        y: Math.sin(angle) * this.bulletSpeed,
       };
-      addBullet(
+      game.entities.bullets.add(
         new Bullet(
-          player.x,
-          player.y,
+          this.x,
+          this.y,
           BULLET_SIZE,
           BULLET_COLOR,
           vel,
@@ -508,26 +495,26 @@ export class Player extends Sprite {
       );
     }
 
-    if (bulletCount % 2 == 1) player.shootSingleBullet(clientX, clientY);
+    if (bulletCount % 2 == 1) this.shootSingleBullet(clientX, clientY);
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
-        player.x,
-        player.y,
+        this.x,
+        this.y,
         clientX,
         clientY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread
       );
-      const angle = Math.atan2(target.y - player.y, target.x - player.x);
+      const angle = Math.atan2(target.y - this.y, target.x - this.x);
 
       const vel = {
-        x: Math.cos(angle) * player.bulletSpeed,
-        y: Math.sin(angle) * player.bulletSpeed,
+        x: Math.cos(angle) * this.bulletSpeed,
+        y: Math.sin(angle) * this.bulletSpeed,
       };
-      addBullet(
+      game.entities.bullets.add(
         new Bullet(
-          player.x,
-          player.y,
+          this.x,
+          this.y,
           BULLET_SIZE,
           BULLET_COLOR,
           vel,
@@ -548,16 +535,17 @@ export class Player extends Sprite {
     }
   }
   shootBullets() {
-    if (!allowPlayerShoot) return;
-    const { clientX, clientY } = player.lastMouseMove;
+    if (!game.settings.player.allowShoot.value) return;
 
-    const bulletMods = player.items.filter(
+    const { clientX, clientY } = this.lastMouseMove;
+
+    const bulletMods = this.items.filter(
       (i) => i.modifiers && i.modifiers.some((m) => m.key == 'bulletsFired')
     );
     if (!bulletMods.length) {
-      player.shootSingleBullet(clientX, clientY);
+      this.shootSingleBullet(clientX, clientY);
     } else {
-      player.shootMultipleBullets(clientX, clientY);
+      this.shootMultipleBullets(clientX, clientY);
     }
   }
 
@@ -567,12 +555,10 @@ export class Player extends Sprite {
       //this.heat = 0;
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
-      addEvent({ ...evt });
+      game.entities.events.add({ ...evt });
     }
   }
 }
-
-export let player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
 
 export class Projectile extends Sprite {
   constructor(
@@ -602,7 +588,7 @@ export class Projectile extends Sprite {
       let numParticles = e.r * 2;
       if (numParticles > 30) numParticles = 30;
       for (let i = 0; i < numParticles; i++) {
-        addParticle(
+        game.entities.particles.add(
           new Particle(self.x, self.y, Math.random() * 2, 'darkred', {
             x: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
             y: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
@@ -615,7 +601,9 @@ export class Projectile extends Sprite {
       }
       const damage = isCrit ? self.damage * self.critMulti : self.damage;
       const mitigatedDamage = damage - damage * e.damageReduction;
-      addDamageText(new DamageText(self.x, self.y, mitigatedDamage, isCrit));
+      game.entities.damageTexts.add(
+        new DamageText(self.x, self.y, mitigatedDamage, isCrit)
+      );
       if (e.invulnerable) return [true, false];
       return e.takeDamage(mitigatedDamage);
     }
@@ -662,6 +650,7 @@ export class Enemy extends Sprite {
   }
 
   followPlayer() {
+    const player = game.entities.player.value;
     let speedMod = this.speed + player.level / 5;
     if (speedMod <= 1) speedMod = 1;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -678,6 +667,7 @@ export class Enemy extends Sprite {
   update() {
     super.update();
     if (!this.fixed) {
+      const player = game.entities.player.value;
       const dist = Math.hypot(this.x - player.x, this.y - player.y);
       if (dist - player.r - this.r < this.aggroRange) {
         this.followPlayer();
@@ -696,12 +686,12 @@ export class Enemy extends Sprite {
   }
 
   static spawn(config, coords) {
-    if (!allowEnemySpawn) return;
+    if (!game.settings.enemies.allowSpawn.value) return;
     //if (!document.hasFocus()) return;
     const rad =
       config?.r ?? Math.random() * (60 - Enemy.minSize) + Enemy.minSize;
     if (!coords) coords = randomScreenEdgeCoords(rad);
-
+    const player = game.entities.player.value;
     const angle = Math.atan2(player.y - coords.y, player.x - coords.x);
     const vel = {
       x: Math.cos(angle) * ENEMY_SPEED,
@@ -711,14 +701,14 @@ export class Enemy extends Sprite {
     newEnemy.fixed = config?.fixed;
     newEnemy.invulnerable = config?.invulnerable;
     Enemy.setImage(newEnemy);
-    addEnemy(newEnemy);
+    game.entities.enemies.add(newEnemy);
     if (!config?.fixed) newEnemy.followPlayer();
   }
 
   static setImage(enemy) {
     enemy.cur_frame = 0;
     enemy.cur_image = enemy.cur_image == 0 ? 1 : 0;
-
+    const player = game.entities.player.value;
     let imgDir = enemy.x > player.x ? enemy.images.left : enemy.images.right;
     if (enemy.y > player.y - player.r)
       imgDir =
@@ -773,7 +763,7 @@ export class Item extends Sprite {
 
     newItem.image = newItem.itemType.image;
 
-    addItem(newItem);
+    game.entities.items.add(newItem);
   }
 
   update() {
@@ -785,6 +775,7 @@ export class Item extends Sprite {
 }
 
 export const handleBonusSelection = (bonus) => {
+  const player = game.entities.player.value;
   if (bonus.type == 'attribute') {
     bonus.modifiers.forEach((m) => {
       const amount = m.amounts[bonus.rarity];
@@ -825,8 +816,9 @@ export class BonusSet {
   }
   generate() {
     while (this.items.length < 3) {
-      const newItemIndex = getRandomByWeight(bonusPool);
-      const bonusDef = bonusPool[newItemIndex];
+      const bonuses = game.bonuses.value;
+      const newItemIndex = getRandomByWeight(bonuses);
+      const bonusDef = bonuses[newItemIndex];
 
       if (!this.items.some((x) => x.name == bonusDef.name)) {
         let rarity = 0;
@@ -898,6 +890,7 @@ export class Ability extends Sprite {
   constructor(x, y, r, color, vel, renderGlow, glowSize, damage, name) {
     super(x, y, r, color, vel, renderGlow, glowSize);
     this.damage = damage;
+    const player = game.entities.player.value;
     this.critChance = player.critChance;
     this.critMulti = player.critDamageMulti;
     this.name = name;
@@ -921,7 +914,9 @@ export class Ability extends Sprite {
         }
         const damage = isCrit ? this.damage * this.critMulti : this.damage;
         const mitigatedDamage = damage - damage * e.damageReduction;
-        addDamageText(new DamageText(e.x, e.y, mitigatedDamage, isCrit));
+        game.entities.damageTexts.add(
+          new DamageText(e.x, e.y, mitigatedDamage, isCrit)
+        );
         if (e.invulnerable) return [true, false];
         return e.takeDamage(mitigatedDamage);
       }
@@ -974,7 +969,7 @@ export class Kamehameha extends Ability {
     c.beginPath();
     c.shadowColor = this.color;
     c.shadowBlur = 20;
-    c.rect(0 - this.w / 2, 0 + player.r, this.w, this.h);
+    c.rect(0 - this.w / 2, 0 + game.entities.player.value.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
     c.restore();
@@ -1037,6 +1032,7 @@ export class Slash extends Ability {
   }
 
   update() {
+    const player = game.entities.player.value;
     this.x = player.x;
     this.y = player.y;
     this.angle -= Math.PI / this.totalFrames;
@@ -1051,7 +1047,7 @@ export class Slash extends Ability {
     c.shadowColor = this.color;
     c.shadowBlur = 10;
     c.beginPath();
-    c.rect(0 - this.w / 2, 0 + player.r, this.w, this.h);
+    c.rect(0 - this.w / 2, 0 + game.entities.player.value.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
     c.setTransform(1, 0, 0, 1, 0, 0);
@@ -1077,10 +1073,11 @@ export class Vortex extends Ability {
     this.shapeType = 'circle';
     this.angle = 0;
     this.destroyOnCollision = true;
-    this.offset = player.r;
+    this.offset = game.entities.player.value.r;
   }
   update() {
     super.update();
+    const player = game.entities.player.value;
     const { x, y } = rotate(
       player.x,
       player.y,

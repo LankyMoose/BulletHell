@@ -1,16 +1,15 @@
+'use strict';
 import {
   BlackHole,
   Boss,
   Enemy,
   Kamehameha,
-  Player,
-  player,
   Slash,
   SolarFlare,
   Turret,
   Vortex,
 } from './lib.js';
-import { getRandomByWeight } from './util.js';
+import { game } from './state.js';
 
 export const menu = document.getElementById('menu');
 export const leaderboard = document.getElementById('leaderboard');
@@ -43,6 +42,8 @@ canvas.width = innerWidth;
 canvas.height = innerHeight;
 export let x = canvas.width / 2;
 export let y = canvas.height / 2;
+export const set_x = (val) => (x = val);
+export const set_y = (val) => (y = val);
 
 export const XP_PER_KILL = 100;
 export const XP_REQ_MULTI_PER_LEVEL = 1.2;
@@ -361,14 +362,16 @@ export const ITEM_TYPES = [
     size: 22,
     damage: 6,
     trigger: (player, self, cx, cy) => {
-      addAbilityEffect(new Kamehameha(player.x, player.y, self, cx, cy));
+      game.entities.abilityEffects.add(
+        new Kamehameha(player.x, player.y, self, cx, cy)
+      );
     },
     onAdded: (bonus) => {
-      removeBonusFromPool(bonus);
+      game.bonuses.remove(bonus);
       for (const upgrade of BONUS_UPGRADES.filter(
         (bu) => bu.name == bonus.name
       )) {
-        addBonusToPool(upgrade);
+        game.bonuses.add(upgrade);
       }
     },
   },
@@ -381,14 +384,16 @@ export const ITEM_TYPES = [
     size: 50,
     damage: 10,
     trigger: (player, self, cx, cy) => {
-      addAbilityEffect(new SolarFlare(player.x, player.y, self));
+      game.entities.abilityEffects.add(
+        new SolarFlare(player.x, player.y, self)
+      );
     },
     onAdded: (bonus) => {
-      removeBonusFromPool(bonus);
+      game.bonuses.remove(bonus);
       for (const upgrade of BONUS_UPGRADES.filter(
         (bu) => bu.name == bonus.name
       )) {
-        addBonusToPool(upgrade);
+        game.bonuses.add(upgrade);
       }
     },
   },
@@ -401,16 +406,16 @@ export const ITEM_TYPES = [
     size: 100,
     damage: 10,
     trigger: (player, self, cx, cy) => {
-      addAbilityEffect(
+      game.entities.abilityEffects.add(
         new Slash(player.x, player.y, self, { x: 0, y: 0 }, cx, cy)
       );
     },
     onAdded: (bonus) => {
-      removeBonusFromPool(bonus);
+      game.bonuses.remove(bonus);
       for (const upgrade of BONUS_UPGRADES.filter(
         (bu) => bu.name == bonus.name
       )) {
-        addBonusToPool(upgrade);
+        game.bonuses.add(upgrade);
       }
     },
   },
@@ -425,17 +430,17 @@ export const ITEM_TYPES = [
     maxInstances: 3,
     trigger: (player, self, cx, cy) => {
       if (
-        abilityEffects.filter((ae) => ae.name == 'Vortex').length <
-        self.maxInstances
+        game.entities.abilityEffects.value.filter((ae) => ae.name == 'Vortex')
+          .length < self.maxInstances
       )
-        addAbilityEffect(new Vortex(player.x, player.y, self));
+        game.entities.abilityEffects.add(new Vortex(player.x, player.y, self));
     },
     onAdded: (bonus) => {
-      removeBonusFromPool(bonus);
+      game.bonuses.remove(bonus);
       for (const upgrade of BONUS_UPGRADES.filter(
         (bu) => bu.name == bonus.name
       )) {
-        addBonusToPool(upgrade);
+        game.bonuses.add(upgrade);
       }
     },
   },
@@ -460,7 +465,7 @@ export const EVENT_TYPES = [
     activations: 1,
     functions: [
       () => {
-        for (let i = 0; i < player.level * 1.2; i++) {
+        for (let i = 0; i < game.entities.player.value.level * 1.2; i++) {
           Enemy.spawn({ r: 18 });
         }
       },
@@ -489,14 +494,14 @@ export const EVENT_TYPES = [
     functions: [
       () => {
         BlackHole.spawn();
-        player.invulnerable = true;
-        setAllowEnemySpawn(false);
-        setAllowPlayerShoot(false);
-        setAllowAbilities(false);
+        game.entities.player.value.invulnerable = true;
+        game.settings.enemies.allowSpawn.set(false);
+        game.settings.player.allowShoot.set(false);
+        game.settings.player.allowAbilities.set(false);
         setTimeout(() => {
-          clearEnemies();
-          clearBullets();
-          clearItems();
+          game.entities.enemies.reset();
+          game.entities.bullets.reset();
+          game.entities.items.reset();
         }, 1000);
       },
     ],
@@ -509,10 +514,10 @@ export const EVENT_TYPES = [
       () => {
         const evt = EVENT_TYPES.find((e) => e.name == `Redball the great`);
         if (!evt) throw new Error("failed to get event 'Redball the great'");
-        addEvent({ ...evt });
-        setAllowPlayerShoot(true);
-        setAllowAbilities(true);
-        player.invulnerable = false;
+        game.entities.events.add({ ...evt });
+        game.settings.player.allowShoot.set(true);
+        game.settings.player.allowAbilities.set(true);
+        game.entities.player.value.invulnerable = false;
       },
     ],
   },
@@ -524,7 +529,7 @@ export const EVENT_TYPES = [
     activations: 1,
     functions: [
       () => {
-        for (let i = 0; i < 5 + player.level / 2; i++) {
+        for (let i = 0; i < 5 + game.entities.player.value.level / 2; i++) {
           Turret.spawn();
         }
         Boss.spawn();
@@ -539,7 +544,7 @@ export const EVENT_TYPES = [
       () => {
         const evt = EVENT_TYPES.find((e) => e.name == 'Enemy felled!');
         if (!evt) throw new Error("failed to get event 'Enemy felled'");
-        addEvent({ ...evt });
+        game.entities.events.add({ ...evt });
       },
     ],
   },
@@ -552,15 +557,16 @@ export const EVENT_TYPES = [
     functions: [
       () => {
         BlackHole.spawn();
-        setAllowEnemySpawn(false);
-        setAllowPlayerShoot(false);
-        setAllowAbilities(false);
-        player.invulnerable = true;
+        game.settings.enemies.allowSpawn.set(false);
+        game.settings.player.allowShoot.set(false);
+        game.settings.player.allowAbilities.set(false);
+        game.entities.player.value.invulnerable = true;
         setTimeout(() => {
-          clearEnemies();
-          clearBullets();
-          clearTurrets();
-          clearEnemyBullets();
+          game.entities.enemies.reset();
+          game.entities.enemyBullets.reset();
+          game.entities.bullets.reset();
+          game.entities.items.reset();
+          game.entities.turrets.reset();
         }, 1000);
       },
     ],
@@ -571,107 +577,11 @@ export const EVENT_TYPES = [
     ],
     onExit: [
       () => {
-        setAllowPlayerShoot(true);
-        setAllowEnemySpawn(true);
-        setAllowAbilities(true);
-        player.invulnerable = false;
+        game.settings.enemies.allowSpawn.set(true);
+        game.settings.player.allowShoot.set(true);
+        game.settings.player.allowAbilities.set(true);
+        game.entities.player.value.invulnerable = false;
       },
     ],
   },
 ];
-
-export let animId;
-export const setAnimId = (id) => (animId = id);
-export const clearAnimId = () => {
-  window.cancelAnimationFrame(animId);
-  animId = null;
-};
-export let enemySpawnTime = 1000;
-export const setEnemySpawnTime = (num) => (enemySpawnTime = num);
-export const resetEnemySpawnTime = () => (enemySpawnTime = 1000);
-
-export let allowEnemySpawn = true;
-export const setAllowEnemySpawn = (val) => (allowEnemySpawn = val);
-
-export let allowPlayerShoot = true;
-export let setAllowPlayerShoot = (val) => (allowPlayerShoot = val);
-
-export let allowAbilities = true;
-export let setAllowAbilities = (val) => (allowAbilities = val);
-
-export let blackHoles = [];
-export const addBlackHole = (bh) => blackHoles.push(bh);
-export const removeBlackHole = (i) => blackHoles.splice(i, 1);
-export const clearBlackHoles = () => (blackHoles = []);
-
-export let events = [];
-export const addEvent = (e) => events.push(e);
-export const removeEvent = (i) => events.splice(i, 1);
-export const clearEvents = () => (events = []);
-export const randomEvent = () => {
-  const filteredEvents = EVENT_TYPES.filter((e) => e.weight > 0);
-  const evtIndex = getRandomByWeight(filteredEvents);
-  return filteredEvents[evtIndex];
-};
-
-export let bullets = [];
-export const addBullet = (b) => bullets.push(b);
-export const removeBullet = (i) => bullets.splice(i, 1);
-export const clearBullets = () => (bullets = []);
-
-export let enemyBullets = [];
-export const addEnemyBullet = (b) => enemyBullets.push(b);
-export const removeEnemyBullet = (i) => enemyBullets.splice(i, 1);
-export const clearEnemyBullets = () => (enemyBullets = []);
-
-export let enemies = [];
-export const addEnemy = (e) => enemies.push(e);
-export const removeEnemy = (i) => enemies.splice(i, 1);
-export const clearEnemies = () => (enemies = []);
-
-export let particles = [];
-export const addParticle = (p) => particles.push(p);
-export const removeParticle = (i) => particles.splice(i, 1);
-export const clearParticles = () => (particles = []);
-
-export let items = [];
-export const addItem = (i) => items.push(i);
-export const removeItem = (i) => items.splice(i, 1);
-export const clearItems = () => (items = []);
-
-export let turrets = [];
-export const addTurret = (i) => turrets.push(i);
-export const removeTurret = (i) => turrets.splice(i, 1);
-export const clearTurrets = () => (turrets = []);
-
-export let abilityEffects = [];
-export const addAbilityEffect = (e) => abilityEffects.push(e);
-export const removeAbilityEffect = (i) => abilityEffects.splice(i, 1);
-export const clearAbilityEffects = () => (abilityEffects = []);
-
-export let damageTexts = [];
-export const addDamageText = (i) => damageTexts.push(i);
-export const removeDamageText = (i) => damageTexts.splice(i, 1);
-export const clearDamageTexts = () => (damageTexts = []);
-
-export let score = 0;
-export const addScore = (amnt) => (score += amnt);
-export const resetScore = () => (score = 0);
-
-export const set_x = (val) => (x = val);
-export const set_y = (val) => (y = val);
-
-export let bonusPool = [...BONUS_TYPES];
-export const resetBonusPool = () => (bonusPool = [...BONUS_TYPES]);
-export const addBonusToPool = (bonus) => bonusPool.push(bonus);
-export const removeBonusFromPool = (bonus) => {
-  for (let i = 0; i < bonusPool.length; i++) {
-    if (bonusPool[i].name == bonus.name) {
-      bonusPool.splice(i, 1);
-    }
-  }
-};
-
-export const resetPlayer = () => {
-  player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
-};
