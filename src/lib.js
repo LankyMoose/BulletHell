@@ -171,6 +171,11 @@ export class Boss extends Sprite {
   constructor() {
     super(...arguments);
     this.speed = 1;
+    this.bulletCooldown = 1000;
+    this.bulletTick = 900;
+    this.bulletSpeed = 6;
+    this.damage = 0;
+    this.damageReduction = 0.8;
   }
 
   static spawn(coords) {
@@ -211,7 +216,9 @@ export class Boss extends Sprite {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
-    addEnemyBullet(new Bullet(this.x, this.y, 50, 'red', vel));
+    addEnemyBullet(
+      new Bullet(this.x, this.y, 50, 'crimson', vel, false, 0, 12, 10, 1.5)
+    );
   }
   takeDamage(damage) {
     if (this.r - damage > Enemy.minSize) {
@@ -229,9 +236,9 @@ export class Boss extends Sprite {
 export class Turret extends Sprite {
   constructor() {
     super(...arguments);
-    this.bulletCooldown = 800;
-    this.bulletTick = 0;
-    this.bulletSpeed = 3;
+    this.bulletCooldown = 1200;
+    this.bulletTick = 600;
+    this.bulletSpeed = 2;
   }
   update() {
     super.update();
@@ -240,7 +247,7 @@ export class Turret extends Sprite {
   static spawn(coords) {
     if (!coords) coords = randomCoords();
     const rad = 42;
-    const newItem = new Turret(coords.x, coords.y, rad, 'purple', {
+    const newItem = new Turret(coords.x, coords.y, rad, 'darkviolet', {
       x: 0,
       y: 0,
     });
@@ -262,14 +269,16 @@ export class Turret extends Sprite {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
-    addEnemyBullet(new Bullet(this.x, this.y, 10, 'purple', vel));
+    addEnemyBullet(
+      new Bullet(this.x, this.y, 20, 'purple', vel, false, 0, 10, 10, 1.2)
+    );
   }
 }
 
 export class BlackHole extends Sprite {
   constructor(x, y) {
     super(x, y, 0, 'black', { x: 0, y: 0 });
-    this.totalFrames = Math.floor(4e3 / 16);
+    this.totalFrames = Math.floor(2e3 / 16);
     this.remainingFrames = this.totalFrames;
     this.pullForce = 0.1;
   }
@@ -349,6 +358,8 @@ export class Player extends Sprite {
     this.friction = 0.8;
     this.cooldownRefs = [];
     this.lastMouseMove = null;
+    this.damage = 10;
+    this.damageReduction = 0.1;
   }
   getVelocity() {
     if (this.inputs.left) {
@@ -419,7 +430,20 @@ export class Player extends Sprite {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
-    addBullet(new Bullet(this.x, this.y, BULLET_SIZE, BULLET_COLOR, vel));
+    addBullet(
+      new Bullet(
+        this.x,
+        this.y,
+        BULLET_SIZE,
+        BULLET_COLOR,
+        vel,
+        false,
+        0,
+        this.damage,
+        this.critChance,
+        this.critDamageMulti
+      )
+    );
   }
 
   shootMultipleBullets(clientX, clientY) {
@@ -466,7 +490,20 @@ export class Player extends Sprite {
         x: Math.cos(angle) * player.bulletSpeed,
         y: Math.sin(angle) * player.bulletSpeed,
       };
-      addBullet(new Bullet(player.x, player.y, BULLET_SIZE, BULLET_COLOR, vel));
+      addBullet(
+        new Bullet(
+          player.x,
+          player.y,
+          BULLET_SIZE,
+          BULLET_COLOR,
+          vel,
+          false,
+          0,
+          this.damage,
+          this.critChance,
+          this.critDamageMulti
+        )
+      );
     }
 
     if (bulletCount % 2 == 1) player.shootSingleBullet(clientX, clientY);
@@ -485,7 +522,20 @@ export class Player extends Sprite {
         x: Math.cos(angle) * player.bulletSpeed,
         y: Math.sin(angle) * player.bulletSpeed,
       };
-      addBullet(new Bullet(player.x, player.y, BULLET_SIZE, BULLET_COLOR, vel));
+      addBullet(
+        new Bullet(
+          player.x,
+          player.y,
+          BULLET_SIZE,
+          BULLET_COLOR,
+          vel,
+          false,
+          0,
+          this.damage,
+          this.critChance,
+          this.critDamageMulti
+        )
+      );
     }
   }
   updateBullets() {
@@ -523,9 +573,22 @@ export class Player extends Sprite {
 export let player = new Player(x, y, 20, 'white', { x: 0, y: 0 });
 
 export class Projectile extends Sprite {
-  constructor() {
-    super(...arguments);
-    this.damage = 6;
+  constructor(
+    x,
+    y,
+    r,
+    color,
+    vel,
+    renderGlow,
+    glowSize,
+    damage,
+    critChance,
+    critMulti
+  ) {
+    super(x, y, r, color, vel, renderGlow, glowSize);
+    this.damage = damage;
+    this.critChance = critChance;
+    this.critMulti = critMulti;
   }
   handleEnemyCollision(e) {
     return Projectile.handleEnemyCollision(this, e);
@@ -543,16 +606,14 @@ export class Projectile extends Sprite {
         );
       }
       let isCrit = false;
-      if (player.critChance > 0) {
-        isCrit = player.critChance / 100 > Math.random();
+      if (self.critChance > 0) {
+        isCrit = self.critChance / 100 > Math.random();
       }
-      const damage = Math.floor(
-        isCrit ? self.damage * player.critDamageMulti : self.damage
-      );
-
-      addDamageText(new DamageText(self.x, self.y, damage, isCrit));
+      const damage = isCrit ? self.damage * self.critMulti : self.damage;
+      const mitigatedDamage = damage - damage * e.damageReduction;
+      addDamageText(new DamageText(self.x, self.y, mitigatedDamage, isCrit));
       if (e.invulnerable) return [true, false];
-      return e.takeDamage(damage);
+      return e.takeDamage(mitigatedDamage);
     }
     return [false, false];
   }
@@ -563,8 +624,30 @@ export class Projectile extends Sprite {
 }
 
 export class Bullet extends Projectile {
-  constructor() {
-    super(...arguments);
+  constructor(
+    x,
+    y,
+    r,
+    color,
+    vel,
+    renderGlow,
+    glowSize,
+    damage,
+    critChance,
+    critMulti
+  ) {
+    super(
+      x,
+      y,
+      r,
+      color,
+      vel,
+      renderGlow,
+      glowSize,
+      damage,
+      critChance,
+      critMulti
+    );
   }
 }
 
@@ -592,6 +675,7 @@ export class Enemy extends Sprite {
     this.enteredMap = false;
     this.fixed = false;
     this.damage = 5;
+    this.damageReduction = 0.3;
   }
 
   followPlayer() {
@@ -663,6 +747,7 @@ export class Enemy extends Sprite {
   }
 
   takeDamage(damage) {
+    console.log('take damage', damage);
     if (this.r - damage > Enemy.minSize) {
       this.r -= damage;
       return [true, false];
@@ -798,7 +883,7 @@ export class BonusSet {
 }
 
 export class DamageText {
-  constructor(x, y, dmg, isCrit) {
+  constructor(x, y, damage, isCrit) {
     this.x = x;
     this.oldX = x;
     this.renderX = x;
@@ -806,7 +891,7 @@ export class DamageText {
     this.oldY = y;
     this.renderY = y;
 
-    this.dmg = dmg;
+    this.damage = Math.floor(damage);
     this.isCrit = isCrit;
     this.alpha = 1;
   }
@@ -830,7 +915,7 @@ export class DamageText {
     //c.strokeStyle = 'black';
     c.fillStyle = 'gold';
     //if (this.isCrit) c.fillStyle = 'orangered';
-    c.fillText(this.dmg.toString(), this.renderX, this.renderY);
+    c.fillText(this.damage.toString(), this.renderX, this.renderY);
     //c.strokeText(this.dmg.toString(), this.x, this.y);
     c.restore();
     this.postDraw();
@@ -838,11 +923,14 @@ export class DamageText {
 }
 
 export class Ability extends Sprite {
-  constructor() {
-    super(...arguments);
+  constructor(x, y, r, color, vel, renderGlow, glowSize, damage) {
+    super(x, y, r, color, vel, renderGlow, glowSize);
+    this.damage = damage;
+    this.critChance = player.critChance;
+    this.critMulti = player.critDamageMulti;
   }
   handleEnemyCollision(e) {
-    if (!debug && (self.invulnerable || e.invulnerable)) return [false, false];
+    if (!debug && e.invulnerable) return [false, false];
     if (this.shapeType == 'square') {
       const angle = radians_to_degrees(this.angle);
       const rotatedEnemyCoords = rotate(this.x, this.y, e.x, e.y, angle, true);
@@ -855,15 +943,14 @@ export class Ability extends Sprite {
       if (rectCircleCollision(this, projectedEnemy)) {
         if (debug) this.color = 'red';
         let isCrit = false;
-        if (player.critChance > 0) {
-          isCrit = player.critChance / 100 > Math.random();
+        if (this.critChance > 0) {
+          isCrit = this.critChance / 100 > Math.random();
         }
-        const damage = Math.floor(
-          isCrit ? this.damage * player.critDamageMulti : this.damage
-        );
-        addDamageText(new DamageText(e.x, e.y, damage, isCrit));
+        const damage = isCrit ? this.damage * this.critMulti : this.damage;
+        const mitigatedDamage = damage - damage * e.damageReduction;
+        addDamageText(new DamageText(e.x, e.y, mitigatedDamage, isCrit));
         if (e.invulnerable) return [true, false];
-        return e.takeDamage(damage);
+        return e.takeDamage(mitigatedDamage);
       }
     } else {
       return Projectile.handleEnemyCollision(this, e);
@@ -875,7 +962,16 @@ export class Ability extends Sprite {
 
 export class Kamehameha extends Ability {
   constructor(x, y, itemInstance, clientX, clientY) {
-    super(x, y, itemInstance.size, itemInstance.getColor(), { x: 0, y: 0 });
+    super(
+      x,
+      y,
+      itemInstance.size,
+      itemInstance.getColor(),
+      { x: 0, y: 0 },
+      false,
+      0,
+      itemInstance.damage
+    );
     this.remainingFrames = 40;
     this.targetX = clientX;
     this.targetY = clientY;
@@ -884,7 +980,6 @@ export class Kamehameha extends Ability {
     this.angle =
       Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
-    this.damage = itemInstance.damage;
   }
 
   update() {
@@ -922,11 +1017,11 @@ export class SolarFlare extends Ability {
       itemInstance.getColor(),
       { x: 0, y: 0 },
       true,
-      70
+      70,
+      itemInstance.damage
     );
     this.remainingFrames = 20;
     this.shapeType = 'circle';
-    this.damage = itemInstance.damage;
     this.alpha = 0;
   }
 
@@ -944,18 +1039,25 @@ export class SolarFlare extends Ability {
 
 export class Slash extends Ability {
   constructor(x, y, itemInstance, vel, clientX, clientY) {
-    super(x, y, itemInstance.size, itemInstance.getColor(), vel);
+    super(
+      x,
+      y,
+      itemInstance.size,
+      itemInstance.getColor(),
+      vel,
+      false,
+      0,
+      itemInstance.damage
+    );
     this.totalFrames = 14;
     this.remainingFrames = this.totalFrames;
     this.targetX = clientX;
     this.targetY = clientY;
     this.h = this.r;
     this.w = 13;
-    //this.angle = Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.angle =
       Math.PI + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
-    this.damage = itemInstance.damage;
   }
 
   update() {
@@ -989,10 +1091,12 @@ export class Slash extends Ability {
 // consider i-frames?
 // bullet speed a bit weak?
 
-// game ideas
-// black hole spawns, transforms graphics rendering and different enemies? - https://codepen.io/akm2/pen/AGgarW
+// general ideas
 // shadows? - https://codepen.io/mladen___/pen/gbvqBo
 // add life bar
+// exploding enemies
+// melee enemies (pokies) - bandana, dif. color
+// boss resistances
 
 // make game map/world
 // capture points?

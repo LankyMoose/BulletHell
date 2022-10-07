@@ -69,7 +69,6 @@ import {
   pauseScreen,
   playerStatsEl,
   PLAYER_STAT_DISPLAYS,
-  addDamageText,
   damageTexts,
   removeDamageText,
   lifeEl,
@@ -175,7 +174,7 @@ function update() {
     } else {
       const dist = Math.hypot(player.x - b.x, player.y - b.y);
       if (!player.invulnerable && dist - b.r - player.r < 0.01) {
-        player.life -= b.damage;
+        player.life -= Math.floor(b.damage - b.damage * player.damageReduction);
         playerLifeChanged = true;
         removeEnemyBullet(i);
       }
@@ -193,7 +192,7 @@ function update() {
     let enemyDestroyed = false;
     const dist = Math.hypot(player.x - e.x, player.y - e.y);
     if (!player.invulnerable && dist - e.r - player.r < 0.01) {
-      player.life -= e.damage;
+      player.life -= Math.floor(e.damage - e.damage * player.damageReduction);
       playerLifeChanged = true;
       if (player.life <= 0) {
         return endGame();

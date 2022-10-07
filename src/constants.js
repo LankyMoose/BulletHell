@@ -328,7 +328,7 @@ export const ITEM_TYPES = [
     //cooldown: 1e3,
     remainingMs: 32,
     size: 22,
-    damage: 2,
+    damage: 6,
     trigger: (player, self, cx, cy) => {
       addAbilityEffect(new Kamehameha(player.x, player.y, self, cx, cy));
     },
@@ -348,7 +348,7 @@ export const ITEM_TYPES = [
     cooldown: 8e3,
     remainingMs: 32,
     size: 50,
-    damage: 4,
+    damage: 10,
     trigger: (player, self, cx, cy) => {
       addAbilityEffect(new SolarFlare(player.x, player.y, self));
     },
@@ -368,7 +368,7 @@ export const ITEM_TYPES = [
     cooldown: 1.5e3,
     remainingMs: 32,
     size: 100,
-    damage: 3,
+    damage: 10,
     trigger: (player, self, cx, cy) => {
       addAbilityEffect(
         new Slash(player.x, player.y, self, { x: 0, y: 0 }, cx, cy)
@@ -399,7 +399,7 @@ export const EVENT_TYPES = [
   {
     name: 'Horde',
     weight: 1,
-    cooldown: 2000,
+    cooldown: 2e3,
     remainingMs: 0,
     activations: 1,
     functions: [
@@ -427,7 +427,7 @@ export const EVENT_TYPES = [
   {
     name: 'Prepare yourself!',
     weight: 0,
-    cooldown: 4e3,
+    cooldown: 2e3,
     remainingMs: 0,
     activations: 1,
     functions: [
@@ -490,7 +490,7 @@ export const EVENT_TYPES = [
   {
     name: 'Enemy felled!',
     weight: 0,
-    cooldown: 4e3,
+    cooldown: 2e3,
     remainingMs: 0,
     activations: 1,
     functions: [
