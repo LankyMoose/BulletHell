@@ -24,7 +24,6 @@ import {
   Item,
   BonusSet,
   handleBonusSelection,
-  resetBonusPool,
   debug,
   maxLevel,
 } from './lib.js';
@@ -99,6 +98,7 @@ import {
   clearEnemyBullets,
   addEvent,
   events,
+  resetBonusPool,
 } from './constants.js';
 
 import {

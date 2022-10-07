@@ -1,12 +1,10 @@
 import {
-  addBonusToPool,
   BlackHole,
   Boss,
   Enemy,
   Kamehameha,
   Player,
   player,
-  removeBonusFromPool,
   Slash,
   SolarFlare,
   Turret,
@@ -604,6 +602,17 @@ export const resetScore = () => (score = 0);
 
 export const set_x = (val) => (x = val);
 export const set_y = (val) => (y = val);
+
+export let bonusPool = [...BONUS_TYPES];
+export const resetBonusPool = () => (bonusPool = [...BONUS_TYPES]);
+export const addBonusToPool = (bonus) => bonusPool.push(bonus);
+export const removeBonusFromPool = (bonus) => {
+  for (let i = 0; i < bonusPool.length; i++) {
+    if (bonusPool[i].name == bonus.name) {
+      bonusPool.splice(i, 1);
+    }
+  }
+};
 
 export const resetPlayer = () => {
   player = new Player(x, y, 20, 'white', { x: 0, y: 0 });

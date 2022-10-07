@@ -11,7 +11,6 @@ import {
   addEnemy,
   addItem,
   canvas,
-  BONUS_TYPES,
   addParticle,
   addDamageText,
   blackHoles,
@@ -24,6 +23,7 @@ import {
   EVENT_TYPES,
   events,
   addEvent,
+  bonusPool,
 } from './constants.js';
 
 import {
@@ -201,7 +201,7 @@ export class Boss extends Sprite {
     }
   }
   followPlayer() {
-    let speedMod = this.speed + player.level / 5;
+    let speedMod = this.speed + player.level / 8;
     if (speedMod <= 1) speedMod = 1;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
     this.vel = {
@@ -236,7 +236,7 @@ export class Boss extends Sprite {
 export class Turret extends Sprite {
   constructor() {
     super(...arguments);
-    this.bulletCooldown = 1200;
+    this.bulletCooldown = 1500;
     this.bulletTick = 600;
     this.bulletSpeed = 2;
   }
@@ -287,7 +287,7 @@ export class BlackHole extends Sprite {
     if (this.remainingFrames > this.totalFrames * 0.7) {
       this.r += 2 + this.remainingFrames / this.totalFrames;
     } else if (this.remainingFrames < this.totalFrames * 0.1) {
-      this.r = this.r * 0.9;
+      this.r = this.r * 0.6;
     } else {
       this.r += 10 + 100 * (this.remainingFrames / this.totalFrames);
     }
@@ -597,7 +597,9 @@ export class Projectile extends Sprite {
     if (!debug && (self.invulnerable || e.invulnerable)) return [false, false];
     const dist = Math.hypot(self.x - e.x, self.y - e.y);
     if (dist - e.r - self.r < 1) {
-      for (let i = 0; i < e.r * 15; i++) {
+      let numParticles = e.r * 2;
+      if (numParticles > 30) numParticles = 30;
+      for (let i = 0; i < numParticles; i++) {
         addParticle(
           new Particle(self.x, self.y, Math.random() * 2, 'darkred', {
             x: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
@@ -747,7 +749,6 @@ export class Enemy extends Sprite {
   }
 
   takeDamage(damage) {
-    console.log('take damage', damage);
     if (this.r - damage > Enemy.minSize) {
       this.r -= damage;
       return [true, false];
@@ -802,16 +803,6 @@ export class Item extends Sprite {
   }
 }
 
-let bonusPool = [...BONUS_TYPES];
-export const resetBonusPool = () => (bonusPool = [...BONUS_TYPES]);
-export const addBonusToPool = (bonus) => bonusPool.push(bonus);
-export const removeBonusFromPool = (bonus) => {
-  for (let i = 0; i < bonusPool.length; i++) {
-    if (bonusPool[i].name == bonus.name) {
-      bonusPool.splice(i, 1);
-    }
-  }
-};
 export const handleBonusSelection = (bonus) => {
   if (bonus.type == 'attribute') {
     bonus.modifiers.forEach((m) => {
