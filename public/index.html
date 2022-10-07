@@ -87,13 +87,21 @@
         flex-direction: row;
         justify-content: space-between;
         padding: 2rem;
+        gap: 4rem;
+      }
+      #startButton {
+        font-size: 12vw;
+        line-height: 0.6em;
+        position: absolute;
+        top: 75%;
+        transform: translateY(-50%);
       }
       #game_stats {
         display: flex;
         gap: 2rem;
         text-align: center;
-        flex-grow: 1;
         justify-content: center;
+        margin-left: auto;
       }
       .overlay {
         position: fixed;
@@ -426,7 +434,7 @@
       </div>
 
       <div id="player_config">
-        <label>Player Color: </label>
+        <label>Player Color:</label><br />
         <input id="player_color" type="color" value="#FFFFFF" />
       </div>
     </div>

@@ -217,7 +217,7 @@ export class Boss extends Sprite {
       y: Math.sin(angle) * this.bulletSpeed,
     };
     addEnemyBullet(
-      new Bullet(this.x, this.y, 50, 'crimson', vel, false, 0, 12, 10, 1.5)
+      new Bullet(this.x, this.y, 50, 'crimson', vel, false, 0, 20, 10, 1.5)
     );
   }
   takeDamage(damage) {
@@ -980,7 +980,7 @@ export class Kamehameha extends Ability {
     if (this.remainingFrames > 30) {
       this.w++;
     } else if (this.w > 1) {
-      this.w--;
+      this.w *= 0.9;
     }
     this.remainingFrames -= 1;
   }
