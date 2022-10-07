@@ -8,6 +8,7 @@ import {
   Slash,
   SolarFlare,
   Turret,
+  Vortex,
 } from './lib.js';
 import { getRandomByWeight } from './util.js';
 
@@ -213,7 +214,11 @@ export const BONUS_TYPES = [
     type: 'ability',
     name: 'Slash',
     weight: 10,
-    //weight: 500,
+  },
+  {
+    type: 'ability',
+    name: 'Vortext',
+    weight: 0,
   },
 ];
 const BONUS_UPGRADES = [
@@ -379,6 +384,21 @@ export const ITEM_TYPES = [
       )) {
         addBonusToPool(upgrade);
       }
+    },
+  },
+  {
+    name: 'Vortext',
+    getColor: () => 'rgba(100, 255, 100, .8)',
+    isAbility: true,
+    cooldown: 4e3,
+    remainingMs: 32,
+    size: 20,
+    damage: 5,
+    trigger: (player, self, cx, cy) => {
+      addAbilityEffect(new Vortex(player.x, player.y, self));
+    },
+    onAdded: (bonus) => {
+      removeBonusFromPool(bonus);
     },
   },
 ];

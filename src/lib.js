@@ -1076,3 +1076,25 @@ export class Slash extends Ability {
     this.postDraw();
   }
 }
+
+export class Vortex extends Ability {
+  constructor(x, y, itemInstance) {
+    super(
+      x,
+      y,
+      itemInstance.size,
+      itemInstance.getColor(),
+      { x: 0, y: 0 },
+      true,
+      0,
+      itemInstance.damage
+    );
+    this.remainingFrames = Infinity;
+    this.shapeType = 'circle';
+  }
+
+  update() {
+    super.update();
+    // need to orbit the proj
+  }
+}
