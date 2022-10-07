@@ -714,19 +714,16 @@ addEventListener('resize', () => {
 async function renderLeaderboard() {
   leaderboard.innerHTML = 'Loading...';
   const scores = await loadScores();
-  leaderboard.innerHTML = `
-    <ol>
-      ${scores
-        .map((entry) => {
-          return `
-        <li>
-          ${entry.username} ${entry.score}
-        </li>
-        `;
-        })
-        .join('')}
-    </ol>
-  `;
+  const list = document.createElement('ul');
+  list.append(
+    ...scores.map((entry) =>
+      Object.assign(document.createElement('li'), {
+        innerText: `${entry.username} ${entry.score}`,
+      })
+    )
+  );
+  leaderboard.innerHTML = '';
+  leaderboard.appendChild(list);
 }
 
 renderLeaderboard();
@@ -763,6 +760,7 @@ function renderUser(userData) {
   userContainer.appendChild(
     Object.assign(document.createElement('span'), {
       innerText: `Your top score: ${userData.topScore}`,
+      id: 'top-score',
     })
   );
 }

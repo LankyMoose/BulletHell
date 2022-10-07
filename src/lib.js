@@ -226,8 +226,10 @@ export class Boss extends Sprite {
       return [true, false];
     } else {
       const evt = events.find((e) => e.name == `Redball the great`);
-      evt.cooldown = 0;
-      evt.remainingMs = 0;
+      if (evt) {
+        evt.cooldown = 0;
+        evt.remainingMs = 0;
+      }
       return [true, true];
     }
   }
