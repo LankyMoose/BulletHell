@@ -17,6 +17,7 @@ Open source bullet-hell game inspired by Vampire Survivors, Soulstone Survivors 
 - exploding enemies
 - melee enemies (pokies) - bandana, dif. color
 - make game map/world
+- background effects
 
 #### \_events\_
 
@@ -25,3 +26,5 @@ Open source bullet-hell game inspired by Vampire Survivors, Soulstone Survivors 
 - offensive survival
 - defensive survival
 - terrain
+
+#### _boss mechanics_

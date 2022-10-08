@@ -89,6 +89,16 @@
         padding: 2rem;
         gap: 4rem;
       }
+      #menu_br {
+        margin-left: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+      #menu_br_bottom {
+        display: flex;
+        gap: 5rem;
+      }
       #startButton {
         font-size: 12vw;
         line-height: 0.6em;
@@ -314,12 +324,10 @@
         gap: 1em;
         align-items: center;
         padding: 1em;
-        background: #eee;
-        color: #222;
-        border-radius: 1em;
+        background: #333;
+        color: #fff;
         margin-bottom: 1em;
-        box-shadow: none;
-        border: 2px solid rgba(0, 0, 0, 0.3);
+        border-radius: 3px;
       }
       .user-data img {
         border-radius: 50%;
@@ -327,6 +335,7 @@
       }
       .user-data button {
         cursor: pointer;
+        margin-left: auto;
       }
       #top-score {
         font-size: 2rem;
@@ -335,6 +344,14 @@
         position: absolute;
         bottom: 2rem;
         left: 2rem;
+      }
+      #ctrlsDisplay {
+        width: 300px;
+        min-width: 100px;
+        max-width: 35vw;
+      }
+      #ctrlsDisplay img {
+        max-width: 100%;
       }
     </style>
   </head>
@@ -395,7 +412,7 @@
     <div id="menu" class="overlay">
       <div id="leaderboard_wrapper">
         <h2>Leaderboard</h2>
-        <hr style="opacity: 0.5; margin-bottom: 1rem" />
+        <hr style="opacity: 0.5" />
         <div id="leaderboard">Loading...</div>
         <div id="sign_in" style="display: none; margin-top: 2em">
           <button
@@ -419,7 +436,7 @@
             Submit Score
           </button>
         </div>
-        <hr style="opacity: 0.5; margin-bottom: 1rem; margin-top: 1rem" />
+        <hr style="opacity: 0.5; margin-bottom: 0.75rem; margin-top: 0.75rem" />
         <div id="user">
           <span id="top-score">Your top score: 0</span>
         </div>
@@ -428,21 +445,28 @@
         Start Game
       </button>
 
-      <div id="game_stats">
-        <div>
-          <h1 id="menuScoreEl">0</h1>
-          <p>Points</p>
+      <div id="menu_br">
+        <div id="ctrlsDisplay">
+          <img src="img/ctrls.png" />
         </div>
-        <div>
-          <h1 id="menuKillsEl">0</h1>
-          <p>Kills</p>
+        <div id="menu_br_bottom">
+          <div id="game_stats">
+            <div>
+              <h1 id="menuScoreEl">0</h1>
+              <p>Points</p>
+            </div>
+            <div>
+              <h1 id="menuKillsEl">0</h1>
+              <p>Kills</p>
+            </div>
+          </div>
+          <div id="player_config">
+            <label style="line-height: 1.5">Player Color:</label><br />
+            <input id="player_color" type="color" value="#FFFFFF" />
+          </div>
         </div>
       </div>
 
-      <div id="player_config">
-        <label>Player Color:</label><br />
-        <input id="player_color" type="color" value="#FFFFFF" />
-      </div>
       <div id="attr">v0.1</div>
     </div>
     <div id="levelup" class="overlay hide">

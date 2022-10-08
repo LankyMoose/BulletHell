@@ -23,7 +23,7 @@ class GameState {
       items: () => [],
       turrets: () => [],
       damageTexts: () => [],
-      player: () => new Player(x, y, 20, 'white', { x: 0, y: 0 }),
+      player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
     },
     bonuses: () => [...BONUS_TYPES],
     running: () => false,
