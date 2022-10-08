@@ -51,6 +51,8 @@ export const FRICTION = 0.97;
 export const BULLET_COLOR = 'rgba(255,255,255,.75)';
 export const BULLET_SIZE = 5;
 export const ENEMY_SPEED = 0.6;
+export const DEBUG_ENABLED = false;
+export const MAX_LEVEL = Infinity;
 
 export const STAT_DISPLAYS = [
   {
@@ -95,7 +97,7 @@ export const STAT_DISPLAYS = [
   },
   {
     key: 'maxInstances',
-    displayText: 'Number of instances',
+    displayText: 'Max Instances',
   },
 ];
 

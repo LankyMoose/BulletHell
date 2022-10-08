@@ -28,12 +28,12 @@ export const userData = {
   topScore: 0,
   subscriptions: [],
   subscribe: (cb) => userData.subscriptions.push(cb),
-  clearValue: () => {
+  clear: () => {
     userData.user = null;
     userData.topScore = 0;
     userData.subscriptions.forEach((fn) => fn(userData));
   },
-  setValue: (user, score) => {
+  set: (user, score) => {
     userData.user = {
       uid: user.uid,
       displayName: user.displayName,
@@ -44,9 +44,9 @@ export const userData = {
   },
 };
 const handleAuthStateChange = async (usr) => {
-  if (!usr) return userData.clearValue();
+  if (!usr) return userData.clear();
   const score = await loadScore(usr.uid);
-  userData.setValue(usr, score);
+  userData.set(usr, score);
 };
 
 const app = initializeApp(firebaseConfig);
@@ -99,7 +99,7 @@ export const submitScore = async (score, kills) => {
       score,
       kills
     );
-    if (success) userData.setValue(userData.user, score);
+    if (success) userData.set(userData.user, score);
     return success;
   } catch (error) {
     return false;
@@ -127,5 +127,5 @@ export const loadScores = async () => {
 
 export const logout = async () => {
   await auth.signOut();
-  userData.clearValue();
+  userData.clear();
 };

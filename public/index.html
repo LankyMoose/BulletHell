@@ -266,6 +266,9 @@
       #levelup_options button[data-item='true']::before {
         content: 'ABILITY';
       }
+      #levelup_options button[data-upgrade='true']::before {
+        content: 'UPGRADE';
+      }
 
       #levelup_options button[data-rarity='1'] {
         background-color: rgba(100, 140, 255, 0.4);
@@ -286,6 +289,7 @@
         right: 0;
         bottom: 0;
         background-image: radial-gradient(transparent, #fffa);
+        border-radius: 0.5em;
       }
       #levelup_options button:hover {
         opacity: 1;

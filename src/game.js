@@ -20,15 +20,7 @@ window.requestAnimationFrame = (function () {
 })();
 import { game, resetGame } from './state';
 
-import {
-  Player,
-  Enemy,
-  Item,
-  BonusSet,
-  handleBonusSelection,
-  debug,
-  maxLevel,
-} from './lib.js';
+import { Player, Enemy, Item, BonusSet } from './lib.js';
 
 import {
   menu,
@@ -62,6 +54,8 @@ import {
   userContainer,
   signInDiv,
   signInButton,
+  DEBUG_ENABLED,
+  MAX_LEVEL,
 } from './constants.js';
 
 import {
@@ -115,7 +109,7 @@ let debugRenders = [];
 
 function update() {
   const player = game.entities.player.value;
-  if (debug) player.xp += 50 * player.value.xpMulti;
+  if (DEBUG_ENABLED) player.xp += 50 * player.value.xpMulti;
 
   const blackHoles = game.entities.blackHoles.value;
   for (let i = 0; i < blackHoles.length; i++) {
@@ -292,7 +286,7 @@ function update() {
 
 function queuePlayerLevelUp() {
   const player = game.entities.player.value;
-  if (player.level >= maxLevel) return;
+  if (player.level >= MAX_LEVEL) return;
   game.nextFrameActionQueue.add(() => {
     player.level++;
     player.next_level *= XP_REQ_MULTI_PER_LEVEL;
@@ -387,7 +381,7 @@ function handleProgression() {
   killsEl.innerText = player.kills;
 
   if (
-    !debug &&
+    !DEBUG_ENABLED &&
     player.kills % 10 == 0 &&
     game.entities.items.value.length <= 2
   ) {
@@ -417,7 +411,7 @@ function startGame() {
   canvas.focus();
   resetGame();
   game.running.set(true);
-  if (debug)
+  if (DEBUG_ENABLED)
     Enemy.spawn(
       {
         fixed: true,
@@ -547,6 +541,7 @@ function showLevelUpScreen() {
         btn.style.backgroundColor = b.color;
         break;
       case 'upgrade':
+        btn.dataset.upgrade = true;
         btn.dataset.rarity = b.rarity;
         renderBonusModifiers(btn, b);
         break;
@@ -569,7 +564,7 @@ function renderBonusModifiers(btn, bonus) {
 
 function onBonusSelected(bonus) {
   game.nextFrameActionQueue.reset();
-  handleBonusSelection(bonus);
+  game.entities.player.value.handleBonusSelection(bonus);
   hideLevelUpScreen();
 }
 

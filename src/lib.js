@@ -11,6 +11,7 @@ import {
   c,
   canvas,
   EVENT_TYPES,
+  DEBUG_ENABLED,
 } from './constants.js';
 
 import {
@@ -20,11 +21,10 @@ import {
   getRandomByWeight,
   getWeightMap,
   getRandomWeightMapIndex,
-  radians_to_degrees,
+  radiansToDeg,
   rectCircleCollision,
 } from './util.js';
-export const debug = false;
-export const maxLevel = Infinity;
+
 function strokeCircle(circle) {
   c.beginPath();
   c.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, false);
@@ -413,7 +413,7 @@ export class Player extends Sprite {
   }
   draw(lagOffset) {
     super.draw(lagOffset);
-    if (debug) strokeCircle(this);
+    if (DEBUG_ENABLED) strokeCircle(this);
   }
 
   shootSingleBullet(clientX, clientY) {
@@ -561,6 +561,30 @@ export class Player extends Sprite {
       game.entities.events.add({ ...evt });
     }
   }
+  handleBonusSelection(bonus) {
+    if (bonus.type == 'attribute') {
+      bonus.modifiers.forEach((m) => {
+        const amount = m.amounts[bonus.rarity];
+        this[m.key] += amount;
+        if (m.triggers) {
+          m.triggers.forEach((t) => t(this, amount));
+        }
+      });
+    } else if (bonus.type == 'ability') {
+      const itemDef = { ...ITEM_TYPES.find((it) => it.name == bonus.name) };
+      this.items.push(itemDef);
+      if (itemDef.onAdded) itemDef.onAdded(bonus);
+    } else if ((bonus.type = 'upgrade')) {
+      const playerItem = this.items.find((i) => i.name == bonus.name);
+      bonus.modifiers.forEach((m) => {
+        const amount = m.amounts[bonus.rarity];
+        playerItem[m.key] += amount;
+        if (m.triggers) {
+          m.triggers.forEach((t) => t(this, amount));
+        }
+      });
+    }
+  }
 }
 
 export class Projectile extends Sprite {
@@ -585,7 +609,8 @@ export class Projectile extends Sprite {
     return Projectile.handleEnemyCollision(this, e);
   }
   static handleEnemyCollision(self, e) {
-    if (!debug && (self.invulnerable || e.invulnerable)) return [false, false];
+    if (!DEBUG_ENABLED && (self.invulnerable || e.invulnerable))
+      return [false, false];
     const dist = Math.hypot(self.x - e.x, self.y - e.y);
     if (dist - e.r - self.r < 1) {
       let numParticles = e.r * 2;
@@ -685,7 +710,7 @@ export class Enemy extends Sprite {
   }
   draw(lagOffset) {
     super.draw(lagOffset);
-    if (debug) strokeCircle(this);
+    if (DEBUG_ENABLED) strokeCircle(this);
   }
 
   static spawn(config, coords) {
@@ -776,32 +801,6 @@ export class Item extends Sprite {
     this.i++;
   }
 }
-
-export const handleBonusSelection = (bonus) => {
-  const player = game.entities.player.value;
-  if (bonus.type == 'attribute') {
-    bonus.modifiers.forEach((m) => {
-      const amount = m.amounts[bonus.rarity];
-      player[m.key] += amount;
-      if (m.triggers) {
-        m.triggers.forEach((t) => t(player, amount));
-      }
-    });
-  } else if (bonus.type == 'ability') {
-    const itemDef = { ...ITEM_TYPES.find((it) => it.name == bonus.name) };
-    player.items.push(itemDef);
-    if (itemDef.onAdded) itemDef.onAdded(bonus);
-  } else if ((bonus.type = 'upgrade')) {
-    const playerItem = player.items.find((i) => i.name == bonus.name);
-    bonus.modifiers.forEach((m) => {
-      const amount = m.amounts[bonus.rarity];
-      playerItem[m.key] += amount;
-      if (m.triggers) {
-        m.triggers.forEach((t) => t(player, amount));
-      }
-    });
-  }
-};
 
 export class Bonus {
   constructor(type, name, modifiers, rarity, color) {
@@ -899,18 +898,18 @@ export class Ability extends Sprite {
     this.name = name;
   }
   handleEnemyCollision(e) {
-    if (!debug && e.invulnerable) return [false, false];
+    if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
     if (this.shapeType == 'square') {
-      const angle = radians_to_degrees(this.angle);
+      const angle = radiansToDeg(this.angle);
       const rotatedEnemyCoords = rotate(this.x, this.y, e.x, e.y, angle, true);
       const projectedEnemy = {
         x: rotatedEnemyCoords.x,
         y: rotatedEnemyCoords.y,
         r: e.r,
       };
-      if (debug) this.color = 'yellow';
+      if (DEBUG_ENABLED) this.color = 'yellow';
       if (rectCircleCollision(this, projectedEnemy)) {
-        if (debug) this.color = 'red';
+        if (DEBUG_ENABLED) this.color = 'red';
         let isCrit = false;
         if (this.critChance > 0) {
           isCrit = this.critChance / 100 > Math.random();
