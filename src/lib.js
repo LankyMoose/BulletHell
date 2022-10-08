@@ -346,7 +346,10 @@ export class Player extends Sprite {
     this.maxLife = 100;
     this.friction = 0.8;
     this.cooldownRefs = [];
-    this.lastMouseMove = null;
+    this.lastMouseMove = {
+      clientX: 0,
+      clientY: 0,
+    };
     this.damage = 10;
     this.damageReduction = 0.1;
   }
