@@ -99,8 +99,9 @@ function main() {
     update();
     window.lag -= window.frameDuration;
   }
-  const spawnTime = game.settings.enemies.spawnTime.value;
-  game.settings.enemies.spawnTime.set(spawnTime - window.frameDuration);
+  game.settings.enemies.spawnTime.set(
+    game.settings.enemies.spawnTime.value - window.frameDuration
+  );
   if (game.settings.enemies.spawnTime.value <= 0) {
     Enemy.spawn();
     game.settings.enemies.spawnTime.reset();
@@ -491,8 +492,7 @@ function endGame() {
     score: game.score.value,
     kills: game.entities.player.kills,
   };
-
-  game.entities.player.reset();
+  resetGame();
   renderPlayerLife();
   heatBarEl.value = 0;
   xpBarEl.value = 0;
