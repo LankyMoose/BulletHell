@@ -97,7 +97,11 @@
       }
       #menu_br_bottom {
         display: flex;
-        gap: 5rem;
+        gap: 3rem;
+      }
+      #player_config {
+        display: flex;
+        align-items: center;
       }
       #startButton {
         font-size: 12vw;
@@ -340,15 +344,11 @@
       #top-score {
         font-size: 2rem;
       }
-      #attr {
-        position: absolute;
-        bottom: 2rem;
-        left: 2rem;
-      }
       #ctrlsDisplay {
         width: 300px;
         min-width: 100px;
         max-width: 35vw;
+        margin-left: auto;
       }
       #ctrlsDisplay img {
         max-width: 100%;
@@ -441,6 +441,7 @@
           <span id="top-score">Your top score: 0</span>
         </div>
       </div>
+      <div id="attr">v0.1</div>
       <button type="button" id="startButton" class="styledButton">
         Start Game
       </button>
@@ -461,13 +462,13 @@
             </div>
           </div>
           <div id="player_config">
-            <label style="line-height: 1.5">Player Color:</label><br />
+            <label style="line-height: 1.5; margin-right: 6px"
+              >Player Color:</label
+            >
             <input id="player_color" type="color" value="#FFFFFF" />
           </div>
         </div>
       </div>
-
-      <div id="attr">v0.1</div>
     </div>
     <div id="levelup" class="overlay hide">
       <div class="inner">

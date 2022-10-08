@@ -249,24 +249,28 @@ function update() {
   const eventsToRemove = [];
   const events = game.entities.events.value;
   for (let i = 0; i < events.length; i++) {
-    const evt = events[i];
-    if (!evt) throw new Error('trying to execute non-existing event');
-    if (evt.activations == 0 && evt.remainingMs <= 0) {
-      if (evt.onExit) {
-        for (const fn of evt.onExit) {
-          fn();
+    try {
+      const evt = events[i];
+      if (!evt) throw new Error('trying to execute non-existing event');
+      if (evt.activations == 0 && evt.remainingMs <= 0) {
+        if (evt.onExit) {
+          for (const fn of evt.onExit) {
+            fn();
+          }
         }
+        //removeEvent(i);
+        eventsToRemove.push(i);
+        continue;
       }
-      //removeEvent(i);
-      eventsToRemove.push(i);
-      continue;
-    }
-    evt.remainingMs -= window.animFrameDuration;
+      evt.remainingMs -= window.animFrameDuration;
 
-    if (evt.remainingMs <= 0 && evt.activations > 0) {
-      evt.functions.forEach((f) => f(evt));
-      if (evt.activations > 0) evt.remainingMs = evt.cooldown;
-      evt.activations -= 1;
+      if (evt.remainingMs <= 0 && evt.activations > 0) {
+        evt.functions.forEach((f) => f(evt));
+        if (evt.activations > 0) evt.remainingMs = evt.cooldown;
+        evt.activations -= 1;
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
   for (let index of eventsToRemove) {
