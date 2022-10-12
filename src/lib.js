@@ -158,17 +158,25 @@ export class Boss extends Sprite {
     this.bulletTick = 900;
     this.bulletSpeed = 6;
     this.damage = 0;
-    this.damageReduction = 0.8;
+    this.damageReduction = 0.5;
+    this.maxLife = (game.entities.player.value.level / 5) * 420;
+    this.life = this.maxLife;
   }
 
   static spawn(coords) {
     if (!coords) coords = randomScreenEdgeCoords(150);
     game.entities.enemies.add(
-      new Boss(coords.x, coords.y, 250, 'red', {
+      new Boss(coords.x, coords.y, 150, 'black', {
         x: 0,
         y: 0,
       })
     );
+    // game.entities.abilityEffects.add(
+    //   new LightningBeam(
+    //     { x: 100, y: 100 },
+    //     { x: canvas.width - 100, y: canvas.height - 100 }
+    //   )
+    // );
   }
 
   update() {
@@ -193,7 +201,6 @@ export class Boss extends Sprite {
       y: Math.sin(angle) * speedMod,
     };
   }
-
   shoot() {
     const player = game.entities.player.value;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -206,19 +213,31 @@ export class Boss extends Sprite {
     );
   }
   takeDamage(damage) {
-    if (this.r - damage > Enemy.minSize) {
-      this.r -= damage;
-      return [true, false];
-    } else {
-      const evt = game.entities.events.value.find(
-        (e) => e.name == `Redball the great`
-      );
-      if (evt) {
-        evt.cooldown = 0;
-        evt.remainingMs = 0;
-      }
-      return [true, true];
+    this.life -= damage;
+    if (this.life > 0) return [true, false];
+    const evt = game.entities.events.value.find(
+      (e) => e.name == `Blackball the great`
+    );
+    if (evt) {
+      evt.cooldown = 0;
+      evt.remainingMs = 0;
     }
+    return [true, true];
+  }
+
+  renderLife() {
+    c.save();
+
+    const maxWidth = canvas.width * 0.3;
+    const height = 10;
+    const curPercent = this.life / this.maxLife;
+    const leftOffset = canvas.width * 0.35;
+    const topOffset = 120;
+    c.fillStyle = '#8c0a10';
+    c.fillRect(leftOffset, topOffset, maxWidth, height);
+    c.fillStyle = '#fc1d26';
+    c.fillRect(leftOffset, topOffset, maxWidth * curPercent, height);
+    c.restore();
   }
 }
 
@@ -321,9 +340,9 @@ export class BlackHole extends Sprite {
 export class Player extends Sprite {
   constructor() {
     super(...arguments);
-    this.speed = 0.5;
-    this.bulletSpeed = 17.5;
-    this.maxSpeed = 7;
+    this.speed = 0.4;
+    this.bulletSpeed = 15;
+    this.maxSpeed = 6;
     this.bulletCooldown = 400;
     this.bulletTick = 0;
     this.critChance = 10;
@@ -715,11 +734,12 @@ export class Enemy extends Sprite {
 
   static spawn(config, coords) {
     if (!game.settings.enemies.allowSpawn.value) return;
-    //if (!document.hasFocus()) return;
-    const rad =
-      config?.r ?? Math.random() * (60 - Enemy.minSize) + Enemy.minSize;
-    if (!coords) coords = randomScreenEdgeCoords(rad);
     const player = game.entities.player.value;
+    const max = 40 + player.level;
+    const rad =
+      config?.r ?? Math.random() * (max - Enemy.minSize) + Enemy.minSize;
+    if (!coords) coords = randomScreenEdgeCoords(rad);
+
     const angle = Math.atan2(player.y - coords.y, player.x - coords.x);
     const vel = {
       x: Math.cos(angle) * ENEMY_SPEED,
@@ -1098,4 +1118,48 @@ export class Vortex extends Ability {
   //   c.translate(this.x, this.y);
   //   c.rotate(this.angle);
   // }
+}
+
+export class LightningBeam extends Ability {
+  constructor(pointA, pointB) {
+    this.pointA = pointA;
+    this.pointB = pointB;
+    this.x = pointB.x - pointA.x;
+    this.y = pointB.y - pointA.y;
+    this.segments = 10;
+    this.distance = Math.sqrt(this.x * this.x + this.y * this.y);
+    this.width = this.distance / this.segments;
+    this.remainingFrames = 500;
+    this.shapeType = 'square';
+  }
+
+  update() {
+    this.remainingFrames -= 1;
+  }
+  draw() {
+    let prevX = this.pointA.x;
+    let prevY = this.pointA.y;
+    c.save();
+    for (let i = 0; i <= this.segments; i++) {
+      const magnitude = (this.width * i) / this.distance;
+      let x3 = magnitude * this.pointB.x + (1 - magnitude) * this.pointA.x;
+      let y3 = magnitude * this.pointB.y + (1 - magnitude) * this.pointA.y;
+
+      if (i !== 0 && i !== this.segments) {
+        x3 += Math.random() * this.width - this.width / 2;
+        y3 += Math.random() * this.width - this.width / 2;
+      }
+
+      c.strokeStyle = 'red';
+      c.lineWidth = 12;
+      c.beginPath();
+      c.moveTo(prevX, prevY);
+      c.lineTo(x3, y3);
+      c.closePath();
+      c.stroke();
+      prevX = x3;
+      prevY = y3;
+    }
+    c.restore();
+  }
 }

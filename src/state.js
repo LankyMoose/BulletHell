@@ -23,7 +23,10 @@ class GameState {
       items: () => [],
       turrets: () => [],
       damageTexts: () => [],
-      player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
+      player: () =>
+        Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
+          level: 4,
+        }),
     },
     bonuses: () => [...BONUS_TYPES],
     running: () => false,
@@ -73,7 +76,12 @@ class GameState {
     abilityEffects: {
       value: GameState.#defaults.entities.abilityEffects(),
       add: (bh) => this.entities.abilityEffects.value.push(bh),
-      remove: (i) => this.entities.abilityEffects.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.abilityEffects.value =
+          this.entities.abilityEffects.value.filter(
+            (_, i) => indxArray.indexOf(i) == -1
+          );
+      },
       reset: () =>
         (this.entities.abilityEffects.value =
           GameState.#defaults.entities.abilityEffects()),
@@ -81,7 +89,11 @@ class GameState {
     blackHoles: {
       value: GameState.#defaults.entities.blackHoles(),
       add: (bh) => this.entities.blackHoles.value.push(bh),
-      remove: (i) => this.entities.blackHoles.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.blackHoles.value = this.entities.blackHoles.value.filter(
+          (_, i) => indxArray.indexOf(i) == -1
+        );
+      },
       reset: () =>
         (this.entities.blackHoles.value =
           GameState.#defaults.entities.blackHoles()),
@@ -89,14 +101,23 @@ class GameState {
     bullets: {
       value: GameState.#defaults.entities.bullets(),
       add: (blt) => this.entities.bullets.value.push(blt),
-      remove: (i) => this.entities.bullets.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.bullets.value = this.entities.bullets.value.filter(
+          (_, i) => indxArray.indexOf(i) == -1
+        );
+      },
       reset: () =>
         (this.entities.bullets.value = GameState.#defaults.entities.bullets()),
     },
     enemyBullets: {
       value: GameState.#defaults.entities.enemyBullets(),
       add: (blt) => this.entities.enemyBullets.value.push(blt),
-      remove: (i) => this.entities.enemyBullets.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.enemyBullets.value =
+          this.entities.enemyBullets.value.filter(
+            (_, i) => indxArray.indexOf(i) == -1
+          );
+      },
       reset: () =>
         (this.entities.enemyBullets.value =
           GameState.#defaults.entities.bullets()),
@@ -104,7 +125,12 @@ class GameState {
     damageTexts: {
       value: GameState.#defaults.entities.damageTexts(),
       add: (bh) => this.entities.damageTexts.value.push(bh),
-      remove: (i) => this.entities.damageTexts.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.damageTexts.value =
+          this.entities.damageTexts.value.filter(
+            (_, i) => indxArray.indexOf(i) == -1
+          );
+      },
       reset: () =>
         (this.entities.damageTexts.value =
           GameState.#defaults.entities.damageTexts()),
@@ -112,14 +138,22 @@ class GameState {
     enemies: {
       value: GameState.#defaults.entities.enemies(),
       add: (bh) => this.entities.enemies.value.push(bh),
-      remove: (i) => this.entities.enemies.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.enemies.value = this.entities.enemies.value.filter(
+          (_, i) => indxArray.indexOf(i) == -1
+        );
+      },
       reset: () =>
         (this.entities.enemies.value = GameState.#defaults.entities.enemies()),
     },
     events: {
       value: GameState.#defaults.entities.events(),
       add: (evt) => this.entities.events.value.push(evt),
-      remove: (i) => this.entities.events.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.events.value = this.entities.events.value.filter(
+          (_, i) => indxArray.indexOf(i) == -1
+        );
+      },
       reset: () =>
         (this.entities.events.value = GameState.#defaults.entities.events()),
       random: () => {
@@ -131,7 +165,11 @@ class GameState {
     particles: {
       value: GameState.#defaults.entities.particles(),
       add: (evt) => this.entities.particles.value.push(evt),
-      remove: (i) => this.entities.particles.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.particles.value = this.entities.particles.value.filter(
+          (_, i) => indxArray.indexOf(i) == -1
+        );
+      },
       reset: () =>
         (this.entities.particles.value =
           GameState.#defaults.entities.particles()),
@@ -139,14 +177,22 @@ class GameState {
     items: {
       value: GameState.#defaults.entities.items(),
       add: (evt) => this.entities.items.value.push(evt),
-      remove: (i) => this.entities.items.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.items.value = this.entities.items.value.filter(
+          (_, i) => indxArray.indexOf(i) == -1
+        );
+      },
       reset: () =>
         (this.entities.items.value = GameState.#defaults.entities.items()),
     },
     turrets: {
       value: GameState.#defaults.entities.turrets(),
       add: (evt) => this.entities.turrets.value.push(evt),
-      remove: (i) => this.entities.turrets.value.splice(i, 1),
+      remove: (indxArray) => {
+        this.entities.turrets.value = this.entities.turrets.value.filter(
+          (_, i) => indxArray.indexOf(i) == -1
+        );
+      },
       reset: () =>
         (this.entities.turrets.value = GameState.#defaults.entities.turrets()),
     },

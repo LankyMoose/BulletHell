@@ -20,7 +20,7 @@ window.requestAnimationFrame = (function () {
 })();
 import { game, resetGame } from './state';
 
-import { Player, Enemy, Item, BonusSet } from './lib.js';
+import { Player, Enemy, Item, BonusSet, Boss } from './lib.js';
 
 import {
   menu,
@@ -80,7 +80,7 @@ function main() {
   window.start = now;
   window.lag += elapsed;
   //c.clearRect(0, 0, canvas.width, canvas.height);
-  c.fillStyle = 'rgba(50, 50, 50, 1)';
+  c.fillStyle = 'rgba(30, 30, 30, 1)';
   c.fillRect(0, 0, canvas.width, canvas.height);
 
   const nextFrameActions = game.nextFrameActionQueue.value;
@@ -112,42 +112,54 @@ function update() {
   if (DEBUG_ENABLED) player.xp += 50 * player.value.xpMulti;
 
   const blackHoles = game.entities.blackHoles.value;
+  const blackHolesToRemove = [];
   for (let i = 0; i < blackHoles.length; i++) {
     const bh = blackHoles[i];
     bh.update();
-    if (bh.remainingFrames <= 0) game.entities.blackHoles.remove(i);
+    if (bh.remainingFrames <= 0) blackHolesToRemove.push(i);
   }
+  if (blackHolesToRemove.length > 0)
+    game.entities.blackHoles.remove(blackHolesToRemove);
 
   player.update();
   let playerLifeChanged = false;
 
+  let bulletsToRemove = [];
   let bullets = game.entities.bullets.value;
   for (let i = 0; i < bullets.length; i++) {
     const b = bullets[i];
     b.update();
-    if (!b.inMap()) game.entities.bullets.remove(i);
+    if (!b.inMap()) bulletsToRemove.push(i);
   }
+  if (bulletsToRemove.length > 0) {
+    game.entities.bullets.remove(bulletsToRemove);
+    bulletsToRemove = [];
+  }
+  const enemyBulletsToRemove = [];
   const enemyBullets = game.entities.enemyBullets.value;
   for (let i = 0; i < enemyBullets.length; i++) {
     const b = enemyBullets[i];
     b.update();
     if (!b.inMap()) {
-      game.entities.enemyBullets.remove(i);
+      enemyBulletsToRemove.push(i);
     } else {
       const dist = Math.hypot(player.x - b.x, player.y - b.y);
       if (!player.invulnerable && dist - b.r - player.r < 0.01) {
         player.life -= Math.floor(b.damage - b.damage * player.damageReduction);
         playerLifeChanged = true;
-        game.entities.enemyBullets.remove(i);
+        enemyBulletsToRemove.push(i);
       }
       if (player.life <= 0) {
         return endGame();
       }
     }
   }
+  if (enemyBulletsToRemove.length > 0)
+    game.entities.enemyBullets.remove(enemyBulletsToRemove);
+
   // investigate pooling?
   const enemiesToRemove = [];
-  const bulletsToRemove = [];
+  bulletsToRemove = [];
   const abilitiesToRemove = [];
   const enemies = game.entities.enemies.value;
   const abilityEffects = game.entities.abilityEffects.value;
@@ -199,47 +211,53 @@ function update() {
       if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
   }
-  for (const index of enemiesToRemove) {
-    game.entities.enemies.remove(index);
-  }
-  for (const index of bulletsToRemove) {
-    game.entities.bullets.remove(index);
-  }
-  for (const index of abilitiesToRemove) {
-    game.entities.abilityEffects.remove(index);
-  }
+  if (enemiesToRemove.length > 0) game.entities.enemies.remove(enemiesToRemove);
+  if (bulletsToRemove.length > 0) game.entities.bullets.remove(bulletsToRemove);
+  if (abilitiesToRemove.length > 0)
+    game.entities.abilityEffects.remove(abilitiesToRemove);
+
   if (playerLifeChanged) renderPlayerLife();
 
   const turrets = game.entities.turrets.value;
   for (let i = 0; i < turrets.length; i++) {
     turrets[i].update();
   }
+  const particlesToRemove = [];
   const particles = game.entities.particles.value;
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
     p.update();
-    if (p.alpha <= 0) game.entities.particles.remove(i);
+    if (p.alpha <= 0) particlesToRemove.push(i);
   }
+  if (particlesToRemove.length > 0)
+    game.entities.particles.remove(particlesToRemove);
+
+  const itemsToRemove = [];
   const items = game.entities.items.value;
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     const dist = Math.hypot(player.x - item.x, player.y - item.y);
     if (dist - item.r - player.r < 1) {
       player.items.push({ ...item.itemType });
-      game.entities.items.remove(i);
+      itemsToRemove.push(i);
       continue;
     }
 
     item.update();
     if (item.i > 540) {
-      game.entities.items.remove(i);
+      itemsToRemove.push(i);
     }
   }
-  for (let i = 0; i < abilityEffects.length; i++) {
-    const ae = abilityEffects[i];
+  if (itemsToRemove.length > 0) game.entities.items.remove(itemsToRemove);
+
+  const abilityEffectsToRemove = [];
+  for (let i = 0; i < game.entities.abilityEffects.value.length; i++) {
+    const ae = game.entities.abilityEffects.value[i];
     ae.update();
-    if (ae.remainingFrames <= 0) game.entities.abilityEffects.remove(i);
+    if (ae.remainingFrames <= 0) abilityEffectsToRemove.push(i);
   }
+  if (abilityEffectsToRemove.length > 0)
+    game.entities.abilityEffects.remove(abilityEffectsToRemove);
 
   const eventsToRemove = [];
   const events = game.entities.events.value;
@@ -268,16 +286,18 @@ function update() {
       console.error(error);
     }
   }
-  for (let index of eventsToRemove) {
-    game.entities.events.remove(index);
-  }
 
+  if (eventsToRemove.length > 0) game.entities.events.remove(eventsToRemove);
+
+  const damageTextsToRemove = [];
   const damageTexts = game.entities.damageTexts.value;
   for (let i = 0; i < damageTexts.length; i++) {
     const d = damageTexts[i];
     d.update();
-    if (d.alpha <= 0) game.entities.damageTexts.remove(i);
+    if (d.alpha <= 0) damageTextsToRemove.push(i);
   }
+  if (damageTextsToRemove.length > 0)
+    game.entities.damageTexts.remove(damageTextsToRemove);
 
   player.heat -= 0.025;
   //player.heat -= 0.0;
@@ -332,6 +352,13 @@ function render(lagOffset) {
         vfx(evt);
       }
   }
+  const lifeRenderers = game.entities.enemies.value.filter(
+    (ent) => typeof ent.renderLife != 'undefined'
+  );
+  for (const lr of lifeRenderers) {
+    lr.renderLife();
+  }
+
   for (const dt of game.entities.damageTexts.value) {
     dt.draw(lagOffset);
   }
@@ -439,7 +466,6 @@ function pauseGame() {
   canvas.style.filter = 'blur(2px)';
   game.animId.reset();
   game.running.set(false);
-  Object.assign(game.entities.player.value.inputs, new Player().inputs);
   renderPlayerStats();
 }
 

@@ -514,8 +514,8 @@ export const EVENT_TYPES = [
     ],
     onExit: [
       () => {
-        const evt = EVENT_TYPES.find((e) => e.name == `Redball the great`);
-        if (!evt) throw new Error("failed to get event 'Redball the great'");
+        const evt = EVENT_TYPES.find((e) => e.name == `Blackball the great`);
+        if (!evt) throw new Error("failed to get event 'Blackball the great'");
         game.entities.events.add({ ...evt });
         game.settings.player.allowShoot.set(true);
         game.settings.player.allowAbilities.set(true);
@@ -524,7 +524,7 @@ export const EVENT_TYPES = [
     ],
   },
   {
-    name: `Redball the great`,
+    name: `Blackball the great`,
     weight: 0,
     cooldown: Infinity,
     remainingMs: 0,
@@ -539,7 +539,7 @@ export const EVENT_TYPES = [
     ],
     vfx: [
       (self) => {
-        renderEventName(`Redball the great`);
+        renderEventName(`Blackball the great`);
       },
     ],
     onExit: [
