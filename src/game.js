@@ -204,9 +204,7 @@ function update() {
       enemiesToRemove.push(i);
       player.xp += XP_PER_KILL + e.initialR * player.xpMulti;
       game.score.add(e.killValue);
-      player.kills++;
-      player.heat += e.r * 0.2;
-      //player.heat += 30;
+      player.onKill();
       handleProgression();
       if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
@@ -298,10 +296,6 @@ function update() {
   }
   if (damageTextsToRemove.length > 0)
     game.entities.damageTexts.remove(damageTextsToRemove);
-
-  player.heat -= 0.025;
-  //player.heat -= 0.0;
-  if (player.heat < 0) player.heat = 0;
 }
 
 function queuePlayerLevelUp() {
@@ -421,6 +415,7 @@ function handleProgression() {
     player.heat = 0;
   }
   heatBarEl.value = player.heat;
+  heatBarEl.setAttribute('max', player.maxHeat);
   xpBarEl.value = (player.xp / player.next_level) * 100;
   lvlEl.innerHTML = player.level;
 }
@@ -613,10 +608,12 @@ function handleKeyDown(e) {
   let triggerResume = false;
   switch (e.key.toLowerCase()) {
     case 'space':
-      return false;
+    case ' ':
+      game.entities.player.value.inputs.space = true;
+      triggerResume = true;
+      break;
     case 'escape':
-      togglePause();
-      return false;
+      return togglePause();
     case 'a':
       game.entities.player.value.inputs.left = true;
       triggerResume = true;
@@ -644,7 +641,8 @@ function handleKeyUp(e) {
   switch (e.key.toLowerCase()) {
     case 'space':
     case ' ':
-      return false;
+      game.entities.player.value.inputs.space = false;
+      break;
     case 'a':
       game.entities.player.value.inputs.left = false;
       break;

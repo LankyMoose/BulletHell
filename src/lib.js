@@ -23,6 +23,7 @@ import {
   getRandomWeightMapIndex,
   radiansToDeg,
   rectCircleCollision,
+  degreesToRad,
 } from './util.js';
 
 function strokeCircle(circle) {
@@ -31,6 +32,7 @@ function strokeCircle(circle) {
   c.lineWidth = '2';
   c.strokeStyle = 'white';
   c.stroke();
+  c.closePath();
   c.restore();
 }
 
@@ -74,6 +76,7 @@ export class Sprite {
     }
     c.beginPath();
     c.arc(this.renderX, this.renderY, this.r, 0, Math.PI * 2, false);
+    c.closePath();
     c.fillStyle = this.color;
     c.fill();
     c.restore();
@@ -142,7 +145,7 @@ export class Sprite {
 
   inMap() {
     return (
-      this.x - this.r > 0 &&
+      this.x - this.r * 2 > 0 &&
       this.x + this.r < canvas.width &&
       this.y - this.r > 0 &&
       this.y + this.r < canvas.height
@@ -325,6 +328,7 @@ export class BlackHole extends Sprite {
 
     c.beginPath();
     c.arc(this.renderX, this.renderY, this.r, 0, Math.PI * 2, false);
+    c.closePath();
     c.fill();
     c.restore();
 
@@ -342,7 +346,17 @@ export class Player extends Sprite {
     super(...arguments);
     this.speed = 0.4;
     this.bulletSpeed = 15;
-    this.maxSpeed = 6;
+    this.maxSpeed = 4;
+    this.dashing = false;
+    this.dashCooldown = 2e3;
+    this.dashCooldownMs = 0;
+    this.dashReady = true;
+    this.dashDuration = 160;
+    this.dashTick = 0;
+    this.dashVelocity = {
+      x: 0,
+      y: 0,
+    };
     this.bulletCooldown = 400;
     this.bulletTick = 0;
     this.critChance = 10;
@@ -353,10 +367,13 @@ export class Player extends Sprite {
       right: false,
       up: false,
       down: false,
+      space: false,
     };
     this.items = [];
     this.heat = 0;
     this.maxHeat = 100;
+    this.heatDecay = 0.025;
+    this.heatGainPerLevel = 2;
     this.level = 1;
     this.xp = 1;
     this.xpMulti = 1;
@@ -372,24 +389,15 @@ export class Player extends Sprite {
     this.damage = 10;
     this.damageReduction = 0.1;
   }
-  getVelocity() {
-    if (this.inputs.left) {
-      this.vel.x -= this.speed;
-    }
-    if (this.inputs.right) {
-      this.vel.x += this.speed;
-    }
-    if (this.inputs.down) {
-      this.vel.y += this.speed;
-    }
-    if (this.inputs.up) {
-      this.vel.y -= this.speed;
-    }
-    if (this.vel.x > this.maxSpeed) this.vel.x = this.maxSpeed;
-    if (this.vel.x < -this.maxSpeed) this.vel.x = -this.maxSpeed;
-    if (this.vel.y > this.maxSpeed) this.vel.y = this.maxSpeed;
-    if (this.vel.y < -this.maxSpeed) this.vel.y = -this.maxSpeed;
-
+  applyMaxSpeed() {
+    if (!this.dashing && this.vel.x > this.maxSpeed) this.vel.x = this.maxSpeed;
+    if (!this.dashing && this.vel.x < -this.maxSpeed)
+      this.vel.x = -this.maxSpeed;
+    if (!this.dashing && this.vel.y > this.maxSpeed) this.vel.y = this.maxSpeed;
+    if (!this.dashing && this.vel.y < -this.maxSpeed)
+      this.vel.y = -this.maxSpeed;
+  }
+  applyFriction() {
     if (
       (!this.inputs.left && !this.inputs.right) ||
       (this.inputs.left && !this.inputs.right && this.vel.x > 0) ||
@@ -405,13 +413,75 @@ export class Player extends Sprite {
       this.vel.y *= this.friction;
     }
   }
+
+  applyVelocity() {
+    let triggeredDash = false;
+    const allowDash = game.settings.player.allowDash.value;
+    if (allowDash && this.inputs.space && this.dashReady && !this.dashing) {
+      this.dashCooldownMs = this.dashCooldown;
+      this.dashing = true;
+      this.dashReady = false;
+      triggeredDash = true;
+      this.dashVelocity = {
+        x: 0,
+        y: 0,
+      };
+    }
+    const allowMove = game.settings.player.allowMove.value;
+    if (allowMove) {
+      if (this.inputs.left) {
+        this.vel.x -= this.speed;
+        if (triggeredDash) this.dashVelocity.x -= this.speed * 3;
+      }
+      if (this.inputs.right) {
+        this.vel.x += this.speed;
+        if (triggeredDash) this.dashVelocity.x += this.speed * 3;
+      }
+      if (this.inputs.down) {
+        this.vel.y += this.speed;
+        if (triggeredDash) this.dashVelocity.y += this.speed * 3;
+      }
+      if (this.inputs.up) {
+        this.vel.y -= this.speed;
+        if (triggeredDash) this.dashVelocity.y -= this.speed * 3;
+      }
+    }
+
+    this.vel.x += this.dashVelocity.x;
+    this.vel.y += this.dashVelocity.y;
+  }
   update() {
     this.applyGravity();
-    this.getVelocity();
+    this.applyVelocity();
+    this.applyMaxSpeed();
+    this.applyFriction();
     this.enforceMapBoundaries();
     super.update();
     this.updateBullets();
     this.updateAbilities();
+    this.updateDash();
+    this.updateHeat();
+  }
+
+  updateHeat() {
+    this.heat -= this.heatDecay;
+    if (this.heat < 0) this.heat = 0;
+  }
+  updateDash() {
+    if (this.dashing) this.dashTick += window.animFrameDuration;
+    if (this.dashTick > this.dashDuration) {
+      this.dashTick = 0;
+      this.dashing = false;
+      this.dashVelocity = {
+        x: 0,
+        y: 0,
+      };
+    }
+    this.dashCooldownMs -= window.animFrameDuration;
+    if (this.dashCooldownMs <= 0) {
+      this.dashCooldownMs = 0;
+      this.dashReady = true;
+    }
   }
 
   updateAbilities() {
@@ -432,7 +502,42 @@ export class Player extends Sprite {
   }
   draw(lagOffset) {
     super.draw(lagOffset);
+    this.renderDashCooldown();
     if (DEBUG_ENABLED) strokeCircle(this);
+  }
+
+  renderDashCooldown() {
+    const height = 5;
+    const gap = 5;
+    const topOffset = this.renderY - this.r - height - gap;
+    //c.restore();
+    c.save();
+
+    c.fillStyle = 'white';
+    c.globalAlpha = 0.1;
+    c.beginPath();
+    c.arc(this.x, topOffset, height, 0, Math.PI * 2, false);
+    c.fill();
+    c.closePath();
+    //c.restore();
+    //c.save();
+
+    const percent = this.dashCooldownMs / this.dashCooldown;
+    c.globalAlpha = 1;
+    c.fillStyle = '#4e7591';
+    if (percent == 0) c.fillStyle = '#3186c2';
+    c.beginPath();
+    const offset = 2 * percent;
+    const rotation = Math.PI / 2;
+    const startAngle = offset * Math.PI + rotation;
+    const endAngle = Math.PI * 2 + rotation;
+    c.arc(this.renderX, topOffset, height, -startAngle, -endAngle, true);
+    c.arc(this.renderX, topOffset, 0, -startAngle, -endAngle, true);
+
+    c.fill();
+    c.closePath();
+    //c.fillStyle = 'red';
+    c.restore();
   }
 
   shootSingleBullet(clientX, clientY) {
@@ -570,9 +675,14 @@ export class Player extends Sprite {
       this.shootMultipleBullets(clientX, clientY);
     }
   }
-
+  onKill() {
+    this.kills++;
+    this.heat += 5 + this.level * this.heatGainPerLevel;
+  }
   onLevelUp() {
     this.xp = 1;
+    this.maxHeat *= 1.3;
+    this.heatDecay *= 1.1;
     if (this.level % 5 == 0) {
       //this.heat = 0;
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
@@ -671,8 +781,8 @@ export class Bullet extends Projectile {
 
 export class Enemy extends Sprite {
   static minSize = 20;
-  constructor() {
-    super(...arguments);
+  constructor(x, y, r, color, vel, renderGlow, glowSize) {
+    super(x, y, r, color, vel, renderGlow, glowSize);
     this.img_update_frames = 14;
     this.cur_frame = 0;
     this.cur_image = 0;

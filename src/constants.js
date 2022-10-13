@@ -153,7 +153,7 @@ export const BONUS_TYPES = [
     modifiers: [
       {
         key: 'bulletSpeed',
-        amounts: [2, 4, 7, 12],
+        amounts: [1, 2, 4, 6],
       },
     ],
   },
@@ -500,6 +500,8 @@ export const EVENT_TYPES = [
         game.settings.enemies.allowSpawn.set(false);
         game.settings.player.allowShoot.set(false);
         game.settings.player.allowAbilities.set(false);
+        game.settings.player.allowDash.set(false);
+        game.settings.player.allowMove.set(false);
         setTimeout(() => {
           game.entities.enemies.reset();
           game.entities.bullets.reset();
@@ -519,6 +521,8 @@ export const EVENT_TYPES = [
         game.entities.events.add({ ...evt });
         game.settings.player.allowShoot.set(true);
         game.settings.player.allowAbilities.set(true);
+        game.settings.player.allowDash.set(true);
+        game.settings.player.allowMove.set(true);
         game.entities.player.value.invulnerable = false;
       },
     ],

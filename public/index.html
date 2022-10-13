@@ -349,13 +349,12 @@
         font-size: 2rem;
       }
       #ctrlsDisplay {
-        width: 300px;
-        min-width: 100px;
-        max-width: 35vw;
-        margin-left: auto;
-      }
-      #ctrlsDisplay img {
-        max-width: 100%;
+        position: absolute;
+        background-color: #222;
+        top: 2rem;
+        right: 2rem;
+        padding: 1rem;
+        font-size: 1.5rem;
       }
     </style>
   </head>
@@ -452,7 +451,9 @@
 
       <div id="menu_br">
         <div id="ctrlsDisplay">
-          <img src="img/ctrls.png" />
+          <b>Movement</b>: WASD<br />
+          <b>Aiming</b>: Mouse<br />
+          <b>Dash</b>: Space
         </div>
         <div id="menu_br_bottom">
           <div id="game_stats">

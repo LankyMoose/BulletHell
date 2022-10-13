@@ -89,6 +89,10 @@ export function radiansToDeg(radians) {
   var pi = Math.PI;
   return radians * (180 / pi);
 }
+export function degreesToRad(degrees) {
+  var pi = Math.PI;
+  return degrees * (pi / 180);
+}
 
 export function getRandomByWeight(arr) {
   const wm = getWeightMap(arr);

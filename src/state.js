@@ -23,10 +23,10 @@ class GameState {
       items: () => [],
       turrets: () => [],
       damageTexts: () => [],
-      player: () =>
-        Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
-          level: 4,
-        }),
+      player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
+      // Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
+      //   level: 4,
+      // }),
     },
     bonuses: () => [...BONUS_TYPES],
     running: () => false,
@@ -64,6 +64,14 @@ class GameState {
       allowAbilities: {
         value: true,
         set: (bool) => (this.settings.player.allowAbilities.value = bool),
+      },
+      allowDash: {
+        value: true,
+        set: (bool) => (this.settings.player.allowDash.value = bool),
+      },
+      allowMove: {
+        value: true,
+        set: (bool) => (this.settings.player.allowMove.value = bool),
       },
     },
   };
