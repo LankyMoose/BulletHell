@@ -671,6 +671,12 @@ async function renderLeaderboard() {
       })
     )
   );
+  if (scores.length == 0)
+    list.appendChild(
+      Object.assign(document.createElement('li'), {
+        innerText: 'No high scores yet 🥱',
+      })
+    );
   leaderboard.innerHTML = '';
   leaderboard.appendChild(list);
 }
