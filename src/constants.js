@@ -126,7 +126,6 @@ export const BONUS_TYPES = [
           (player, amount) => {
             const percent = player.maxLife / amount;
             player.life += player.maxLife / percent;
-            window.renderPlayerLife();
           },
         ],
       },
@@ -248,7 +247,7 @@ const BONUS_UPGRADES = [
     modifiers: [
       {
         key: 'size',
-        amounts: [8, 16, 24],
+        amounts: [4, 9, 15],
       },
     ],
   },

@@ -493,10 +493,40 @@ export class Player extends Sprite {
   }
   draw(lagOffset) {
     super.draw(lagOffset);
-    this.renderDashCooldown();
     if (DEBUG_ENABLED) strokeCircle(this);
   }
+  renderAbilityCooldowns() {
+    const abilities = this.items.filter((i) => i.isAbility);
+    for (let i = 0; i < abilities.length; i++) {
+      const ability = abilities[i];
+      const iconHeight = 24;
+      const iconWidth = 60;
+      const gap = 10 * i;
+      let leftOffset = i * iconWidth + canvas.width / 2;
+      leftOffset -= abilities.length * (iconWidth / 2);
+      const topOffset = 27;
+      const curMs = ability.cooldown - ability.remainingMs;
+      const percent = curMs / ability.cooldown;
+      const padding = 4;
+      c.save();
+      c.textAlign = 'center';
+      c.font = '14px sans-serif';
+      c.fillStyle = ability.getColor();
+      c.globalAlpha = 0.25;
+      c.fillRect(leftOffset + gap, topOffset, iconWidth, iconHeight);
+      c.fillRect(leftOffset + gap, topOffset, iconWidth * percent, iconHeight);
+      c.globalAlpha = 1;
+      c.fillStyle = 'white';
+      c.fillText(
+        ability.name,
+        leftOffset + gap + padding + iconWidth / 2,
+        topOffset + padding + 14,
+        iconWidth
+      );
 
+      c.restore();
+    }
+  }
   renderDashCooldown() {
     const height = 5;
     const gap = 5;
@@ -528,6 +558,19 @@ export class Player extends Sprite {
     c.fill();
     c.closePath();
     //c.fillStyle = 'red';
+    c.restore();
+  }
+  renderLife() {
+    c.save();
+    const maxWidth = canvas.width * 0.1 + this.maxLife;
+    const height = 7;
+    const curPercent = this.life / this.maxLife;
+    const leftOffset = (canvas.width - maxWidth) / 2;
+    const topOffset = 10;
+    c.fillStyle = '#066206aa';
+    c.fillRect(leftOffset, topOffset, maxWidth, height);
+    c.fillStyle = 'green';
+    c.fillRect(leftOffset, topOffset, maxWidth * curPercent, height);
     c.restore();
   }
 
