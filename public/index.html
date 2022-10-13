@@ -142,15 +142,6 @@
         pointer-events: none;
       }
 
-      #heat {
-        position: fixed;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 250px;
-        height: 18px;
-      }
-
       #xp {
         position: fixed;
         bottom: 10px;
@@ -163,8 +154,6 @@
         background: rgba(255, 255, 255, 0.3);
         height: 12px;
       }
-
-      #heat,
       #xp {
         opacity: 0.7;
         border-radius: 1em;
@@ -381,15 +370,6 @@
       <img id="img_demon_up_r_open" src="img/demon_up_r_open.png" />
     </div>
 
-    <meter
-      id="heat"
-      min="0"
-      max="100"
-      low="60"
-      high="10"
-      optimum="30"
-      value="0"
-    ></meter>
     <progress id="xp" value="0" max="100"></progress>
     <div id="level_container">
       <h2 id="level">1</h2>

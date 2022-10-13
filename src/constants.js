@@ -21,7 +21,6 @@ export const menuScoreEl = document.getElementById('menuScoreEl');
 export const killsEl = document.getElementById('killsEl');
 export const lifeEl = document.getElementById('lifeEl');
 export const menuKillsEl = document.getElementById('menuKillsEl');
-export const heatBarEl = document.getElementById('heat');
 export const xpBarEl = document.getElementById('xp');
 export const lvlEl = document.getElementById('level');
 export const levelUpScreen = document.getElementById('levelup');

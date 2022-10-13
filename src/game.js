@@ -33,7 +33,6 @@ import {
   c,
   x,
   y,
-  heatBarEl,
   xpBarEl,
   set_x,
   set_y,
@@ -101,8 +100,6 @@ function main() {
     game.settings.enemies.spawnTime.reset();
   }
   render(window.lag / window.frameDuration);
-
-  heatBarEl.value = game.entities.player.value.heat;
 }
 
 let debugRenders = [];
@@ -408,14 +405,6 @@ function handleProgression() {
   ) {
     Item.spawn();
   }
-  if (player.heat >= player.maxHeat) {
-    const evt = game.entities.events.random();
-    if (!evt) throw new Error('failed to get random event ');
-    game.entities.events.add({ ...evt });
-    player.heat = 0;
-  }
-  heatBarEl.value = player.heat;
-  heatBarEl.setAttribute('max', player.maxHeat);
   xpBarEl.value = (player.xp / player.next_level) * 100;
   lvlEl.innerHTML = player.level;
 }
@@ -509,7 +498,6 @@ function endGame() {
   };
   resetGame();
   renderPlayerLife();
-  heatBarEl.value = 0;
   xpBarEl.value = 0;
   lvlEl.innerHTML = 1;
 

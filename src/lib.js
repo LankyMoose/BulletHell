@@ -370,10 +370,6 @@ export class Player extends Sprite {
       space: false,
     };
     this.items = [];
-    this.heat = 0;
-    this.maxHeat = 100;
-    this.heatDecay = 0.025;
-    this.heatGainPerLevel = 2;
     this.level = 1;
     this.xp = 1;
     this.xpMulti = 1;
@@ -460,13 +456,8 @@ export class Player extends Sprite {
     this.updateBullets();
     this.updateAbilities();
     this.updateDash();
-    this.updateHeat();
   }
 
-  updateHeat() {
-    this.heat -= this.heatDecay;
-    if (this.heat < 0) this.heat = 0;
-  }
   updateDash() {
     if (this.dashing) this.dashTick += window.animFrameDuration;
     if (this.dashTick > this.dashDuration) {
@@ -677,16 +668,16 @@ export class Player extends Sprite {
   }
   onKill() {
     this.kills++;
-    this.heat += 5 + this.level * this.heatGainPerLevel;
   }
   onLevelUp() {
     this.xp = 1;
-    this.maxHeat *= 1.3;
-    this.heatDecay *= 1.1;
     if (this.level % 5 == 0) {
-      //this.heat = 0;
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
+      game.entities.events.add({ ...evt });
+    } else if (this.level % 3 == 0) {
+      const evt = game.entities.events.random();
+      if (!evt) throw new Error('failed to get random event ');
       game.entities.events.add({ ...evt });
     }
   }
