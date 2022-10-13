@@ -73,6 +73,10 @@ class GameState {
         value: true,
         set: (bool) => (this.settings.player.allowMove.value = bool),
       },
+      applyMaxSpeed: {
+        value: true,
+        set: (bool) => (this.settings.player.applyMaxSpeed.value = bool),
+      },
     },
   };
   entities = {

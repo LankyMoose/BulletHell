@@ -500,6 +500,7 @@ export const EVENT_TYPES = [
         game.settings.player.allowAbilities.set(false);
         game.settings.player.allowDash.set(false);
         game.settings.player.allowMove.set(false);
+        game.settings.player.applyMaxSpeed.set(false);
         setTimeout(() => {
           game.entities.enemies.reset();
           game.entities.bullets.reset();
@@ -521,6 +522,7 @@ export const EVENT_TYPES = [
         game.settings.player.allowAbilities.set(true);
         game.settings.player.allowDash.set(true);
         game.settings.player.allowMove.set(true);
+        game.settings.player.applyMaxSpeed.set(true);
         game.entities.player.value.invulnerable = false;
       },
     ],
@@ -564,6 +566,9 @@ export const EVENT_TYPES = [
         game.settings.enemies.allowSpawn.set(false);
         game.settings.player.allowShoot.set(false);
         game.settings.player.allowAbilities.set(false);
+        game.settings.player.allowDash.set(false);
+        game.settings.player.allowMove.set(false);
+        game.settings.player.applyMaxSpeed.set(false);
         game.entities.player.value.invulnerable = true;
         setTimeout(() => {
           game.entities.enemies.reset();
@@ -584,6 +589,9 @@ export const EVENT_TYPES = [
         game.settings.enemies.allowSpawn.set(true);
         game.settings.player.allowShoot.set(true);
         game.settings.player.allowAbilities.set(true);
+        game.settings.player.allowDash.set(true);
+        game.settings.player.allowMove.set(true);
+        game.settings.player.applyMaxSpeed.set(true);
         game.entities.player.value.invulnerable = false;
       },
     ],

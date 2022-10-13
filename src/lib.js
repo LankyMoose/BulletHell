@@ -386,6 +386,7 @@ export class Player extends Sprite {
     this.damageReduction = 0.1;
   }
   applyMaxSpeed() {
+    if (!game.settings.player.applyMaxSpeed.value) return;
     if (!this.dashing && this.vel.x > this.maxSpeed) this.vel.x = this.maxSpeed;
     if (!this.dashing && this.vel.x < -this.maxSpeed)
       this.vel.x = -this.maxSpeed;
@@ -718,7 +719,7 @@ export class Player extends Sprite {
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
       game.entities.events.add({ ...evt });
-    } else if (this.level % 3 == 0) {
+    } else {
       const evt = game.entities.events.random();
       if (!evt) throw new Error('failed to get random event ');
       game.entities.events.add({ ...evt });
