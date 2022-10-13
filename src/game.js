@@ -665,12 +665,20 @@ async function renderLeaderboard() {
   const scores = await loadScores();
   const list = document.createElement('ul');
   list.append(
-    ...scores.map((entry) =>
-      Object.assign(document.createElement('li'), {
-        innerText: `${entry.username} ${entry.score}`,
-      })
-    )
+    ...scores.map((entry) => {
+      const item = document.createElement('li');
+      item.append(
+        Object.assign(document.createElement('img'), {
+          src: entry.profile_picture,
+        }),
+        Object.assign(document.createElement('span'), {
+          innerText: `${entry.username} ${entry.score}`,
+        })
+      );
+      return item;
+    })
   );
+  console.log(scores);
   if (scores.length == 0)
     list.appendChild(
       Object.assign(document.createElement('li'), {
