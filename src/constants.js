@@ -458,7 +458,7 @@ export const BOSS_ITEMS = [
     //cooldown: 1e3,
     remainingMs: 2e3,
     size: 22,
-    damage: 2,
+    damage: 1,
     trigger: (boss, self, cx, cy) => {
       game.entities.enemyAbilityEffects.add(
         new Kamehameha(boss.x, boss.y, self, cx, cy, boss)
@@ -560,7 +560,7 @@ export const EVENT_TYPES = [
     activations: 1,
     functions: [
       (evt) => {
-        for (let i = 0; i < 5 + game.entities.player.value.level / 2; i++) {
+        for (let i = 0; i < 5 + game.entities.player.value.level / 3; i++) {
           Turret.spawn();
         }
         const newBoss = ShooterBoss.spawn();

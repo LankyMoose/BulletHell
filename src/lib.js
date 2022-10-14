@@ -260,29 +260,60 @@ export class AbilityBoss extends Boss {
     this.critDamageMulti = 1.5;
     this.bulletColor = '#710f0f';
     this.bulletSize = BULLET_SIZE * 3;
-    const bulletHellPhase = () => {
-      this.invulnerable = true;
-      this.fixed = true;
-      const newItem = ITEM_TYPES.find((it) => it.name == 'Bullet Hell');
-      this.items.push({ ...newItem, permanent: true });
-      setTimeout(() => {
-        this.invulnerable = false;
-        this.fixed = false;
-        this.items = this.items.filter((i) => i.name != 'Bullet Hell');
-      }, 5000);
-    };
     this.phases = [
       {
+        lifePercent: 0.86,
+        functions: [
+          () => {
+            this.bulletHellPhase(100);
+            setTimeout(() => this.bulletHellPhase(50), 150);
+          },
+        ],
+      },
+      {
         lifePercent: 0.75,
-        functions: [bulletHellPhase],
+        functions: [
+          () => {
+            this.bulletHellPhase(100);
+            setTimeout(() => this.bulletHellPhase(50), 150);
+          },
+        ],
+      },
+      {
+        lifePercent: 0.66,
+        functions: [() => this.bulletHellPhase(4e3)],
       },
       {
         lifePercent: 0.5,
-        functions: [bulletHellPhase],
+        functions: [
+          () => {
+            this.bulletHellPhase(100);
+            setTimeout(() => this.bulletHellPhase(50), 150);
+          },
+        ],
       },
       {
-        lifePercent: 0.25,
-        functions: [bulletHellPhase],
+        lifePercent: 0.33,
+        functions: [() => this.bulletHellPhase(4e3)],
+      },
+      {
+        lifePercent: 0.22,
+        functions: [
+          () => {
+            this.bulletHellPhase(100);
+            setTimeout(() => this.bulletHellPhase(50), 150);
+            setTimeout(() => this.bulletHellPhase(50), 200);
+          },
+        ],
+      },
+      {
+        lifePercent: 0.11,
+        functions: [
+          () => {
+            this.bulletHellPhase(100);
+            setTimeout(() => this.bulletHellPhase(50), 150);
+          },
+        ],
       },
     ];
   }
@@ -457,6 +488,20 @@ export class AbilityBoss extends Boss {
       }
     }
     return res;
+  }
+  bulletHellPhase(dur) {
+    this.invulnerable = true;
+    this.fixed = true;
+    const newItem = ITEM_TYPES.find((it) => it.name == 'Bullet Hell');
+    this.items.push({ ...newItem, permanent: true });
+    this.bulletTick = this.bulletCooldown;
+    this.color = '#472626';
+    setTimeout(() => {
+      this.invulnerable = false;
+      this.fixed = false;
+      this.items = this.items.filter((i) => i.name != 'Bullet Hell');
+      this.color = '#3c1414';
+    }, dur);
   }
 }
 

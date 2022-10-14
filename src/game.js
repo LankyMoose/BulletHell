@@ -76,7 +76,6 @@ function main() {
   const elapsed = now - window.start;
   window.start = now;
   window.lag += elapsed;
-  //c.clearRect(0, 0, canvas.width, canvas.height);
   c.fillStyle = 'rgba(30, 30, 30, 1)';
   c.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -90,14 +89,19 @@ function main() {
     update();
     window.lag -= window.frameDuration;
   }
+
   game.settings.enemies.spawnTime.set(
-    game.settings.enemies.spawnTime.value - window.frameDuration
+    game.settings.enemies.spawnTime.value - elapsed
   );
   if (game.settings.enemies.spawnTime.value <= 0) {
     Enemy.spawn();
     game.settings.enemies.spawnTime.reset();
   }
+
   render(window.lag / window.frameDuration);
+  c.fillStyle = 'rgba(255,255,255,.6)';
+  c.font = '12px sans-serif';
+  c.fillText(`${elapsed}ms`, canvas.width - 50, canvas.height - 12);
 }
 
 let debugRenders = [];

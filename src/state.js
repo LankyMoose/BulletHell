@@ -29,6 +29,7 @@ class GameState {
       //   Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
       //     level: 4,
       //     xp: 1000,
+      //     invulnerable: true,
       //   }),
     },
     bonuses: () => [...BONUS_TYPES],
