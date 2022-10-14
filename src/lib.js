@@ -717,8 +717,11 @@ export class Player extends Sprite {
 
   applyVelocity() {
     let triggeredDash = false;
+    //prettier-ignore
+    const anyDir = this.inputs.left || this.inputs.right || this.inputs.up || this.inputs.down;
     const allowDash = game.settings.player.allowDash.value;
-    if (allowDash && this.inputs.space && this.dashReady && !this.dashing) {
+    //prettier-ignore
+    if (anyDir && allowDash && this.inputs.space && this.dashReady && !this.dashing) {
       this.dashCooldownMs = this.dashCooldown;
       this.dashing = true;
       this.dashReady = false;
@@ -729,7 +732,7 @@ export class Player extends Sprite {
       };
     }
     const allowMove = game.settings.player.allowMove.value;
-    if (allowMove) {
+    if (anyDir && allowMove) {
       if (this.inputs.left) {
         this.vel.x -= this.speed;
         if (triggeredDash) this.dashVelocity.x -= this.speed * 3;
@@ -1023,6 +1026,11 @@ export class Player extends Sprite {
     this.next_level *= XP_REQ_MULTI_PER_LEVEL;
     this.life += this.level;
     if (this.life > this.maxLife) this.life = this.maxLife;
+
+    if (this.level % 7 == 0)
+      game.settings.enemies.spawnTime.setMax(
+        game.settings.enemies.spawnTime.value - 80
+      );
 
     if (this.level % 5 == 0) {
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');

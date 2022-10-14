@@ -7,7 +7,6 @@ class GameState {
   static #defaults = {
     score: () => 0,
     animId: () => null,
-    enemySpawnTime: () => 1000,
     allowEnemySpawn: () => true,
     allowPlayerShoot: () => true,
     playerDashTime: () => 2000,
@@ -36,6 +35,7 @@ class GameState {
     running: () => false,
     nextFrameActionQueue: () => [],
   };
+  static enemySpawnTime = 1000;
   animId = {
     value: GameState.#defaults.animId(),
     set: (id) => (this.animId.value = id),
@@ -47,13 +47,15 @@ class GameState {
   settings = {
     enemies: {
       spawnTime: {
-        value: GameState.#defaults.enemySpawnTime(),
+        value: GameState.enemySpawnTime,
         set: (num) => {
           this.settings.enemies.spawnTime.value = num;
         },
         reset: () =>
-          (this.settings.enemies.spawnTime.value =
-            GameState.#defaults.enemySpawnTime()),
+          (this.settings.enemies.spawnTime.value = GameState.enemySpawnTime),
+        setMax: (num) => {
+          GameState.enemySpawnTime = num;
+        },
       },
       allowSpawn: {
         value: GameState.#defaults.allowEnemySpawn(),
