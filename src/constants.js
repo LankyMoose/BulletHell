@@ -585,7 +585,7 @@ export const EVENT_TYPES = [
   {
     name: `Meganoth the Wicked`,
     type: 'boss',
-    weight: 5,
+    weight: 10,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,
