@@ -175,6 +175,7 @@ export class Boss extends Sprite {
     this.maxLife = (game.entities.player.value.level / 5) * 420;
     this.life = this.maxLife;
     this.onDeath = null;
+    this.phases = [];
   }
   update() {
     super.update();
@@ -183,7 +184,25 @@ export class Boss extends Sprite {
 
   takeDamage(damage) {
     this.life -= damage;
-    if (this.life > 0) return [true, false];
+    if (this.life > 0) {
+      const percent = this.life / this.maxLife;
+      const phasesToRemove = [];
+      for (let i = 0; i < this.phases.length; i++) {
+        const phase = this.phases[i];
+        if (percent <= phase.lifePercent) {
+          phasesToRemove.push(i);
+          for (const fn of phase.functions) {
+            fn();
+          }
+        }
+      }
+      if (phasesToRemove.length) {
+        for (let i = 0; i < phasesToRemove.length; i++) {
+          this.phases.splice(phasesToRemove[i], 1);
+        }
+      }
+      return [true, false];
+    }
     if (this.onDeath) this.onDeath();
     return [true, true];
   }
@@ -209,6 +228,52 @@ export class ShooterBoss extends Boss {
     this.bulletCooldown = 1000;
     this.bulletTick = 900;
     this.bulletSpeed = 5;
+    this.phases = [
+      {
+        lifePercent: 0.88,
+        functions: [
+          () => {
+            this.bulletCooldown = 333;
+            setTimeout(() => {
+              this.bulletCooldown = 1000;
+            }, 1000);
+          },
+        ],
+      },
+      {
+        lifePercent: 0.66,
+        functions: [
+          () => {
+            this.bulletCooldown = 333;
+            setTimeout(() => {
+              this.bulletCooldown = 1000;
+            }, 1000);
+          },
+        ],
+      },
+      {
+        lifePercent: 0.44,
+        functions: [
+          () => {
+            this.bulletCooldown = 250;
+            setTimeout(() => {
+              this.bulletCooldown = 1000;
+            }, 1000);
+          },
+        ],
+      },
+      {
+        lifePercent: 0.22,
+        functions: [
+          () => {
+            this.bulletCooldown = 250;
+            setTimeout(() => {
+              this.bulletCooldown = 1000;
+            }, 1000);
+          },
+        ],
+      },
+    ];
   }
   static spawn(coords) {
     if (!coords) coords = randomScreenEdgeCoords(150);
@@ -466,28 +531,6 @@ export class AbilityBoss extends Boss {
         ability.remainingMs = ability.cooldown;
       }
     }
-  }
-  takeDamage(damage) {
-    const res = super.takeDamage(damage);
-    if (this.life > 0) {
-      const percent = this.life / this.maxLife;
-      const phasesToRemove = [];
-      for (let i = 0; i < this.phases.length; i++) {
-        const phase = this.phases[i];
-        if (percent <= phase.lifePercent) {
-          phasesToRemove.push(i);
-          for (const fn of phase.functions) {
-            fn();
-          }
-        }
-      }
-      if (phasesToRemove.length) {
-        for (let i = 0; i < phasesToRemove.length; i++) {
-          this.phases.splice(phasesToRemove[i], 1);
-        }
-      }
-    }
-    return res;
   }
   bulletHellPhase(dur) {
     this.invulnerable = true;
