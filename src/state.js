@@ -24,12 +24,12 @@ class GameState {
       items: () => [],
       turrets: () => [],
       damageTexts: () => [],
-      //player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
-      player: () =>
-        Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
-          level: 4,
-          xp: 1000,
-        }),
+      player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
+      // player: () =>
+      //   Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
+      //     level: 4,
+      //     xp: 1000,
+      //   }),
     },
     bonuses: () => [...BONUS_TYPES],
     running: () => false,
