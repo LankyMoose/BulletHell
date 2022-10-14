@@ -554,7 +554,7 @@ export const EVENT_TYPES = [
   {
     name: `Blackball the Great`,
     type: 'boss',
-    weight: 0,
+    weight: 5,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,
