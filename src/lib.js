@@ -24,6 +24,7 @@ import {
   radiansToDeg,
   rectCircleCollision,
   degreesToRad,
+  randomAreaCoords,
 } from './util.js';
 
 function strokeCircle(circle) {
@@ -898,15 +899,25 @@ export class Enemy extends Sprite {
     if (!config?.fixed) newEnemy.followPlayer();
   }
 
+  static spawnGroup() {
+    const numTospawn = 5;
+    const spread = 200;
+    const centerCoords = randomScreenEdgeCoords(spread);
+    for (let i = 0; i < numTospawn; i++) {
+      const coords = randomAreaCoords(centerCoords, spread);
+      Enemy.spawn({ r: 20 }, coords);
+    }
+  }
+
   static setImage(enemy) {
     enemy.cur_frame = 0;
     enemy.cur_image = enemy.cur_image == 0 ? 1 : 0;
     const player = game.entities.player.value;
     let imgDir = enemy.x > player.x ? enemy.images.left : enemy.images.right;
-    if (enemy.y > player.y - player.r)
+    if (player.y + player.r < enemy.y - enemy.r)
       imgDir =
         enemy.x > player.x ? enemy.images.up.left : enemy.images.up.right;
-    if (enemy.y < player.y + player.r)
+    if (player.y - player.r > enemy.y + enemy.r)
       imgDir =
         enemy.x > player.x ? enemy.images.down.left : enemy.images.down.right;
     enemy.image = document.getElementById(imgDir[enemy.cur_image]);

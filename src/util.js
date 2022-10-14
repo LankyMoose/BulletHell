@@ -55,6 +55,12 @@ export function randomCoords() {
     y: Math.random() * canvas.height,
   };
 }
+export function randomAreaCoords(vec2, size) {
+  return {
+    x: vec2.x + Math.random() * size - size,
+    y: vec2.y + Math.random() * size - size,
+  };
+}
 export function rectCircleCollision(rect, circle) {
   var cx, cy;
 
