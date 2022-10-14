@@ -693,7 +693,6 @@ async function renderLeaderboard() {
       return item;
     })
   );
-  console.log(scores);
   if (scores.length == 0)
     list.appendChild(
       Object.assign(document.createElement('li'), {

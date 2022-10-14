@@ -1027,16 +1027,15 @@ export class Player extends Sprite {
     this.life += this.level;
     if (this.life > this.maxLife) this.life = this.maxLife;
 
-    if (this.level % 7 == 0)
-      game.settings.enemies.spawnTime.setMax(
-        game.settings.enemies.spawnTime.value - 80
-      );
+    if (this.level % 7 == 0) {
+      game.settings.enemies.spawnTime.setMax(game.enemySpawnTime - 120);
+    }
 
-    if (this.level % 5 == 0) {
+    if (this.level % 3 == 0) {
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
       game.entities.events.add({ ...evt });
-    } else if (this.level > 5 && this.level % 2 == 0) {
+    } else if (this.level > 3 && this.level % 2 == 0) {
       const evt = game.entities.events.random('');
       if (!evt) throw new Error('failed to get random event ');
       game.entities.events.add({ ...evt });

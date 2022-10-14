@@ -23,19 +23,18 @@ class GameState {
       items: () => [],
       turrets: () => [],
       damageTexts: () => [],
-      player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
-      // player: () =>
-      //   Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
-      //     level: 4,
-      //     xp: 1000,
-      //     invulnerable: true,
-      //   }),
+      //player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
+      player: () =>
+        Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
+          level: 6,
+          xp: 1000,
+          //invulnerable: true,
+        }),
     },
     bonuses: () => [...BONUS_TYPES],
     running: () => false,
     nextFrameActionQueue: () => [],
   };
-  static enemySpawnTime = 1000;
   animId = {
     value: GameState.#defaults.animId(),
     set: (id) => (this.animId.value = id),
@@ -47,14 +46,14 @@ class GameState {
   settings = {
     enemies: {
       spawnTime: {
-        value: GameState.enemySpawnTime,
+        value: 1000,
         set: (num) => {
           this.settings.enemies.spawnTime.value = num;
         },
         reset: () =>
-          (this.settings.enemies.spawnTime.value = GameState.enemySpawnTime),
+          (this.settings.enemies.spawnTime.value = this.enemySpawnTime),
         setMax: (num) => {
-          GameState.enemySpawnTime = num;
+          this.enemySpawnTime = num;
         },
       },
       allowSpawn: {
@@ -265,7 +264,10 @@ class GameState {
     },
   };
 
-  constructor() {}
+  constructor() {
+    this.enemySpawnTime = 1000;
+    this.settings.enemies.spawnTime.value = 1000;
+  }
 }
 
 export let game = new GameState();
