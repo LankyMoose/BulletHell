@@ -12,6 +12,7 @@ import {
   canvas,
   EVENT_TYPES,
   DEBUG_ENABLED,
+  XP_REQ_MULTI_PER_LEVEL,
 } from './constants.js';
 
 import {
@@ -716,11 +717,16 @@ export class Player extends Sprite {
   }
   onLevelUp() {
     this.xp = 1;
+    this.level++;
+    this.next_level *= XP_REQ_MULTI_PER_LEVEL;
+    this.life += this.level;
+    if (this.life > this.maxLife) this.life = this.maxLife;
+
     if (this.level % 5 == 0) {
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
       game.entities.events.add({ ...evt });
-    } else {
+    } else if (this.level > 5 && this.level % 2 == 0) {
       const evt = game.entities.events.random();
       if (!evt) throw new Error('failed to get random event ');
       game.entities.events.add({ ...evt });
@@ -844,7 +850,7 @@ export class Enemy extends Sprite {
 
   followPlayer() {
     const player = game.entities.player.value;
-    let speedMod = this.speed + player.level / 5;
+    let speedMod = this.speed + player.level * 0.1;
     if (speedMod <= 1) speedMod = 1;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
     this.vel = {
@@ -899,8 +905,7 @@ export class Enemy extends Sprite {
     if (!config?.fixed) newEnemy.followPlayer();
   }
 
-  static spawnGroup() {
-    const numTospawn = 5;
+  static spawnGroup(numTospawn) {
     const spread = 200;
     const centerCoords = randomScreenEdgeCoords(spread);
     for (let i = 0; i < numTospawn; i++) {

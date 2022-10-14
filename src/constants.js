@@ -465,8 +465,9 @@ export const EVENT_TYPES = [
     activations: 1,
     functions: [
       () => {
-        for (let i = 0; i < game.entities.player.value.level * 1.2; i++) {
-          Enemy.spawn({ r: 18 });
+        const player = game.entities.player.value;
+        for (let i = 0; i < player.level / 3; i++) {
+          Enemy.spawnGroup(3 + Math.floor(player.level / 3));
         }
       },
     ],

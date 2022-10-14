@@ -20,7 +20,7 @@ window.requestAnimationFrame = (function () {
 })();
 import { game, resetGame } from './state';
 
-import { Player, Enemy, Item, BonusSet, Boss } from './lib.js';
+import { Enemy, Item, BonusSet } from './lib.js';
 
 import {
   menu,
@@ -38,7 +38,6 @@ import {
   set_y,
   lvlEl,
   XP_PER_KILL,
-  XP_REQ_MULTI_PER_LEVEL,
   levelUpScreen,
   levelUpOptionsEl,
   pauseScreen,
@@ -293,8 +292,6 @@ function queuePlayerLevelUp() {
   const player = game.entities.player.value;
   if (player.level >= MAX_LEVEL) return;
   game.nextFrameActionQueue.add(() => {
-    player.level++;
-    player.next_level *= XP_REQ_MULTI_PER_LEVEL;
     player.onLevelUp();
     handleProgression();
     showLevelUpScreen();
