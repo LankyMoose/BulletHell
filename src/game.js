@@ -574,18 +574,22 @@ function handleKeyDown(e) {
     case 'escape':
       return togglePause();
     case 'a':
+    case 'arrowleft':
       game.entities.player.value.inputs.left = true;
       triggerResume = true;
       break;
     case 'd':
+    case 'arrowright':
       game.entities.player.value.inputs.right = true;
       triggerResume = true;
       break;
     case 'w':
+    case 'arrowup':
       game.entities.player.value.inputs.up = true;
       triggerResume = true;
       break;
     case 's':
+    case 'arrowdown':
       game.entities.player.value.inputs.down = true;
       triggerResume = true;
       break;
@@ -603,15 +607,19 @@ function handleKeyUp(e) {
       game.entities.player.value.inputs.space = false;
       break;
     case 'a':
+    case 'arrowleft':
       game.entities.player.value.inputs.left = false;
       break;
     case 'd':
+    case 'arrowright':
       game.entities.player.value.inputs.right = false;
       break;
     case 'w':
+    case 'arrowup':
       game.entities.player.value.inputs.up = false;
       break;
     case 's':
+    case 'arrowdown':
       game.entities.player.value.inputs.down = false;
       break;
     default:
