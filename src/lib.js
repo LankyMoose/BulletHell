@@ -1031,11 +1031,11 @@ export class Player extends Sprite {
       game.settings.enemies.spawnTime.setMax(game.enemySpawnTime - 120);
     }
 
-    if (this.level % 3 == 0) {
+    if (this.level % 4 == 0) {
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
       game.entities.events.add({ ...evt });
-    } else if (this.level > 3 && this.level % 2 == 0) {
+    } else if (this.level > 4 && this.level % 2 == 0) {
       const evt = game.entities.events.random('');
       if (!evt) throw new Error('failed to get random event ');
       game.entities.events.add({ ...evt });
