@@ -23,13 +23,13 @@ class GameState {
       items: () => [],
       turrets: () => [],
       damageTexts: () => [],
-      //player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
-      player: () =>
-        Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
-          level: 6,
-          xp: 1000,
-          //invulnerable: true,
-        }),
+      player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
+      // player: () =>
+      //   Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
+      //     level: 6,
+      //     xp: 1000,
+      //     //invulnerable: true,
+      //   }),
     },
     bonuses: () => [...BONUS_TYPES],
     running: () => false,
