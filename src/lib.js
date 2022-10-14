@@ -13,18 +13,18 @@ import {
   EVENT_TYPES,
   DEBUG_ENABLED,
   XP_REQ_MULTI_PER_LEVEL,
+  BOSS_ITEMS,
 } from './constants.js';
 
 import {
   rotate,
   randomScreenEdgeCoords,
   randomCoords,
-  getRandomByWeight,
+  getRandomIndexByWeight,
   getWeightMap,
   getRandomWeightMapIndex,
   radiansToDeg,
   rectCircleCollision,
-  degreesToRad,
   randomAreaCoords,
 } from './util.js';
 
@@ -153,52 +153,10 @@ export class Sprite {
       this.y + this.r < canvas.height
     );
   }
-}
 
-export class Boss extends Sprite {
-  constructor() {
-    super(...arguments);
-    this.speed = 1;
-    this.bulletCooldown = 1000;
-    this.bulletTick = 900;
-    this.bulletSpeed = 6;
-    this.damage = 0;
-    this.damageReduction = 0.5;
-    this.maxLife = (game.entities.player.value.level / 5) * 420;
-    this.life = this.maxLife;
-  }
-
-  static spawn(coords) {
-    if (!coords) coords = randomScreenEdgeCoords(150);
-    game.entities.enemies.add(
-      new Boss(coords.x, coords.y, 150, 'black', {
-        x: 0,
-        y: 0,
-      })
-    );
-    // game.entities.abilityEffects.add(
-    //   new LightningBeam(
-    //     { x: 100, y: 100 },
-    //     { x: canvas.width - 100, y: canvas.height - 100 }
-    //   )
-    // );
-  }
-
-  update() {
-    super.update();
-    this.updateBullets();
-    this.followPlayer();
-  }
-  updateBullets() {
-    this.bulletTick += window.animFrameDuration;
-    if (this.bulletTick >= this.bulletCooldown) {
-      this.shoot();
-      this.bulletTick = 0;
-    }
-  }
   followPlayer() {
     const player = game.entities.player.value;
-    let speedMod = this.speed + player.level / 8;
+    let speedMod = this.speed + player.level * 0.1;
     if (speedMod <= 1) speedMod = 1;
     const angle = Math.atan2(player.y - this.y, player.x - this.x);
     this.vel = {
@@ -206,27 +164,27 @@ export class Boss extends Sprite {
       y: Math.sin(angle) * speedMod,
     };
   }
-  shoot() {
-    const player = game.entities.player.value;
-    const angle = Math.atan2(player.y - this.y, player.x - this.x);
-    const vel = {
-      x: Math.cos(angle) * this.bulletSpeed,
-      y: Math.sin(angle) * this.bulletSpeed,
-    };
-    game.entities.enemyBullets.add(
-      new Bullet(this.x, this.y, 50, 'crimson', vel, false, 0, 20, 10, 1.5)
-    );
+}
+
+export class Boss extends Sprite {
+  constructor(x, y, r, color, vel, renderGlow, glowSize) {
+    super(x, y, r, color, vel, renderGlow, glowSize);
+    this.speed = 1;
+    this.damage = 0; // no collision damage
+    this.damageReduction = 0.5;
+    this.maxLife = (game.entities.player.value.level / 5) * 420;
+    this.life = this.maxLife;
+    this.onDeath = null;
   }
+  update() {
+    super.update();
+    this.followPlayer();
+  }
+
   takeDamage(damage) {
     this.life -= damage;
     if (this.life > 0) return [true, false];
-    const evt = game.entities.events.value.find(
-      (e) => e.name == `Blackball the great`
-    );
-    if (evt) {
-      evt.cooldown = 0;
-      evt.remainingMs = 0;
-    }
+    if (this.onDeath) this.onDeath();
     return [true, true];
   }
 
@@ -243,6 +201,262 @@ export class Boss extends Sprite {
     c.fillStyle = '#fc1d26';
     c.fillRect(leftOffset, topOffset, maxWidth * curPercent, height);
     c.restore();
+  }
+}
+export class ShooterBoss extends Boss {
+  constructor(x, y, r, color, vel, renderGlow, glowSize) {
+    super(x, y, r, color, vel, renderGlow, glowSize);
+    this.bulletCooldown = 1000;
+    this.bulletTick = 900;
+    this.bulletSpeed = 5;
+  }
+  static spawn(coords) {
+    if (!coords) coords = randomScreenEdgeCoords(150);
+    const newBoss = new ShooterBoss(coords.x, coords.y, 150, 'black', {
+      x: 0,
+      y: 0,
+    });
+    game.entities.enemies.add(newBoss);
+    return newBoss;
+  }
+
+  update() {
+    super.update();
+    this.updateBullets();
+  }
+
+  updateBullets() {
+    this.bulletTick += window.animFrameDuration;
+    if (this.bulletTick >= this.bulletCooldown) {
+      this.shoot();
+      this.bulletTick = 0;
+    }
+  }
+
+  shoot() {
+    const player = game.entities.player.value;
+    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+    const vel = {
+      x: Math.cos(angle) * this.bulletSpeed,
+      y: Math.sin(angle) * this.bulletSpeed,
+    };
+    game.entities.enemyBullets.add(
+      new Bullet(this.x, this.y, 50, 'crimson', vel, false, 0, 20, 10, 1.5)
+    );
+  }
+}
+
+export class AbilityBoss extends Boss {
+  constructor(x, y, r, color, vel, renderGlow, glowSize) {
+    super(x, y, r, color, vel, renderGlow, glowSize);
+    const abilities = BOSS_ITEMS.filter((it) => it.isAbility);
+    const randAbility = getRandomIndexByWeight(abilities);
+    this.items = [{ ...abilities[randAbility] }];
+    this.bulletCooldown = 500;
+    this.bulletTick = 0;
+    this.bulletSpeed = 4;
+    this.damage = 6;
+    this.critChance = 10;
+    this.critDamageMulti = 1.5;
+    this.bulletColor = '#710f0f';
+    this.bulletSize = BULLET_SIZE * 3;
+    const bulletHellPhase = () => {
+      this.invulnerable = true;
+      this.fixed = true;
+      const newItem = ITEM_TYPES.find((it) => it.name == 'Bullet Hell');
+      this.items.push({ ...newItem, permanent: true });
+      setTimeout(() => {
+        this.invulnerable = false;
+        this.fixed = false;
+        this.items = this.items.filter((i) => i.name != 'Bullet Hell');
+      }, 5000);
+    };
+    this.phases = [
+      {
+        lifePercent: 0.75,
+        functions: [bulletHellPhase],
+      },
+      {
+        lifePercent: 0.5,
+        functions: [bulletHellPhase],
+      },
+      {
+        lifePercent: 0.25,
+        functions: [bulletHellPhase],
+      },
+    ];
+  }
+  static spawn(coords) {
+    if (!coords) coords = randomScreenEdgeCoords(100);
+    const newBoss = new AbilityBoss(coords.x, coords.y, 100, '#3c1414', {
+      x: 0,
+      y: 0,
+    });
+    game.entities.enemies.add(newBoss);
+    return newBoss;
+  }
+  update() {
+    super.update();
+    this.updateAbilities();
+    this.updateBullets();
+  }
+  updateBullets() {
+    this.bulletTick += window.animFrameDuration;
+    if (this.bulletTick >= this.bulletCooldown) {
+      const player = game.entities.player.value;
+      this.shootMultipleBullets(player.x, player.y);
+      this.bulletTick = 0;
+    }
+  }
+  shootMultipleBullets(clientX, clientY) {
+    let bulletCount = 0;
+    for (let i = 0; i < this.items.length; i++) {
+      const item = this.items[i];
+      if (
+        !item.modifiers ||
+        !item.modifiers.some((m) => m.key == 'bulletsFired')
+      )
+        continue;
+
+      item.modifiers.forEach((b) => {
+        bulletCount += b.amount;
+      });
+      if (!item.permanent) {
+        item.duration--;
+        if (item.duration <= 0) {
+          this.items.splice(i, 1);
+        }
+      }
+    }
+    if (bulletCount == 0) return;
+
+    let bulletSpread = 15;
+    if (360 / bulletCount < 10) {
+      bulletSpread = 360 / bulletCount;
+    }
+    // how many proj per side?
+    let maxOffset =
+      bulletCount % 2 == 0 ? bulletCount / 2 : (bulletCount - 1) / 2;
+
+    for (let i = 1; i < maxOffset + 1; i++) {
+      const target = rotate(
+        this.x,
+        this.y,
+        clientX,
+        clientY,
+        (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread,
+        true
+      );
+      const angle = Math.atan2(target.y - this.y, target.x - this.x);
+
+      const vel = {
+        x: Math.cos(angle) * this.bulletSpeed,
+        y: Math.sin(angle) * this.bulletSpeed,
+      };
+      game.entities.enemyBullets.add(
+        new Bullet(
+          this.x,
+          this.y,
+          this.bulletSize,
+          this.bulletColor,
+          vel,
+          false,
+          0,
+          this.damage,
+          this.critChance,
+          this.critDamageMulti
+        )
+      );
+    }
+
+    if (bulletCount % 2 == 1) {
+      const angle = Math.atan2(clientY - this.y, clientX - this.x);
+      const vel = {
+        x: Math.cos(angle) * this.bulletSpeed,
+        y: Math.sin(angle) * this.bulletSpeed,
+      };
+      game.entities.enemyBullets.add(
+        new Bullet(
+          this.x,
+          this.y,
+          this.bulletSize,
+          this.bulletColor,
+          vel,
+          false,
+          0,
+          this.damage,
+          this.critChance,
+          this.critDamageMulti
+        )
+      );
+    }
+
+    for (let i = 1; i < maxOffset + 1; i++) {
+      const target = rotate(
+        this.x,
+        this.y,
+        clientX,
+        clientY,
+        (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread
+      );
+      const angle = Math.atan2(target.y - this.y, target.x - this.x);
+
+      const vel = {
+        x: Math.cos(angle) * this.bulletSpeed,
+        y: Math.sin(angle) * this.bulletSpeed,
+      };
+      game.entities.enemyBullets.add(
+        new Bullet(
+          this.x,
+          this.y,
+          this.bulletSize,
+          this.bulletColor,
+          vel,
+          false,
+          0,
+          this.damage,
+          this.critChance,
+          this.critDamageMulti
+        )
+      );
+    }
+  }
+  updateAbilities() {
+    const abilities = this.items.filter((i) => i.isAbility);
+    for (let ability of abilities) {
+      ability.remainingMs -= window.animFrameDuration;
+      if (ability.remainingMs <= 0) {
+        ability.trigger(
+          this,
+          ability,
+          game.entities.player.value.x,
+          game.entities.player.value.y
+        );
+        ability.remainingMs = ability.cooldown;
+      }
+    }
+  }
+  takeDamage(damage) {
+    const res = super.takeDamage(damage);
+    if (this.life > 0) {
+      const percent = this.life / this.maxLife;
+      const phasesToRemove = [];
+      for (let i = 0; i < this.phases.length; i++) {
+        const phase = this.phases[i];
+        if (percent <= phase.lifePercent) {
+          phasesToRemove.push(i);
+          for (const fn of phase.functions) {
+            fn();
+          }
+        }
+      }
+      if (phasesToRemove.length) {
+        for (let i = 0; i < phasesToRemove.length; i++) {
+          this.phases.splice(phasesToRemove[i], 1);
+        }
+      }
+    }
+    return res;
   }
 }
 
@@ -727,7 +941,7 @@ export class Player extends Sprite {
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
       game.entities.events.add({ ...evt });
     } else if (this.level > 5 && this.level % 2 == 0) {
-      const evt = game.entities.events.random();
+      const evt = game.entities.events.random('');
       if (!evt) throw new Error('failed to get random event ');
       game.entities.events.add({ ...evt });
     }
@@ -755,6 +969,11 @@ export class Player extends Sprite {
         }
       });
     }
+  }
+
+  takeDamage(damage) {
+    this.life -= damage;
+    return this.life > 0 ? [true, false] : [true, true];
   }
 }
 
@@ -848,21 +1067,6 @@ export class Enemy extends Sprite {
     this.damageReduction = 0.3;
   }
 
-  followPlayer() {
-    const player = game.entities.player.value;
-    let speedMod = this.speed + player.level * 0.1;
-    if (speedMod <= 1) speedMod = 1;
-    const angle = Math.atan2(player.y - this.y, player.x - this.x);
-    this.vel = {
-      x: Math.cos(angle) * speedMod,
-      y: Math.sin(angle) * speedMod,
-    };
-
-    // gsap.to(this.vel, {
-    //   x: vel.x,
-    //   y: vel.y,
-    // });
-  }
   update() {
     super.update();
     if (!this.fixed) {
@@ -966,7 +1170,7 @@ export class Item extends Sprite {
 
     const spawnableItems = ITEM_TYPES.filter((it) => it.weight);
 
-    const newItemIndex = getRandomByWeight(spawnableItems);
+    const newItemIndex = getRandomIndexByWeight(spawnableItems);
 
     newItem.itemType = spawnableItems[newItemIndex];
 
@@ -1000,7 +1204,7 @@ export class BonusSet {
   generate() {
     while (this.items.length < 3) {
       const bonuses = game.bonuses.value;
-      const newItemIndex = getRandomByWeight(bonuses);
+      const newItemIndex = getRandomIndexByWeight(bonuses);
       const bonusDef = bonuses[newItemIndex];
 
       if (!this.items.some((x) => x.name == bonusDef.name)) {
@@ -1101,6 +1305,10 @@ export class Ability extends Sprite {
           new DamageText(e.x, e.y, mitigatedDamage, isCrit)
         );
         if (e.invulnerable) return [true, false];
+        if (!e.takeDamage) {
+          console.log('attempting to call takeDamage() on invalid entity', e);
+          throw new Error('attempting to call takeDamage() on invalid entity');
+        }
         return e.takeDamage(mitigatedDamage);
       }
     } else {
@@ -1112,7 +1320,7 @@ export class Ability extends Sprite {
 }
 
 export class Kamehameha extends Ability {
-  constructor(x, y, itemInstance, clientX, clientY) {
+  constructor(x, y, itemInstance, clientX, clientY, owner) {
     super(
       x,
       y,
@@ -1132,9 +1340,12 @@ export class Kamehameha extends Ability {
     this.angle =
       Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
+    this.owner = owner;
+    this.cachedOwner = owner;
   }
 
   update() {
+    if (this.owner) this.cachedOwner = this.owner;
     this.h += 30;
     if (this.remainingFrames > 30) {
       this.w++;
@@ -1152,7 +1363,7 @@ export class Kamehameha extends Ability {
     c.beginPath();
     c.shadowColor = this.color;
     c.shadowBlur = 20;
-    c.rect(0 - this.w / 2, 0 + game.entities.player.value.r, this.w, this.h);
+    c.rect(0 - this.w / 2, 0 + this.cachedOwner.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
     c.restore();
@@ -1191,7 +1402,7 @@ export class SolarFlare extends Ability {
 }
 
 export class Slash extends Ability {
-  constructor(x, y, itemInstance, vel, clientX, clientY) {
+  constructor(x, y, itemInstance, vel, clientX, clientY, owner) {
     super(
       x,
       y,
@@ -1212,12 +1423,14 @@ export class Slash extends Ability {
     this.angle =
       Math.PI + Math.atan2(this.y - this.targetY, this.x - this.targetX);
     this.shapeType = 'square';
+    this.owner = owner;
+    this.cachedOwner = owner;
   }
 
   update() {
-    const player = game.entities.player.value;
-    this.x = player.x;
-    this.y = player.y;
+    if (this.owner) this.cachedOwner = this.owner;
+    this.x = this.cachedOwner.x;
+    this.y = this.cachedOwner.y;
     this.angle -= Math.PI / this.totalFrames;
     this.remainingFrames -= 1;
   }
@@ -1230,7 +1443,7 @@ export class Slash extends Ability {
     c.shadowColor = this.color;
     c.shadowBlur = 10;
     c.beginPath();
-    c.rect(0 - this.w / 2, 0 + game.entities.player.value.r, this.w, this.h);
+    c.rect(0 - this.w / 2, 0 + this.cachedOwner.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
     c.setTransform(1, 0, 0, 1, 0, 0);
@@ -1240,7 +1453,7 @@ export class Slash extends Ability {
 }
 
 export class Vortex extends Ability {
-  constructor(x, y, itemInstance) {
+  constructor(x, y, itemInstance, owner) {
     super(
       x,
       y,
@@ -1256,16 +1469,18 @@ export class Vortex extends Ability {
     this.shapeType = 'circle';
     this.angle = 0;
     this.destroyOnCollision = true;
-    this.offset = game.entities.player.value.r;
+    this.owner = owner;
+    this.cachedOwner = owner;
+    this.offset = owner.r;
   }
   update() {
+    if (this.owner) this.cachedOwner = this.owner;
     super.update();
-    const player = game.entities.player.value;
     const { x, y } = rotate(
-      player.x,
-      player.y,
-      player.x + this.offset,
-      player.y + this.offset,
+      this.cachedOwner.x,
+      this.cachedOwner.y,
+      this.cachedOwner.x + this.offset,
+      this.cachedOwner.y + this.offset,
       this.angle
     );
     this.x = x;

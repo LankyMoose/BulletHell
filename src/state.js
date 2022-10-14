@@ -1,7 +1,7 @@
 'use strict';
 import { Player } from './lib';
 import { x, y, BONUS_TYPES, EVENT_TYPES } from './constants';
-import { getRandomByWeight } from './util';
+import { getRandomIndexByWeight } from './util';
 
 class GameState {
   static #defaults = {
@@ -14,6 +14,7 @@ class GameState {
     allowAbilities: () => true,
     entities: {
       abilityEffects: () => [],
+      enemyAbilityEffects: () => [],
       bullets: () => [],
       enemyBullets: () => [],
       blackHoles: () => [],
@@ -23,10 +24,12 @@ class GameState {
       items: () => [],
       turrets: () => [],
       damageTexts: () => [],
-      player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
-      // Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
-      //   level: 4,
-      // }),
+      //player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
+      player: () =>
+        Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
+          level: 4,
+          xp: 1000,
+        }),
     },
     bonuses: () => [...BONUS_TYPES],
     running: () => false,
@@ -87,7 +90,7 @@ class GameState {
     },
     abilityEffects: {
       value: GameState.#defaults.entities.abilityEffects(),
-      add: (bh) => this.entities.abilityEffects.value.push(bh),
+      add: (ae) => this.entities.abilityEffects.value.push(ae),
       remove: (indxArray) => {
         this.entities.abilityEffects.value =
           this.entities.abilityEffects.value.filter(
@@ -97,6 +100,19 @@ class GameState {
       reset: () =>
         (this.entities.abilityEffects.value =
           GameState.#defaults.entities.abilityEffects()),
+    },
+    enemyAbilityEffects: {
+      value: GameState.#defaults.entities.enemyAbilityEffects(),
+      add: (eae) => this.entities.enemyAbilityEffects.value.push(eae),
+      remove: (indxArray) => {
+        this.entities.enemyAbilityEffects.value =
+          this.entities.enemyAbilityEffects.value.filter(
+            (_, i) => indxArray.indexOf(i) == -1
+          );
+      },
+      reset: () =>
+        (this.entities.enemyAbilityEffects.value =
+          GameState.#defaults.entities.enemyAbilityEffects()),
     },
     blackHoles: {
       value: GameState.#defaults.entities.blackHoles(),
@@ -168,9 +184,11 @@ class GameState {
       },
       reset: () =>
         (this.entities.events.value = GameState.#defaults.entities.events()),
-      random: () => {
-        const filteredEvents = EVENT_TYPES.filter((e) => e.weight > 0);
-        const evtIndex = getRandomByWeight(filteredEvents);
+      random: (type) => {
+        const filteredEvents = EVENT_TYPES.filter(
+          (e) => e.type == type && e.weight > 0
+        );
+        const evtIndex = getRandomIndexByWeight(filteredEvents);
         return filteredEvents[evtIndex];
       },
     },

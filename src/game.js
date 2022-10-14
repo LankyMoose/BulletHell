@@ -139,16 +139,27 @@ function update() {
     } else {
       const dist = Math.hypot(player.x - b.x, player.y - b.y);
       if (!player.invulnerable && dist - b.r - player.r < 0.01) {
-        player.life -= Math.floor(b.damage - b.damage * player.damageReduction);
-        enemyBulletsToRemove.push(i);
-      }
-      if (player.life <= 0) {
-        return endGame();
+        const [hit, kill] = b.handleEnemyCollision(player);
+        if (hit) enemyBulletsToRemove.push(i);
+        if (kill) return endGame();
       }
     }
   }
   if (enemyBulletsToRemove.length > 0)
     game.entities.enemyBullets.remove(enemyBulletsToRemove);
+
+  const enemyAbilityEffectsToRemove = [];
+  const enemyAbilityEffects = game.entities.enemyAbilityEffects.value;
+  for (let i = 0; i < enemyAbilityEffects.length; i++) {
+    const eae = enemyAbilityEffects[i];
+    eae.update();
+    const [hit, kill] = eae.handleEnemyCollision(player);
+    if (hit && eae.destroyOnCollision) enemyAbilityEffectsToRemove.push(i);
+    if (kill) return endGame();
+    if (eae.remainingFrames <= 0) enemyAbilityEffectsToRemove.push(i);
+  }
+  if (enemyAbilityEffectsToRemove.length > 0)
+    game.entities.enemyAbilityEffects.remove(enemyAbilityEffectsToRemove);
 
   // investigate pooling?
   const enemiesToRemove = [];
@@ -327,6 +338,9 @@ function render(lagOffset) {
   }
   for (const ae of game.entities.abilityEffects.value) {
     ae.draw(lagOffset);
+  }
+  for (const eae of game.entities.enemyAbilityEffects.value) {
+    eae.draw(lagOffset);
   }
   for (const evt of game.entities.events.value) {
     if (evt.vfx)

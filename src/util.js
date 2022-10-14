@@ -100,7 +100,7 @@ export function degreesToRad(degrees) {
   return degrees * (pi / 180);
 }
 
-export function getRandomByWeight(arr) {
+export function getRandomIndexByWeight(arr) {
   const wm = getWeightMap(arr);
   return getRandomWeightMapIndex(wm);
 }

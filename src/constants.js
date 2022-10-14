@@ -1,9 +1,10 @@
 'use strict';
 import {
+  AbilityBoss,
   BlackHole,
-  Boss,
   Enemy,
   Kamehameha,
+  ShooterBoss,
   Slash,
   SolarFlare,
   Turret,
@@ -363,7 +364,7 @@ export const ITEM_TYPES = [
     damage: 6,
     trigger: (player, self, cx, cy) => {
       game.entities.abilityEffects.add(
-        new Kamehameha(player.x, player.y, self, cx, cy)
+        new Kamehameha(player.x, player.y, self, cx, cy, player)
       );
     },
     onAdded: (bonus) => {
@@ -407,7 +408,7 @@ export const ITEM_TYPES = [
     damage: 10,
     trigger: (player, self, cx, cy) => {
       game.entities.abilityEffects.add(
-        new Slash(player.x, player.y, self, { x: 0, y: 0 }, cx, cy)
+        new Slash(player.x, player.y, self, { x: 0, y: 0 }, cx, cy, player)
       );
     },
     onAdded: (bonus) => {
@@ -433,7 +434,9 @@ export const ITEM_TYPES = [
         game.entities.abilityEffects.value.filter((ae) => ae.name == 'Vortex')
           .length < self.maxInstances
       )
-        game.entities.abilityEffects.add(new Vortex(player.x, player.y, self));
+        game.entities.abilityEffects.add(
+          new Vortex(player.x, player.y, self, player)
+        );
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -443,6 +446,25 @@ export const ITEM_TYPES = [
         game.bonuses.add(upgrade);
       }
     },
+  },
+];
+
+export const BOSS_ITEMS = [
+  {
+    name: 'Laser',
+    getColor: () => 'red',
+    isAbility: true,
+    cooldown: 4e3,
+    //cooldown: 1e3,
+    remainingMs: 2e3,
+    size: 22,
+    damage: 2,
+    trigger: (boss, self, cx, cy) => {
+      game.entities.enemyAbilityEffects.add(
+        new Kamehameha(boss.x, boss.y, self, cx, cy, boss)
+      );
+    },
+    onAdded: (bonus) => {},
   },
 ];
 
@@ -459,6 +481,7 @@ const renderEventName = (name) => {
 export const EVENT_TYPES = [
   {
     name: 'Horde',
+    type: '',
     weight: 1,
     cooldown: 2e3,
     remainingMs: 0,
@@ -488,6 +511,7 @@ export const EVENT_TYPES = [
   },
   {
     name: 'Prepare yourself!',
+    type: 'transition',
     weight: 0,
     cooldown: 2e3,
     remainingMs: 0,
@@ -511,13 +535,12 @@ export const EVENT_TYPES = [
     ],
     vfx: [
       (self) => {
-        renderEventName('Prepare yourself!');
+        renderEventName(self.name);
       },
     ],
     onExit: [
       () => {
-        const evt = EVENT_TYPES.find((e) => e.name == `Blackball the great`);
-        if (!evt) throw new Error("failed to get event 'Blackball the great'");
+        const evt = game.entities.events.random('boss');
         game.entities.events.add({ ...evt });
         game.settings.player.allowShoot.set(true);
         game.settings.player.allowAbilities.set(true);
@@ -529,34 +552,67 @@ export const EVENT_TYPES = [
     ],
   },
   {
-    name: `Blackball the great`,
+    name: `Blackball the Great`,
+    type: 'boss',
     weight: 0,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,
     functions: [
-      () => {
+      (evt) => {
         for (let i = 0; i < 5 + game.entities.player.value.level / 2; i++) {
           Turret.spawn();
         }
-        Boss.spawn();
+        const newBoss = ShooterBoss.spawn();
+        newBoss.onDeath = () => {
+          evt.cooldown = 0;
+          evt.remainingMs = 0;
+        };
       },
     ],
     vfx: [
       (self) => {
-        renderEventName(`Blackball the great`);
+        renderEventName(self.name);
       },
     ],
     onExit: [
       () => {
         const evt = EVENT_TYPES.find((e) => e.name == 'Enemy felled!');
-        if (!evt) throw new Error("failed to get event 'Enemy felled'");
+        game.entities.events.add({ ...evt });
+      },
+    ],
+  },
+  {
+    name: `Meganoth the Wicked`,
+    type: 'boss',
+    weight: 5,
+    cooldown: Infinity,
+    remainingMs: 0,
+    activations: 1,
+    functions: [
+      (evt) => {
+        const newBoss = AbilityBoss.spawn();
+        newBoss.onDeath = () => {
+          evt.cooldown = 0;
+          evt.remainingMs = 0;
+        };
+      },
+    ],
+    vfx: [
+      (self) => {
+        renderEventName(self.name);
+      },
+    ],
+    onExit: [
+      () => {
+        const evt = EVENT_TYPES.find((e) => e.name == 'Enemy felled!');
         game.entities.events.add({ ...evt });
       },
     ],
   },
   {
     name: 'Enemy felled!',
+    type: 'transition',
     weight: 0,
     cooldown: 2e3,
     remainingMs: 0,
