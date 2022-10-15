@@ -83,10 +83,10 @@ export class MusicPlayer {
     return this.play();
   }
   setLowPass(freq) {
-    this.currentTrack.frequency(freq);
+    //this.currentTrack.frequency(freq);
   }
   resetLowPass() {
-    this.currentTrack.frequency(10e3);
+    //this.currentTrack.frequency(10e3);
   }
 }
 
