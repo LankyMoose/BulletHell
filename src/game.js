@@ -76,7 +76,7 @@ function main() {
   const elapsed = now - window.start;
   window.start = now;
   window.lag += elapsed;
-  c.fillStyle = 'rgba(30, 30, 30, 1)';
+  c.fillStyle = 'rgba(16, 16, 16, 1)';
   c.fillRect(0, 0, canvas.width, canvas.height);
 
   const nextFrameActions = game.nextFrameActionQueue.value;
@@ -108,7 +108,7 @@ let debugRenders = [];
 
 function update() {
   const player = game.entities.player.value;
-  if (DEBUG_ENABLED) player.xp += 50 * player.value.xpMulti;
+  if (DEBUG_ENABLED) player.xp += 50 * player.xpMulti;
 
   const blackHoles = game.entities.blackHoles.value;
   const blackHolesToRemove = [];
@@ -323,6 +323,7 @@ function render(lagOffset) {
   }
 
   game.entities.player.value.draw(lagOffset);
+  renderPlayerLight();
 
   for (const bullet of game.entities.enemyBullets.value) {
     bullet.draw(lagOffset);
@@ -369,6 +370,26 @@ function render(lagOffset) {
   debugRenders = [];
 }
 
+function renderPlayerLight() {
+  const player = game.entities.player.value;
+  c.save();
+  c.beginPath();
+  c.arc(player.x, player.y, 500, 0, 2 * Math.PI);
+  const gradient1 = c.createRadialGradient(
+    player.x,
+    player.y,
+    0,
+    player.x,
+    player.y,
+    500
+  );
+  gradient1.addColorStop(0, 'rgba(255,255,255,.1)');
+  gradient1.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = gradient1;
+  c.fill();
+  c.restore();
+}
+
 function handleProgression() {
   scoreEl.innerText = game.score.value;
   const player = game.entities.player.value;
@@ -398,15 +419,16 @@ function startGame() {
   canvas.focus();
   resetGame();
   game.running.set(true);
-  if (DEBUG_ENABLED)
-    Enemy.spawn(
-      {
-        fixed: true,
-        invulnerable: true,
-        r: 50,
-      },
-      { x: canvas.width / 2 + 100, y: canvas.height / 2 - 100 }
+  if (DEBUG_ENABLED) {
+    const newEnemy = new Enemy(
+      canvas.width / 2 + 100,
+      canvas.height / 2 - 100,
+      50
     );
+    newEnemy.fixed = true;
+    newEnemy.invulnerable = true;
+    game.entities.enemies.add(newEnemy);
+  }
   game.entities.player.value.color = playerColorEl.value;
   main();
   attachEventHandlers();

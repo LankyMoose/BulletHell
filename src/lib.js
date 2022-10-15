@@ -55,7 +55,9 @@ export class Sprite {
     this.fixed = false;
     this.renderGlow = renderGlow;
     this.glowSize = glowSize;
+    this.glowColor = null;
     this.invulnerable = false;
+    this.shadow_length = 2000;
   }
 
   preDraw(lagOffset) {
@@ -73,7 +75,7 @@ export class Sprite {
     c.save();
     c.globalAlpha = this.alpha;
     if (this.renderGlow) {
-      c.shadowColor = this.color;
+      c.shadowColor = this.glowColor ?? this.color;
       c.shadowBlur = this.glowSize;
     }
     c.beginPath();
@@ -163,6 +165,67 @@ export class Sprite {
       x: Math.cos(angle) * speedMod,
       y: Math.sin(angle) * speedMod,
     };
+  }
+
+  getDots() {
+    const full = (Math.PI * 2) / 4;
+
+    const p1 = {
+      x: this.x + this.r * Math.sin(this.r),
+      y: this.y + this.r * Math.cos(this.r),
+    };
+    const p2 = {
+      x: this.x + this.r * Math.sin(this.r + full),
+      y: this.y + this.r * Math.cos(this.r + full),
+    };
+    const p3 = {
+      x: this.x + this.r * Math.sin(this.r + full * 2),
+      y: this.y + this.r * Math.cos(this.r + full * 2),
+    };
+    const p4 = {
+      x: this.x + this.r * Math.sin(this.r + full * 3),
+      y: this.y + this.r * Math.cos(this.r + full * 3),
+    };
+
+    return {
+      p1: p1,
+      p2: p2,
+      p3: p3,
+      p4: p4,
+    };
+  }
+  drawShadow() {
+    const dots = this.getDots();
+    const angles = [];
+    const points = [];
+
+    const player = game.entities.player.value;
+
+    for (const dot in dots) {
+      const angle = Math.atan2(player.y - dots[dot].y, player.x - dots[dot].x);
+      const endX =
+        dots[dot].x + this.shadow_length * Math.sin(-angle - Math.PI / 2);
+      const endY =
+        dots[dot].y + this.shadow_length * Math.cos(-angle - Math.PI / 2);
+      angles.push(angle);
+      points.push({
+        endX: endX,
+        endY: endY,
+        startX: dots[dot].x,
+        startY: dots[dot].y,
+      });
+    }
+
+    for (let i = points.length - 1; i >= 0; i--) {
+      let n = i == 3 ? 0 : i + 1;
+      c.beginPath();
+      c.moveTo(points[i].startX, points[i].startY);
+      c.lineTo(points[n].startX, points[n].startY);
+      c.lineTo(points[n].endX, points[n].endY);
+      c.lineTo(points[i].endX, points[i].endY);
+      c.fillStyle = 'rgba(0,0,0,.06)';
+      c.fill();
+    }
   }
 }
 
@@ -1182,6 +1245,7 @@ export class Enemy extends Sprite {
     if (this.cur_frame > this.img_update_frames) Enemy.setImage(this);
   }
   draw(lagOffset) {
+    super.drawShadow();
     super.draw(lagOffset);
     if (DEBUG_ENABLED) strokeCircle(this);
   }
