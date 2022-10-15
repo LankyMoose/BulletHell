@@ -25,6 +25,12 @@ export const menuKillsEl = document.getElementById('menuKillsEl');
 export const xpBarEl = document.getElementById('xp');
 export const lvlEl = document.getElementById('level');
 
+export const gameVolumeEl = document.getElementById('game_volume');
+
+export const musicPrevEl = document.getElementById('music_prev');
+export const musicToggleEl = document.getElementById('music_toggle');
+export const musicNextEl = document.getElementById('music_next');
+
 export const levelUpScreen = document.getElementById('levelup');
 export const levelUpOptionsEl = document.getElementById('levelup_options');
 export const levelUpHeadingEl = document.getElementById('levelup_text');

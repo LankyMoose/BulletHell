@@ -21,6 +21,7 @@
   "homepage": "https://github.com/Robby6Strings/BulletHell#readme",
   "dependencies": {
     "firebase": "^9.10.0",
+    "howler": "^2.2.3",
     "nodemon": "^2.0.20"
   },
   "devDependencies": {

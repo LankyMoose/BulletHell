@@ -38,6 +38,10 @@ import {
   FONT,
   levelUpHeadingEl,
   setFPS,
+  gameVolumeEl,
+  musicNextEl,
+  musicPrevEl,
+  musicToggleEl,
 } from './constants.js';
 
 import {
@@ -50,7 +54,8 @@ import {
 //import {  } from './util.js';
 
 setFPS(60);
-
+import { musicPlayer } from './vfx.js';
+musicPlayer.play();
 userData.subscribe((res) => {
   renderUser(res);
 });
@@ -698,6 +703,13 @@ addEventListener('resize', () => {
   player.value.x = x;
   player.value.y = y;
 });
+
+gameVolumeEl.addEventListener('input', (e) => {
+  musicPlayer.setVolume(e.target.value);
+});
+musicNextEl.addEventListener('click', () => musicPlayer.next());
+musicToggleEl.addEventListener('click', () => musicPlayer.togglePlay());
+musicPrevEl.addEventListener('click', () => musicPlayer.next());
 
 async function renderLeaderboard() {
   leaderboard.innerHTML = 'Loading...';

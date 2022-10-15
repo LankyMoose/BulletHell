@@ -351,10 +351,36 @@
       #ctrlsDisplay {
         position: absolute;
         background-color: #222;
-        top: 2rem;
+        top: 6rem;
         right: 2rem;
         padding: 1rem;
         font-size: 2rem;
+      }
+
+      #audio {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        z-index: 999;
+      }
+      #audio input[type='range'] {
+        width: 100px;
+        accent-color: rgb(66, 116, 210);
+      }
+      .slidecontainer {
+        display: flex;
+        gap: 1em;
+      }
+      #music_ctrls {
+        display: flex;
+        justify-content: flex-end;
+      }
+      #music_ctrls button {
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+        border: 0;
+        font-size: 1rem;
       }
     </style>
   </head>
@@ -477,6 +503,24 @@
         <p style="text-align: center; color: white; font-size: 2rem">
           (Press any key to continue)
         </p>
+      </div>
+    </div>
+    <div id="audio">
+      <div class="slidecontainer">
+        <label>Volume</label>
+        <input
+          type="range"
+          min="0.01"
+          max="1"
+          value="0.5"
+          step="0.01"
+          id="game_volume"
+        />
+      </div>
+      <div id="music_ctrls">
+        <button type="button" id="music_prev">&#x23EE;</button>
+        <button type="button" id="music_toggle">&#x23EF;</button>
+        <button type="button" id="music_next">&#x23ED;</button>
       </div>
     </div>
   </body>
