@@ -559,15 +559,17 @@ export class Turret extends Sprite {
   update() {
     super.update();
     this.updateBullets();
+    if (this.r < this.initialR) this.r++;
   }
   static spawn(coords) {
     if (!coords) coords = randomCoords();
     const rad = 42;
-    const newItem = new Turret(coords.x, coords.y, rad, 'darkviolet', {
+    const newTurret = new Turret(coords.x, coords.y, rad, 'darkviolet', {
       x: 0,
       y: 0,
     });
-    game.entities.turrets.add(newItem);
+    newTurret.r = 0;
+    game.entities.turrets.add(newTurret);
   }
 
   updateBullets() {
