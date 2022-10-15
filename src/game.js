@@ -383,7 +383,8 @@ function renderPlayerLight() {
     player.y,
     500
   );
-  gradient1.addColorStop(0, 'rgba(255,255,255,.1)');
+  gradient1.addColorStop(0, 'rgba(255,255,255,.07)');
+  gradient1.addColorStop(0.7, 'rgba(255,255,255,.02)');
   gradient1.addColorStop(1, 'rgba(255,255,255,0)');
   c.fillStyle = gradient1;
   c.fill();
