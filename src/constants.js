@@ -560,9 +560,6 @@ export const EVENT_TYPES = [
     activations: 1,
     functions: [
       (evt) => {
-        for (let i = 0; i < 5 + game.entities.player.value.level / 3; i++) {
-          Turret.spawn();
-        }
         const newBoss = ShooterBoss.spawn();
         newBoss.onDeath = () => {
           evt.cooldown = 0;
@@ -585,7 +582,7 @@ export const EVENT_TYPES = [
   {
     name: `Meganoth the Wicked`,
     type: 'boss',
-    weight: 10,
+    weight: 0,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,

@@ -26,7 +26,7 @@ class GameState {
       player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
       // player: () =>
       //   Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
-      //     level: 6,
+      //     level: 7,
       //     xp: 1000,
       //     //invulnerable: true,
       //   }),
@@ -52,9 +52,6 @@ class GameState {
         },
         reset: () =>
           (this.settings.enemies.spawnTime.value = this.enemySpawnTime),
-        setMax: (num) => {
-          this.enemySpawnTime = num;
-        },
       },
       allowSpawn: {
         value: GameState.#defaults.allowEnemySpawn(),

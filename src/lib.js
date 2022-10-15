@@ -228,6 +228,7 @@ export class ShooterBoss extends Boss {
     this.bulletCooldown = 1000;
     this.bulletTick = 900;
     this.bulletSpeed = 5;
+
     this.phases = [
       {
         lifePercent: 0.88,
@@ -242,14 +243,7 @@ export class ShooterBoss extends Boss {
       },
       {
         lifePercent: 0.66,
-        functions: [
-          () => {
-            this.bulletCooldown = 333;
-            setTimeout(() => {
-              this.bulletCooldown = 1000;
-            }, 1000);
-          },
-        ],
+        functions: [() => this.spawnPhase(5)],
       },
       {
         lifePercent: 0.44,
@@ -264,14 +258,7 @@ export class ShooterBoss extends Boss {
       },
       {
         lifePercent: 0.22,
-        functions: [
-          () => {
-            this.bulletCooldown = 250;
-            setTimeout(() => {
-              this.bulletCooldown = 1000;
-            }, 1000);
-          },
-        ],
+        functions: [() => this.spawnPhase(10)],
       },
     ];
   }
@@ -308,6 +295,20 @@ export class ShooterBoss extends Boss {
     game.entities.enemyBullets.add(
       new Bullet(this.x, this.y, 50, 'crimson', vel, false, 0, 20, 10, 1.5)
     );
+  }
+  spawnPhase(numTurrets) {
+    game.entities.turrets.reset();
+    this.invulnerable = true;
+    this.fixed = true;
+    this.color = '#111';
+    for (let i = 0; i < numTurrets; i++) {
+      setTimeout(Turret.spawn, i * 500);
+    }
+    setTimeout(() => {
+      this.invulnerable = false;
+      this.fixed = false;
+      this.color = 'black';
+    }, numTurrets * 500);
   }
 }
 
@@ -1028,7 +1029,7 @@ export class Player extends Sprite {
     if (this.life > this.maxLife) this.life = this.maxLife;
 
     if (this.level % 7 == 0) {
-      game.settings.enemies.spawnTime.setMax(game.enemySpawnTime - 120);
+      game.enemySpawnTime -= 120;
     }
 
     if (this.level % 4 == 0) {
