@@ -74,11 +74,6 @@ export class MusicPlayer {
   }
   play() {
     this.currentTrack.play();
-    this.currentTrack.addFilter({
-      filterType: 'lowpass',
-      frequency: 10e3,
-      Q: 3.0,
-    });
   }
   pause() {
     this.currentTrack.pause();
