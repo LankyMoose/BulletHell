@@ -209,7 +209,7 @@ function update() {
 
     if (enemyDestroyed) {
       enemiesToRemove.push(i);
-      player.xp += XP_PER_KILL + e.initialR * 1.25 * player.xpMulti;
+      player.xp += XP_PER_KILL + e.initialR * player.xpMulti;
       game.score.add(e.killValue);
       player.onKill();
       handleProgression();

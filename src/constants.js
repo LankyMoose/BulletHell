@@ -46,7 +46,7 @@ export const set_x = (val) => (x = val);
 export const set_y = (val) => (y = val);
 
 export const XP_PER_KILL = 100;
-export const XP_REQ_MULTI_PER_LEVEL = 1.1;
+export const XP_REQ_MULTI_PER_LEVEL = 1.25;
 export const FRICTION = 0.97;
 export const BULLET_COLOR = 'rgba(255,255,255,.75)';
 export const BULLET_SIZE = 5;
