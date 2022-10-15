@@ -53,6 +53,8 @@ export const BULLET_SIZE = 5;
 export const ENEMY_SPEED = 0.6;
 export const DEBUG_ENABLED = false;
 export const MAX_LEVEL = Infinity;
+//export const FONT = 'sans-serif'
+export const FONT = 'monospace';
 
 export const STAT_DISPLAYS = [
   {
@@ -472,7 +474,7 @@ const renderEventName = (name) => {
   c.save();
   c.fillStyle = 'white';
   const fs = 36;
-  c.font = fs + 'px sans-serif';
+  c.font = fs + 'px ' + FONT;
   c.textAlign = 'center';
   c.fillText(name, canvas.width / 2, 100);
   c.restore();

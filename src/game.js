@@ -53,6 +53,7 @@ import {
   signInButton,
   DEBUG_ENABLED,
   MAX_LEVEL,
+  FONT,
 } from './constants.js';
 
 import {
@@ -100,8 +101,8 @@ function main() {
 
   render(window.lag / window.frameDuration);
   c.fillStyle = 'rgba(255,255,255,.6)';
-  c.font = '12px sans-serif';
-  c.fillText(`${elapsed}ms`, canvas.width - 50, canvas.height - 12);
+  c.font = '12px ' + FONT;
+  c.fillText(`${Math.floor(elapsed)}ms`, canvas.width - 50, canvas.height - 12);
 }
 
 let debugRenders = [];

@@ -14,6 +14,7 @@ import {
   DEBUG_ENABLED,
   XP_REQ_MULTI_PER_LEVEL,
   BOSS_ITEMS,
+  FONT,
 } from './constants.js';
 
 import {
@@ -884,7 +885,7 @@ export class Player extends Sprite {
       const padding = 4;
       c.save();
       c.textAlign = 'center';
-      c.font = '14px sans-serif';
+      c.font = '14px ' + FONT;
       c.fillStyle = ability.getColor();
       c.globalAlpha = 0.25;
       c.fillRect(leftOffset + gap, topOffset, iconWidth, iconHeight);
@@ -1097,11 +1098,11 @@ export class Player extends Sprite {
       game.enemySpawnTime -= 120;
     }
 
-    if (this.level % 4 == 0) {
+    if (this.level % 3 == 0) {
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
       game.entities.events.add({ ...evt });
-    } else if (this.level > 4 && this.level % 2 == 0) {
+    } else if (this.level % 2 == 0 || this.level > 10) {
       const evt = game.entities.events.random('');
       if (!evt) throw new Error('failed to get random event ');
       game.entities.events.add({ ...evt });
@@ -1272,7 +1273,7 @@ export class Enemy extends Sprite {
   }
 
   static spawnGroup(numTospawn) {
-    const spread = 200;
+    const spread = 200 + numTospawn;
     const centerCoords = randomScreenEdgeCoords(spread);
     for (let i = 0; i < numTospawn; i++) {
       const coords = randomAreaCoords(centerCoords, spread);
@@ -1424,7 +1425,7 @@ export class DamageText {
     this.preDraw(lagOffset);
     c.save();
     c.globalAlpha = this.alpha;
-    c.font = `bold ${this.isCrit ? 22 : 14}px sans-serif`;
+    c.font = `bold ${this.isCrit ? 22 : 14}px ` + FONT;
     //c.strokeStyle = 'black';
     c.fillStyle = 'gold';
     //if (this.isCrit) c.fillStyle = 'orangered';

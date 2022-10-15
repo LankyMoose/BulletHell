@@ -1,6 +1,11 @@
 'use strict';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+} from 'firebase/auth';
 import {
   getDatabase,
   ref,
@@ -10,6 +15,7 @@ import {
   orderByChild,
   limitToLast,
 } from 'firebase/database';
+//import { auth as authUI } from 'firebaseui';
 
 // TODO: Replace the following with your app's Firebase project configuration
 const firebaseConfig = {
@@ -51,12 +57,20 @@ const handleAuthStateChange = async (usr) => {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app, firebaseConfig.databaseURL);
-const provider = new GoogleAuthProvider();
+const googleProvider = new GoogleAuthProvider();
+const githubProvier = new GithubAuthProvider();
 //provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
 
 const auth = getAuth();
 auth.useDeviceLanguage();
 auth.onAuthStateChanged(handleAuthStateChange);
+
+// const ui = new authUI.AuthUI(auth);
+
+// ui.start('#sign_in', {
+//   signInOptions: [auth.GoogleAuthProvider.PROVIDER_ID, githubProvier.PROVIDER_ID],
+//   signInFlow: 'popup',
+// });
 
 async function writeUserData(userId, username, profile_picture, score, kills) {
   try {
@@ -73,16 +87,22 @@ async function writeUserData(userId, username, profile_picture, score, kills) {
 }
 
 export const login = async () => {
-  const result = await signInWithPopup(auth, provider);
+  const result = await signInWithPopup(auth, googleProvider);
   if (!result.user) throw new Error('failed to authenticate');
   handleAuthStateChange(result.user);
   return true;
 };
+// export const loginWithGithub = async () => {
+//   const result = await signInWithPopup(auth, githubProvier);
+//   if (!result.user) throw new Error('failed to authenticate');
+//   handleAuthStateChange(result.user);
+//   return true;
+// };
 
 export const submitScore = async (score, kills) => {
   try {
     if (isNaN(score)) return false;
-    if (!userData.user) await login();
+    if (!userData.user) return false;
 
     if (
       score < userData.topScore &&
