@@ -32,7 +32,7 @@ export class MusicPlayer {
   }
   togglePlay() {
     if (this.playing) return this.pause();
-    return this.play();
+    return this.resume();
   }
   setVolume(num) {
     Howler.volume(num);
