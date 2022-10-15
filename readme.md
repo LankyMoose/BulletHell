@@ -8,6 +8,8 @@ Open source bullet-hell game inspired by Vampire Survivors, Soulstone Survivors 
 
 - AOE temporal field
 - consider i-frames?
+- use 'staying still' as a way to deal more damage
+  ability that fires more often, maybe only fires while standing still?
 
 #### _general ideas_
 

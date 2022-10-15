@@ -24,8 +24,11 @@ export const lifeEl = document.getElementById('lifeEl');
 export const menuKillsEl = document.getElementById('menuKillsEl');
 export const xpBarEl = document.getElementById('xp');
 export const lvlEl = document.getElementById('level');
+
 export const levelUpScreen = document.getElementById('levelup');
 export const levelUpOptionsEl = document.getElementById('levelup_options');
+export const levelUpHeadingEl = document.getElementById('levelup_text');
+
 export const pauseScreen = document.getElementById('pause');
 export const playerStatsEl = document.getElementById('player_stats');
 export const playerStatsWrapper = document.getElementById(
@@ -584,7 +587,7 @@ export const EVENT_TYPES = [
   {
     name: `Meganoth the Wicked`,
     type: 'boss',
-    weight: 7,
+    weight: 5,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,

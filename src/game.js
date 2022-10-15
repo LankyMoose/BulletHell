@@ -54,6 +54,7 @@ import {
   DEBUG_ENABLED,
   MAX_LEVEL,
   FONT,
+  levelUpHeadingEl,
 } from './constants.js';
 
 import {
@@ -277,6 +278,11 @@ function update() {
         }
         //removeEvent(i);
         eventsToRemove.push(i);
+        if (evt.type == 'boss')
+          game.nextFrameActionQueue.add(() => {
+            levelUpHeadingEl.textContent = '';
+            showLevelUpScreen();
+          });
         continue;
       }
       evt.remainingMs -= window.animFrameDuration;
@@ -310,6 +316,7 @@ function queuePlayerLevelUp() {
   game.nextFrameActionQueue.add(() => {
     player.onLevelUp();
     handleProgression();
+    levelUpHeadingEl.innerText = 'Level up!';
     showLevelUpScreen();
     game.nextFrameActionQueue.reset();
   });
