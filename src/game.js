@@ -432,6 +432,7 @@ function startGame() {
   game.entities.player.value.color = playerColorEl.value;
   main();
   attachEventHandlers();
+  musicPlayer.setLowPass(320);
 }
 
 function togglePause() {
@@ -490,7 +491,7 @@ function endGame() {
   scoreEl.innerText = 0;
   menuKillsEl.innerText = game.entities.player.value.kills;
   killsEl.innerText = 0;
-
+  musicPlayer.setLowPass(320);
   subData = {
     score: game.score.value,
     kills: game.entities.player.value.kills,
@@ -517,9 +518,11 @@ function hideLevelUpScreen() {
   levelUpOptionsEl.innerHTML = '';
   levelUpScreen.classList.add('hide');
   resumeGame();
+  musicPlayer.resetLowPass();
 }
 function showLevelUpScreen() {
   pauseGame();
+  musicPlayer.setLowPass(320);
   levelUpScreenShowing = true;
   levelUpScreen.classList.remove('hide');
   const bonusSet = new BonusSet();

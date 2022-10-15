@@ -47,46 +47,53 @@ export const musicTracks = [
     onend: () => musicPlayer.next(),
     html5: true,
   }),
-  new Howl({
-    src: ['vfx/music_9.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
 ];
 
 export class MusicPlayer {
   constructor() {
-    this.currentTrack = Math.floor(Math.random() * musicTracks.length - 1);
-    this.playing = false;
+    this.trackIndex = Math.floor(Math.random() * musicTracks.length - 1);
+  }
+  get currentTrack() {
+    return musicTracks[this.trackIndex];
   }
   next() {
-    musicTracks[this.currentTrack]?.stop();
-    this.currentTrack++;
-    if (this.currentTrack > musicTracks.length - 1) this.currentTrack = 0;
+    this.currentTrack?.stop();
+    this.trackIndex++;
+    if (this.trackIndex > musicTracks.length - 1) this.trackIndex = 0;
     this.play();
-    console.log('now playing ', this.currentTrack);
+    console.log('now playing ', this.trackIndex);
   }
   prev() {
-    musicTracks[this.currentTrack]?.stop();
-    this.currentTrack--;
-    if (this.currentTrack < 0) this.currentTrack = musicTracks.length - 1;
+    musicTracks[this.trackIndex]?.stop();
+    this.trackIndex--;
+    if (this.trackIndex < 0) this.trackIndex = musicTracks.length - 1;
     this.play();
   }
   resume() {
     this.play();
   }
   play() {
-    musicTracks[this.currentTrack].play();
-    this.playing = true;
+    this.currentTrack.play();
+    this.currentTrack.addFilter({
+      filterType: 'lowpass',
+      frequency: 10e3,
+      Q: 3.0,
+    });
   }
   pause() {
-    musicTracks[this.currentTrack].pause();
-    this.playing = false;
+    this.currentTrack.pause();
   }
   togglePlay() {
-    if (musicTracks[this.currentTrack].playing()) return this.pause();
-    return this.resume();
+    if (this.currentTrack.playing()) return this.pause();
+    return this.play();
+  }
+  setLowPass(freq) {
+    this.currentTrack.frequency(freq);
+  }
+  resetLowPass() {
+    this.currentTrack.frequency(10e3);
   }
 }
 
 export const musicPlayer = new MusicPlayer();
+window.musicPlayer = musicPlayer;
