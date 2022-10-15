@@ -3,7 +3,7 @@ Howler.volume(0.5);
 
 export class MusicPlayer {
   constructor() {
-    this.currentTrack = 0;
+    this.currentTrack = Math.floor(Math.random() * musicTracks.length - 1);
     this.playing = false;
   }
   next() {
