@@ -15,6 +15,7 @@ import {
   XP_REQ_MULTI_PER_LEVEL,
   BOSS_ITEMS,
   FONT,
+  setFPS,
 } from './constants.js';
 
 import {
@@ -364,7 +365,7 @@ export class ShooterBoss extends Boss {
     game.entities.turrets.reset();
     this.invulnerable = true;
     this.fixed = true;
-    this.color = '#111';
+    this.color = '#222';
     for (let i = 0; i < numTurrets; i++) {
       setTimeout(Turret.spawn, i * 500);
     }

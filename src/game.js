@@ -1,23 +1,5 @@
 'use strict';
 
-window.fps = 60;
-window.start = performance.now();
-window.frameDuration = 1000 / window.fps;
-window.animFrameDuration = window.frameDuration;
-window.lag = 0;
-
-window.requestAnimationFrame = (function () {
-  return (
-    window.requestAnimationFrame ||
-    window.webkitRequestAnimationFrame ||
-    window.mozRequestAnimationFrame ||
-    window.oRequestAnimationFrame ||
-    window.msRequestAnimationFrame ||
-    function (callback) {
-      window.setTimeout(callback, window.frameDuration);
-    }
-  );
-})();
 import { game, resetGame } from './state';
 
 import { Enemy, Item, BonusSet } from './lib.js';
@@ -55,6 +37,7 @@ import {
   MAX_LEVEL,
   FONT,
   levelUpHeadingEl,
+  setFPS,
 } from './constants.js';
 
 import {
@@ -65,6 +48,8 @@ import {
   userData,
 } from './firebase.js';
 //import {  } from './util.js';
+
+setFPS(60);
 
 userData.subscribe((res) => {
   renderUser(res);

@@ -59,6 +59,27 @@ export const MAX_LEVEL = Infinity;
 //export const FONT = 'sans-serif'
 export const FONT = 'monospace';
 
+export const setFPS = (numFrames) => {
+  window.fps = numFrames;
+  window.start = performance.now();
+  window.frameDuration = 1000 / window.fps;
+  window.animFrameDuration = window.frameDuration;
+  window.lag = 0;
+
+  window.requestAnimationFrame = (function () {
+    return (
+      window.requestAnimationFrame ||
+      window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame ||
+      window.oRequestAnimationFrame ||
+      window.msRequestAnimationFrame ||
+      function (callback) {
+        window.setTimeout(callback, window.frameDuration);
+      }
+    );
+  })();
+};
+
 export const STAT_DISPLAYS = [
   {
     key: 'xpMulti',
