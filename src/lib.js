@@ -154,6 +154,14 @@ export class Sprite {
     );
   }
 
+  followCoords(coords, reverse) {
+    const angle = Math.atan2(this.y - coords.y, this.x - coords.x);
+    const dY = Math.cos(angle) * (this.speed || 1);
+    const dX = Math.sin(angle) * (this.speed || 1);
+    this.vel.y += reverse ? -dY : dY;
+    this.vel.x += reverse ? -dX : dX;
+  }
+
   followPlayer() {
     const player = game.entities.player.value;
     let speedMod = this.speed + player.level * 0.1;
@@ -675,6 +683,8 @@ export class Player extends Sprite {
       up: false,
       down: false,
       space: false,
+      mouseLeft: false,
+      mouseRight: false,
     };
     this.items = [];
     this.level = 1;
@@ -720,11 +730,25 @@ export class Player extends Sprite {
 
   applyVelocity() {
     let triggeredDash = false;
-    //prettier-ignore
-    const anyDir = this.inputs.left || this.inputs.right || this.inputs.up || this.inputs.down;
+    const attemptingMouseMove =
+      game.settings.player.movementControls == 'mouse' &&
+      (this.inputs.mouseLeft || this.inputs.mouseRight);
+
+    const anyDir =
+      this.inputs.left ||
+      this.inputs.right ||
+      this.inputs.up ||
+      this.inputs.down ||
+      attemptingMouseMove;
+
     const allowDash = game.settings.player.allowDash.value;
-    //prettier-ignore
-    if (anyDir && allowDash && this.inputs.space && this.dashReady && !this.dashing) {
+    if (
+      anyDir &&
+      allowDash &&
+      this.inputs.space &&
+      this.dashReady &&
+      !this.dashing
+    ) {
       this.dashCooldownMs = this.dashCooldown;
       this.dashing = true;
       this.dashReady = false;
@@ -736,21 +760,29 @@ export class Player extends Sprite {
     }
     const allowMove = game.settings.player.allowMove.value;
     if (anyDir && allowMove) {
-      if (this.inputs.left) {
-        this.vel.x -= this.speed;
-        if (triggeredDash) this.dashVelocity.x -= this.speed * 3;
-      }
-      if (this.inputs.right) {
-        this.vel.x += this.speed;
-        if (triggeredDash) this.dashVelocity.x += this.speed * 3;
-      }
-      if (this.inputs.down) {
-        this.vel.y += this.speed;
-        if (triggeredDash) this.dashVelocity.y += this.speed * 3;
-      }
-      if (this.inputs.up) {
-        this.vel.y -= this.speed;
-        if (triggeredDash) this.dashVelocity.y -= this.speed * 3;
+      if (game.settings.player.movementControls == 'keyboard') {
+        if (this.inputs.left) {
+          this.vel.x -= this.speed;
+          if (triggeredDash) this.dashVelocity.x -= this.speed * 3;
+        }
+        if (this.inputs.right) {
+          this.vel.x += this.speed;
+          if (triggeredDash) this.dashVelocity.x += this.speed * 3;
+        }
+        if (this.inputs.down) {
+          this.vel.y += this.speed;
+          if (triggeredDash) this.dashVelocity.y += this.speed * 3;
+        }
+        if (this.inputs.up) {
+          this.vel.y -= this.speed;
+          if (triggeredDash) this.dashVelocity.y -= this.speed * 3;
+        }
+      } else if (attemptingMouseMove) {
+        const coords = {
+          x: this.lastMouseMove.clientX,
+          y: this.lastMouseMove.clientY,
+        };
+        this.followCoords(coords, this.inputs.mouseRight);
       }
     }
 

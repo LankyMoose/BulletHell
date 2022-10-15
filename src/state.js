@@ -79,6 +79,7 @@ class GameState {
         value: true,
         set: (bool) => (this.settings.player.applyMaxSpeed.value = bool),
       },
+      movementControls: 'keyboard',
     },
   };
   entities = {

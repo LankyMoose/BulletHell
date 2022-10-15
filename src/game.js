@@ -53,6 +53,7 @@ import {
   signInButton,
   DEBUG_ENABLED,
   MAX_LEVEL,
+  playerMovementTypeEl,
 } from './constants.js';
 
 import {
@@ -408,6 +409,9 @@ function startGame() {
       { x: canvas.width / 2 + 100, y: canvas.height / 2 - 100 }
     );
   game.entities.player.value.color = playerColorEl.value;
+  if (playerMovementTypeEl.checked) {
+    game.settings.player.movementControls = 'mouse';
+  }
   main();
   attachEventHandlers();
 }
@@ -551,16 +555,39 @@ function onBonusSelected(bonus) {
 function attachEventHandlers() {
   window.addEventListener('keydown', handleKeyDown);
   window.addEventListener('keyup', handleKeyUp);
-  canvas.addEventListener('click', onClick);
+  //canvas.addEventListener('mousedown', handleMouseDown);
+  //canvas.addEventListener('mouseup', handleMouseUp);
 }
 function removeEventHandlers() {
   window.removeEventListener('keydown', handleKeyDown);
   window.removeEventListener('keyup', handleKeyUp);
-  canvas.removeEventListener('click', onClick);
+  //canvas.removeEventListener('mousedown', handleMouseDown);
+  //canvas.removeEventListener('mouseup', handleMouseUp);
 }
 
-function onClick(e) {
-  //addBlackHole(new BlackHole(x, y));
+function handleMouseDown(e) {
+  switch (e.button) {
+    case 0: // lmb
+      game.entities.player.value.inputs.mouseLeft = true;
+      break;
+    case 2: // rmb
+      game.entities.player.value.inputs.mouseRight = true;
+      break;
+    default:
+      break;
+  }
+}
+function handleMouseUp(e) {
+  switch (e.button) {
+    case 0: // lmb
+      game.entities.player.value.inputs.mouseLeft = false;
+      break;
+    case 2: // rmb
+      game.entities.player.value.inputs.mouseRight = false;
+      break;
+    default:
+      break;
+  }
 }
 
 function handleKeyDown(e) {

@@ -17,6 +17,8 @@ export const leaderboard = document.getElementById('leaderboard');
 export const startButton = document.getElementById('startButton');
 export const userContainer = document.getElementById('user');
 export const playerColorEl = document.getElementById('player_color');
+export const playerMovementTypeEl = document.getElementById('chkMouseOnly');
+
 export const scoreEl = document.getElementById('scoreEl');
 export const menuScoreEl = document.getElementById('menuScoreEl');
 export const killsEl = document.getElementById('killsEl');

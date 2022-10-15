@@ -6,14 +6,13 @@ Open source bullet-hell game inspired by Vampire Survivors, Soulstone Survivors 
 
 #### _abilities_
 
-- AOE temporal field
-- dash
+- AOE temporal field?
 - consider i-frames?
 
 #### _general ideas_
 
+- mouse-only support
 - shadows? - https://codepen.io/mladen___/pen/gbvqBo
-- add life bar
 - exploding enemies
 - melee enemies (pokies) - bandana, dif. color
 - make game map/world
