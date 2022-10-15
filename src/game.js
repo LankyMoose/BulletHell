@@ -3,6 +3,7 @@
 import { game, resetGame } from './state';
 
 import { Enemy, Item, BonusSet } from './lib.js';
+import { Howl, Howler } from 'howler';
 
 import {
   menu,
@@ -705,7 +706,7 @@ addEventListener('resize', () => {
 });
 
 gameVolumeEl.addEventListener('input', (e) => {
-  musicPlayer.setVolume(e.target.value);
+  Howler.volume(e.target.value);
 });
 musicNextEl.addEventListener('click', () => musicPlayer.next());
 musicToggleEl.addEventListener('click', () => musicPlayer.togglePlay());
