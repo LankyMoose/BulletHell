@@ -1260,11 +1260,13 @@ export class Enemy extends Sprite {
       this.applyGravity();
     }
 
-    this.alpha = 0.3;
+    this.alpha = 0.15;
     const distToPlayer = this.distanceToPlayer();
-    if (distToPlayer < player.lightRadius) {
+    if (distToPlayer < 200) {
+      this.alpha = 1;
+    } else if (distToPlayer < player.lightRadius) {
       const percent = distToPlayer / player.lightRadius;
-      this.alpha = 1.3 - 1 * percent;
+      this.alpha = 1.15 - 1 * percent;
     }
 
     this.cur_frame++;

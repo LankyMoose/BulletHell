@@ -64,7 +64,7 @@ export const DEBUG_ENABLED = false;
 export const MAX_LEVEL = Infinity;
 //export const FONT = 'sans-serif'
 export const FONT = 'monospace';
-export const BACKGROUND_RGB = '16,16,16';
+export const BACKGROUND_RGB = '14,14,14';
 
 export const setFPS = (numFrames) => {
   window.fps = numFrames;
