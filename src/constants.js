@@ -615,17 +615,22 @@ export const EVENT_TYPES = [
   {
     name: `Meganoth the Wicked`,
     type: 'boss',
-    weight: 5,
+    weight: 50,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,
+    remainingBosses: 1,
     functions: [
       (evt) => {
-        const newBoss = AbilityBoss.spawn();
-        newBoss.onDeath = () => {
-          evt.cooldown = 0;
-          evt.remainingMs = 0;
-        };
+        [AbilityBoss.spawn()].forEach((boss) => {
+          boss.onDeath = () => {
+            evt.remainingBosses -= 1;
+            if (evt.remainingBosses == 0) {
+              evt.cooldown = 0;
+              evt.remainingMs = 0;
+            }
+          };
+        });
       },
     ],
     vfx: [

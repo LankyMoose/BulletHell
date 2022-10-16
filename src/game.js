@@ -702,15 +702,15 @@ addEventListener('resize', () => {
   set_x(canvas.width / 2);
   set_y(canvas.height / 2);
   const { enemies, bullets, abilityEffects, player } = game.entities;
-  [...enemies.value, ...bullets.value, ...abilityEffects.value].forEach(
-    (el) => {
-      el.x += x - old.x;
-      el.y += y - old.y;
-    }
-  );
-
-  player.value.x = x;
-  player.value.y = y;
+  [
+    ...enemies.value,
+    ...bullets.value,
+    ...abilityEffects.value,
+    player.value,
+  ].forEach((el) => {
+    el.x += x - old.x;
+    el.y += y - old.y;
+  });
 });
 gameVolumeEl.value = GAME_VOLUME;
 gameVolumeEl.addEventListener('input', (e) => {

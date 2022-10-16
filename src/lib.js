@@ -1181,13 +1181,14 @@ export class Projectile extends Sprite {
       return [false, false];
     const dist = Math.hypot(self.x - e.x, self.y - e.y);
     if (dist - e.r - self.r < 1) {
-      let numParticles = e.r * 2;
+      const r = e.r > 0.1 ? e.r : 0.1;
+      let numParticles = r * 2;
       if (numParticles > 30) numParticles = 30;
       for (let i = 0; i < numParticles; i++) {
         game.entities.particles.add(
           new Particle(self.x, self.y, Math.random() * 2, 'darkred', {
-            x: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
-            y: (Math.random() - 0.5) * (Math.random() * (2 + e.r / 6)),
+            x: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
+            y: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
           })
         );
       }
@@ -1311,9 +1312,9 @@ export class Enemy extends Sprite {
   }
 
   takeDamage(damage) {
+    console.log('enemy take damage', damage, this.r);
     this.r -= damage;
-    if (this.r <= Enemy.minSize) this.r = Enemy.minSize;
-    return this.r > Enemy.minSize ? [true, false] : [true, true];
+    return this.r < Enemy.minSize ? [true, true] : [true, false];
   }
 }
 
@@ -1481,7 +1482,7 @@ export class Ability extends Sprite {
         );
         if (e.invulnerable) return [true, false];
         if (!e.takeDamage) {
-          console.log('attempting to call takeDamage() on invalid entity', e);
+          console.error('attempting to call takeDamage() on invalid entity', e);
           throw new Error('attempting to call takeDamage() on invalid entity');
         }
         return e.takeDamage(mitigatedDamage);
