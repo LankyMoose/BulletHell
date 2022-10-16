@@ -86,7 +86,6 @@ export class Sprite {
     c.closePath();
     c.fillStyle = this.color;
     c.fill();
-    c.restore();
 
     if (this.image) {
       try {
@@ -101,6 +100,7 @@ export class Sprite {
         console.error('img failed to be drawn', this.image);
       }
     }
+    c.restore();
     this.postDraw();
   }
 
@@ -767,6 +767,7 @@ export class Player extends Sprite {
     };
     this.damage = 10;
     this.damageReduction = 0.1;
+    this.lightRadius = 500;
   }
   applyMaxSpeed() {
     if (!game.settings.player.applyMaxSpeed.value) return;
@@ -1248,8 +1249,8 @@ export class Enemy extends Sprite {
 
   update() {
     super.update();
+    const player = game.entities.player.value;
     if (!this.fixed) {
-      const player = game.entities.player.value;
       const dist = Math.hypot(this.x - player.x, this.y - player.y);
       if (dist - player.r - this.r < this.aggroRange) {
         this.followPlayer();
@@ -1257,6 +1258,14 @@ export class Enemy extends Sprite {
       if (!this.enteredMap && this.inMap()) this.enteredMap = true;
       if (this.enteredMap) this.enforceMapBoundaries();
       this.applyGravity();
+    }
+
+    this.alpha = 0.3;
+    const distToPlayer = this.distanceToPlayer();
+    if (distToPlayer < player.lightRadius) {
+      const percent = distToPlayer / player.lightRadius;
+      console.log('transparent enemy');
+      this.alpha = 1.3 - 1 * percent;
     }
 
     this.cur_frame++;

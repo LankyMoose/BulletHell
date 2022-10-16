@@ -380,14 +380,14 @@ function renderPlayerLight() {
   const player = game.entities.player.value;
   c.save();
   c.beginPath();
-  c.arc(player.x, player.y, 500, 0, 2 * Math.PI);
+  c.arc(player.x, player.y, player.lightRadius, 0, 2 * Math.PI);
   const gradient1 = c.createRadialGradient(
     player.x,
     player.y,
     0,
     player.x,
     player.y,
-    500
+    player.lightRadius
   );
   gradient1.addColorStop(0, 'rgba(255,255,255,.07)');
   gradient1.addColorStop(0.7, 'rgba(255,255,255,.02)');
