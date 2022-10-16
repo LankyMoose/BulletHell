@@ -1264,7 +1264,6 @@ export class Enemy extends Sprite {
     const distToPlayer = this.distanceToPlayer();
     if (distToPlayer < player.lightRadius) {
       const percent = distToPlayer / player.lightRadius;
-      console.log('transparent enemy');
       this.alpha = 1.3 - 1 * percent;
     }
 
