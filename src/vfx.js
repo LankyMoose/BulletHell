@@ -1,5 +1,6 @@
 import { Howl, Howler } from 'howler';
-Howler.volume(0.5);
+export const GAME_VOLUME = localStorage.getItem('game_volume') ?? 0.5;
+Howler.volume(GAME_VOLUME);
 
 export const musicTracks = [
   new Howl({
@@ -51,7 +52,7 @@ export const musicTracks = [
 
 export class MusicPlayer {
   constructor() {
-    this.trackIndex = Math.floor(Math.random() * musicTracks.length - 1);
+    this.trackIndex = Math.floor(Math.random() * (musicTracks.length - 1));
   }
   get currentTrack() {
     return musicTracks[this.trackIndex];
@@ -61,7 +62,6 @@ export class MusicPlayer {
     this.trackIndex++;
     if (this.trackIndex > musicTracks.length - 1) this.trackIndex = 0;
     this.play();
-    console.log('now playing ', this.trackIndex);
   }
   prev() {
     musicTracks[this.trackIndex]?.stop();
@@ -73,6 +73,7 @@ export class MusicPlayer {
     this.play();
   }
   play() {
+    console.log('now playing ', this.trackIndex);
     this.currentTrack.play();
   }
   pause() {

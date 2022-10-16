@@ -16,6 +16,7 @@ import {
   BOSS_ITEMS,
   FONT,
   setFPS,
+  BACKGROUND_RGB,
 } from './constants.js';
 
 import {
@@ -59,7 +60,7 @@ export class Sprite {
     this.glowSize = glowSize;
     this.glowColor = null;
     this.invulnerable = false;
-    this.shadow_length = 2000;
+    this.shadow_length = canvas.width;
   }
 
   preDraw(lagOffset) {
@@ -190,10 +191,10 @@ export class Sprite {
     };
 
     return {
-      p1: p1,
-      p2: p2,
-      p3: p3,
-      p4: p4,
+      p1,
+      p2,
+      p3,
+      p4,
     };
   }
   drawShadow() {
@@ -225,9 +226,14 @@ export class Sprite {
       c.lineTo(points[n].startX, points[n].startY);
       c.lineTo(points[n].endX, points[n].endY);
       c.lineTo(points[i].endX, points[i].endY);
-      c.fillStyle = 'rgba(0,0,0,.06)';
+      c.fillStyle = `rgba(${BACKGROUND_RGB}, .2)`;
       c.fill();
     }
+  }
+
+  distanceToPlayer() {
+    const player = game.entities.player.value;
+    return Math.hypot(player.x - this.x, player.y - this.y);
   }
 }
 
@@ -237,7 +243,7 @@ export class Boss extends Sprite {
     this.speed = 1;
     this.damage = 0; // no collision damage
     this.damageReduction = 0.5;
-    this.maxLife = (game.entities.player.value.level / 5) * 420;
+    this.maxLife = 420 + (game.entities.player.value.level / 5) * 420;
     this.life = this.maxLife;
     this.onDeath = null;
     this.phases = [];
@@ -262,9 +268,9 @@ export class Boss extends Sprite {
         }
       }
       if (phasesToRemove.length) {
-        for (let i = 0; i < phasesToRemove.length; i++) {
-          this.phases.splice(phasesToRemove[i], 1);
-        }
+        this.phases = this.phases.filter(
+          (_, j) => phasesToRemove.indexOf(j) == -1
+        );
       }
       return [true, false];
     }
@@ -293,7 +299,7 @@ export class ShooterBoss extends Boss {
     this.bulletCooldown = 1000;
     this.bulletTick = 900;
     this.bulletSpeed = 5;
-
+    const player = game.entities.player.value;
     this.phases = [
       {
         lifePercent: 0.88,
@@ -307,8 +313,8 @@ export class ShooterBoss extends Boss {
         ],
       },
       {
-        lifePercent: 0.66,
-        functions: [() => this.spawnPhase(5)],
+        lifePercent: 0.75,
+        functions: [() => this.spawnPhase(3 + player.level / 2)],
       },
       {
         lifePercent: 0.44,
@@ -322,8 +328,8 @@ export class ShooterBoss extends Boss {
         ],
       },
       {
-        lifePercent: 0.22,
-        functions: [() => this.spawnPhase(10)],
+        lifePercent: 0.35,
+        functions: [() => this.spawnPhase(8 + player.level / 2)],
       },
     ];
   }
@@ -472,6 +478,7 @@ export class AbilityBoss extends Boss {
   }
   shootMultipleBullets(clientX, clientY) {
     let bulletCount = 0;
+    const itemsToRemove = [];
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i];
       if (
@@ -483,13 +490,17 @@ export class AbilityBoss extends Boss {
       item.modifiers.forEach((b) => {
         bulletCount += b.amount;
       });
+
       if (!item.permanent) {
         item.duration--;
         if (item.duration <= 0) {
-          this.items.splice(i, 1);
+          itemsToRemove.push(i);
         }
       }
     }
+    this.items = this.items.filter((_, i) => {
+      return itemsToRemove.indexOf(i) == -1;
+    });
     if (bulletCount == 0) return;
 
     let bulletSpread = 15;
@@ -974,6 +985,7 @@ export class Player extends Sprite {
 
   shootMultipleBullets(clientX, clientY) {
     let bulletCount = 1;
+    const itemsToRemove = [];
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i];
       if (
@@ -988,10 +1000,13 @@ export class Player extends Sprite {
       if (!item.permanent) {
         item.duration--;
         if (item.duration <= 0) {
-          this.items.splice(i, 1);
+          itemsToRemove.push(i);
         }
       }
     }
+    this.items = this.items.filter((_, i) => {
+      return itemsToRemove.indexOf(i) == -1;
+    });
 
     let bulletSpread = 10;
     if (360 / bulletCount < 10) {
@@ -1247,7 +1262,6 @@ export class Enemy extends Sprite {
     if (this.cur_frame > this.img_update_frames) Enemy.setImage(this);
   }
   draw(lagOffset) {
-    super.drawShadow();
     super.draw(lagOffset);
     if (DEBUG_ENABLED) strokeCircle(this);
   }
@@ -1297,12 +1311,9 @@ export class Enemy extends Sprite {
   }
 
   takeDamage(damage) {
-    if (this.r - damage > Enemy.minSize) {
-      this.r -= damage;
-      return [true, false];
-    } else {
-      return [true, true];
-    }
+    this.r -= damage;
+    if (this.r <= Enemy.minSize) this.r = Enemy.minSize;
+    return this.r > Enemy.minSize ? [true, false] : [true, true];
   }
 }
 

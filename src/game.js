@@ -43,6 +43,7 @@ import {
   musicNextEl,
   musicPrevEl,
   musicToggleEl,
+  BACKGROUND_RGB,
 } from './constants.js';
 
 import {
@@ -55,7 +56,8 @@ import {
 //import {  } from './util.js';
 
 setFPS(60);
-import { musicPlayer } from './vfx.js';
+import { GAME_VOLUME, musicPlayer } from './vfx.js';
+
 musicPlayer.play();
 userData.subscribe((res) => {
   renderUser(res);
@@ -69,7 +71,7 @@ function main() {
   const elapsed = now - window.start;
   window.start = now;
   window.lag += elapsed;
-  c.fillStyle = 'rgba(16, 16, 16, 1)';
+  c.fillStyle = `rgba(${BACKGROUND_RGB}, 1)`;
   c.fillRect(0, 0, canvas.width, canvas.height);
 
   const nextFrameActions = game.nextFrameActionQueue.value;
@@ -90,6 +92,9 @@ function main() {
     Enemy.spawn();
     game.settings.enemies.spawnTime.reset();
   }
+  game.entities.enemies.value.sort(
+    (a, b) => a.distanceToPlayer() - b.distanceToPlayer()
+  );
 
   render(window.lag / window.frameDuration);
   c.fillStyle = 'rgba(255,255,255,.6)';
@@ -324,10 +329,12 @@ function render(lagOffset) {
   game.entities.player.value.draw(lagOffset);
   renderPlayerLight();
 
+  for (const enemy of game.entities.enemies.value) {
+    enemy.drawShadow();
+  }
   for (const bullet of game.entities.enemyBullets.value) {
     bullet.draw(lagOffset);
   }
-
   for (const enemy of game.entities.enemies.value) {
     enemy.draw(lagOffset);
   }
@@ -432,7 +439,6 @@ function startGame() {
   game.entities.player.value.color = playerColorEl.value;
   main();
   attachEventHandlers();
-  musicPlayer.setLowPass(320);
 }
 
 function togglePause() {
@@ -491,7 +497,6 @@ function endGame() {
   scoreEl.innerText = 0;
   menuKillsEl.innerText = game.entities.player.value.kills;
   killsEl.innerText = 0;
-  musicPlayer.setLowPass(320);
   subData = {
     score: game.score.value,
     kills: game.entities.player.value.kills,
@@ -707,9 +712,11 @@ addEventListener('resize', () => {
   player.value.x = x;
   player.value.y = y;
 });
-
+gameVolumeEl.value = GAME_VOLUME;
 gameVolumeEl.addEventListener('input', (e) => {
   Howler.volume(e.target.value);
+  console.log(e.target.value);
+  localStorage.setItem('game_volume', e.target.value);
 });
 musicNextEl.addEventListener('click', () => musicPlayer.next());
 musicToggleEl.addEventListener('click', () => musicPlayer.togglePlay());
