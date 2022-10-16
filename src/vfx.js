@@ -2,53 +2,19 @@ import { Howl, Howler } from 'howler';
 export const GAME_VOLUME = localStorage.getItem('game_volume') ?? 0.5;
 Howler.volume(GAME_VOLUME);
 
-export const musicTracks = [
-  new Howl({
-    src: ['vfx/music_0.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
-  new Howl({
-    src: ['vfx/music_1.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
-  new Howl({
-    src: ['vfx/music_2.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
-  new Howl({
-    src: ['vfx/music_3.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
-  new Howl({
-    src: ['vfx/music_4.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
-  new Howl({
-    src: ['vfx/music_5.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
-  new Howl({
-    src: ['vfx/music_6.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
-  new Howl({
-    src: ['vfx/music_7.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
-  new Howl({
-    src: ['vfx/music_8.mp3'],
-    onend: () => musicPlayer.next(),
-    html5: true,
-  }),
+const trackSources = [
+  '//stream.music.cdn.unippm.com/BER/BER1262/Collide/BER_1262_2_Collide_Nonte_993669.mp3',
+  '//stream.music.cdn.unippm.com/CHAP/CHAP521/Night_Invasion/CHAP_521_15_Night_Invasion_Everitt_Everitt_1428267.mp3',
+  '//stream.music.cdn.unippm.com/FRONT/FRONT104/Diablo/FRONT_104_4_Diablo_Frankel_1228626.mp3',
+  '//stream.music.cdn.unippm.com/SEE/SEE022/Comic_Cons/SEE_22_2_Comic_Cons_Simms_Whittaker_Gilbey_794809.mp3',
+  '//stream.music.cdn.unippm.com/MAT/MAT252/Frenetic_Disorder/MAT_252_5_Frenetic_Disorder_Niska_Wahl_717907.mp3',
+  '//stream.music.cdn.unippm.com/BBCPM/BBCPM100/Fresh_Challenge/BBCPM_100_5_Fresh_Challenge_Stefanski_1364985.mp3',
+  '//stream.music.cdn.unippm.com/BBCPM/BBCPM119/Rapid_Response/BBCPM_119_3_Rapid_Response_Salmins_1483914.mp3',
 ];
+
+export const musicTracks = trackSources.map(
+  (ts) => new Howl({ src: [ts], onend: () => musicPlayer.next(), html5: true })
+);
 
 export class MusicPlayer {
   constructor() {
@@ -73,7 +39,7 @@ export class MusicPlayer {
     this.play();
   }
   play() {
-    console.log('now playing ', this.trackIndex);
+    console.log('now playing', 'https:' + trackSources[this.trackIndex]);
     this.currentTrack.play();
   }
   pause() {

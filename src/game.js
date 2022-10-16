@@ -715,7 +715,6 @@ addEventListener('resize', () => {
 gameVolumeEl.value = GAME_VOLUME;
 gameVolumeEl.addEventListener('input', (e) => {
   Howler.volume(e.target.value);
-  console.log(e.target.value);
   localStorage.setItem('game_volume', e.target.value);
 });
 musicNextEl.addEventListener('click', () => musicPlayer.next());

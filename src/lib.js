@@ -1312,7 +1312,7 @@ export class Enemy extends Sprite {
   }
 
   takeDamage(damage) {
-    console.log('enemy take damage', damage, this.r);
+    //console.log('enemy take damage', damage, this.r);
     this.r -= damage;
     return this.r < Enemy.minSize ? [true, true] : [true, false];
   }
