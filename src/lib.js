@@ -54,6 +54,7 @@ export class Sprite {
     this.killValue = Math.floor((r / 3) * 10);
     this.color = color;
     this.alpha = 1;
+    this.maxAlpha = 1;
     this.vel = vel;
     this.fixed = false;
     this.renderGlow = renderGlow;
@@ -77,7 +78,7 @@ export class Sprite {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    c.globalAlpha = this.alpha;
+    c.globalAlpha = Math.max(this.alpha, this.maxAlpha);
     if (this.renderGlow) {
       c.shadowColor = this.glowColor ?? this.color;
       c.shadowBlur = this.glowSize;
@@ -1340,10 +1341,11 @@ export class Particle extends Sprite {
     super(...arguments);
     this.appliesLighting = true;
     this.applyLighting();
+    this.duration = 300;
   }
   update() {
     super.update();
-    this.alpha -= 0.1;
+    this.maxAlpha -= 0.1;
     this.vel.x *= FRICTION;
     this.vel.y *= FRICTION;
   }

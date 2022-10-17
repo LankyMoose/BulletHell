@@ -223,7 +223,7 @@ function update() {
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
     p.update();
-    if (p.alpha <= 0) particlesToRemove.push(i);
+    if (p.maxAlpha <= 0) particlesToRemove.push(i);
   }
   if (particlesToRemove.length > 0)
     game.entities.particles.remove(particlesToRemove);
