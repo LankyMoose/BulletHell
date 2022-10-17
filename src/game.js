@@ -186,7 +186,6 @@ function update() {
     let bullets = game.entities.bullets.value;
     const num_bullets = bullets.length;
     for (let j = 0; j < num_bullets; j++) {
-      if (enemyDestroyed) break;
       const [hit, kill] = bullets[j].handleEnemyCollision(e);
       enemyDestroyed = kill;
       if (hit) {
@@ -195,6 +194,7 @@ function update() {
         scoreEl.innerText = game.score.value;
         bulletsToRemove.push(j);
       }
+      if (enemyDestroyed) break;
     }
     if (!enemyDestroyed) {
       for (let j = 0; j < abilityEffects.length; j++) {

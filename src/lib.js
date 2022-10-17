@@ -82,7 +82,8 @@ export class Sprite {
       c.shadowBlur = this.glowSize;
     }
     c.beginPath();
-    c.arc(this.renderX, this.renderY, this.r, 0, Math.PI * 2, false);
+    const r = Math.max(this.r, 0.1);
+    c.arc(this.renderX, this.renderY, r, 0, Math.PI * 2, false);
     c.closePath();
     c.fillStyle = this.color;
     c.fill();
@@ -91,10 +92,10 @@ export class Sprite {
       try {
         c.drawImage(
           this.image,
-          this.renderX - (this.r * 2) / 2,
-          this.renderY - (this.r * 2) / 2,
-          this.r * 2,
-          this.r * 2
+          this.renderX - (r * 2) / 2,
+          this.renderY - (r * 2) / 2,
+          r * 2,
+          r * 2
         );
       } catch (error) {
         console.error('img failed to be drawn', this.image);
