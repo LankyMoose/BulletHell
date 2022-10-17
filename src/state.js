@@ -171,6 +171,11 @@ class GameState {
           (_, i) => indxArray.indexOf(i) == -1
         );
       },
+      removeKilled: () => {
+        this.entities.enemies.value = this.entities.enemies.value.filter(
+          (e) => !e.killed
+        );
+      },
       reset: () =>
         (this.entities.enemies.value = GameState.#defaults.entities.enemies()),
     },

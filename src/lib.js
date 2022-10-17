@@ -61,6 +61,7 @@ export class Sprite {
     this.glowColor = null;
     this.invulnerable = false;
     this.shadow_length = canvas.width;
+    this.appliesLighting = false;
   }
 
   preDraw(lagOffset) {
@@ -128,6 +129,7 @@ export class Sprite {
   }
 
   update() {
+    if (this.appliesLighting) this.applyLighting();
     this.updatePosition();
     this.applyGlobalScale();
   }
@@ -151,12 +153,12 @@ export class Sprite {
     }
   }
 
-  inMap() {
+  inMap(dist = 0) {
     return (
-      this.x - this.r * 2 > 0 &&
-      this.x + this.r < canvas.width &&
-      this.y - this.r > 0 &&
-      this.y + this.r < canvas.height
+      this.x - this.r > 0 - dist &&
+      this.x + this.r < canvas.width + dist &&
+      this.y - this.r > 0 - dist &&
+      this.y + this.r < canvas.height + dist
     );
   }
 
@@ -235,6 +237,17 @@ export class Sprite {
   distanceToPlayer() {
     const player = game.entities.player.value;
     return Math.hypot(player.x - this.x, player.y - this.y);
+  }
+
+  applyLighting() {
+    const player = game.entities.player.value;
+    this.alpha = 0.15;
+    const distToPlayer = this.distanceToPlayer();
+    const percent = distToPlayer / player.lightRadius;
+
+    if (distToPlayer < player.lightRadius) {
+      this.alpha = 1.15 - 1 * percent;
+    }
   }
 }
 
@@ -336,7 +349,7 @@ export class ShooterBoss extends Boss {
   }
   static spawn(coords) {
     if (!coords) coords = randomScreenEdgeCoords(150);
-    const newBoss = new ShooterBoss(coords.x, coords.y, 150, 'black', {
+    const newBoss = new ShooterBoss(coords.x, coords.y, 150, '#111', {
       x: 0,
       y: 0,
     });
@@ -372,7 +385,7 @@ export class ShooterBoss extends Boss {
     game.entities.turrets.reset();
     this.invulnerable = true;
     this.fixed = true;
-    this.color = '#222';
+    this.color = '#333';
     for (let i = 0; i < numTurrets; i++) {
       setTimeout(Turret.spawn, i * 500);
     }
@@ -477,7 +490,7 @@ export class AbilityBoss extends Boss {
       this.bulletTick = 0;
     }
   }
-  shootMultipleBullets(clientX, clientY) {
+  shootMultipleBullets(targetX, targetY) {
     let bulletCount = 0;
     const itemsToRemove = [];
     for (let i = 0; i < this.items.length; i++) {
@@ -505,9 +518,7 @@ export class AbilityBoss extends Boss {
     if (bulletCount == 0) return;
 
     let bulletSpread = 15;
-    if (360 / bulletCount < 10) {
-      bulletSpread = 360 / bulletCount;
-    }
+    if (360 / bulletCount < 10) bulletSpread = 360 / bulletCount;
     // how many proj per side?
     let maxOffset =
       bulletCount % 2 == 0 ? bulletCount / 2 : (bulletCount - 1) / 2;
@@ -516,8 +527,8 @@ export class AbilityBoss extends Boss {
       const target = rotate(
         this.x,
         this.y,
-        clientX,
-        clientY,
+        targetX,
+        targetY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread,
         true
       );
@@ -544,7 +555,7 @@ export class AbilityBoss extends Boss {
     }
 
     if (bulletCount % 2 == 1) {
-      const angle = Math.atan2(clientY - this.y, clientX - this.x);
+      const angle = Math.atan2(targetY - this.y, targetX - this.x);
       const vel = {
         x: Math.cos(angle) * this.bulletSpeed,
         y: Math.sin(angle) * this.bulletSpeed,
@@ -569,8 +580,8 @@ export class AbilityBoss extends Boss {
       const target = rotate(
         this.x,
         this.y,
-        clientX,
-        clientY,
+        targetX,
+        targetY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread
       );
       const angle = Math.atan2(target.y - this.y, target.x - this.x);
@@ -632,6 +643,9 @@ export class Turret extends Sprite {
     this.bulletCooldown = 1500;
     this.bulletTick = 600;
     this.bulletSpeed = 2;
+    this.r = 0;
+    this.appliesLighting = true;
+    this.applyLighting();
   }
   update() {
     super.update();
@@ -639,13 +653,12 @@ export class Turret extends Sprite {
     if (this.r < this.initialR) this.r++;
   }
   static spawn(coords) {
-    if (!coords) coords = randomCoords();
     const rad = 42;
+    if (!coords) coords = randomCoords(rad * 2);
     const newTurret = new Turret(coords.x, coords.y, rad, 'darkviolet', {
       x: 0,
       y: 0,
     });
-    newTurret.r = 0;
     game.entities.turrets.add(newTurret);
   }
 
@@ -665,7 +678,7 @@ export class Turret extends Sprite {
       y: Math.sin(angle) * this.bulletSpeed,
     };
     game.entities.enemyBullets.add(
-      new Bullet(this.x, this.y, 20, 'purple', vel, false, 0, 10, 10, 1.2)
+      new Bullet(this.x, this.y, 20, 'purple', vel, false, 0, 10, 10)
     );
   }
 }
@@ -1174,13 +1187,14 @@ export class Projectile extends Sprite {
     this.damage = damage;
     this.critChance = critChance;
     this.critMulti = critMulti;
+    this.appliesLighting = true;
+    this.applyLighting();
   }
   handleEnemyCollision(e) {
     return Projectile.handleEnemyCollision(this, e);
   }
   static handleEnemyCollision(self, e) {
-    if (!DEBUG_ENABLED && (self.invulnerable || e.invulnerable))
-      return [false, false];
+    if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
     const dist = Math.hypot(self.x - e.x, self.y - e.y);
     if (dist - e.r - self.r < 1) {
       const r = e.r > 0.1 ? e.r : 0.1;
@@ -1246,6 +1260,8 @@ export class Enemy extends Sprite {
     this.fixed = false;
     this.damage = 5;
     this.damageReduction = 0.3;
+    this.appliesLighting = true;
+    this.applyLighting();
   }
 
   update() {
@@ -1260,16 +1276,6 @@ export class Enemy extends Sprite {
       if (this.enteredMap) this.enforceMapBoundaries();
       this.applyGravity();
     }
-
-    this.alpha = 0.15;
-    const distToPlayer = this.distanceToPlayer();
-    if (distToPlayer < 200) {
-      this.alpha = 1;
-    } else if (distToPlayer < player.lightRadius) {
-      const percent = distToPlayer / player.lightRadius;
-      this.alpha = 1.15 - 1 * percent;
-    }
-
     this.cur_frame++;
     if (this.cur_frame > this.img_update_frames) Enemy.setImage(this);
   }
@@ -1325,13 +1331,15 @@ export class Enemy extends Sprite {
   takeDamage(damage) {
     //console.log('enemy take damage', damage, this.r);
     this.r -= damage;
-    return this.r < Enemy.minSize ? [true, true] : [true, false];
+    return this.r <= 0 || this.r < Enemy.minSize ? [true, true] : [true, false];
   }
 }
 
 export class Particle extends Sprite {
   constructor() {
     super(...arguments);
+    this.appliesLighting = true;
+    this.applyLighting();
   }
   update() {
     super.update();

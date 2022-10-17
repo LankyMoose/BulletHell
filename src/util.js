@@ -49,10 +49,10 @@ export function randomScreenEdgeCoords(rad) {
   return coords;
 }
 
-export function randomCoords() {
+export function randomCoords(padding = 0) {
   return {
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
+    x: padding + Math.random() * (canvas.width - padding),
+    y: padding + Math.random() * (canvas.height - padding),
   };
 }
 export function randomAreaCoords(vec2, size) {

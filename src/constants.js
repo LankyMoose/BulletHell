@@ -64,7 +64,7 @@ export const DEBUG_ENABLED = false;
 export const MAX_LEVEL = Infinity;
 //export const FONT = 'sans-serif'
 export const FONT = 'monospace';
-export const BACKGROUND_RGB = '14,14,14';
+export const BACKGROUND_RGB = '24,24,24';
 
 export const setFPS = (numFrames) => {
   window.fps = numFrames;
@@ -585,7 +585,7 @@ export const EVENT_TYPES = [
     ],
   },
   {
-    name: `Blackball the Great`,
+    name: `Midnight the Dastardly`,
     type: 'boss',
     weight: 5,
     cooldown: Infinity,

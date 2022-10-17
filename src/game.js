@@ -2,7 +2,7 @@
 
 import { game, resetGame } from './state';
 
-import { Enemy, Item, BonusSet } from './lib.js';
+import { Enemy, Item, BonusSet, Projectile } from './lib.js';
 import { Howl, Howler } from 'howler';
 
 import {
@@ -125,7 +125,7 @@ function update() {
   for (let i = 0; i < bullets.length; i++) {
     const b = bullets[i];
     b.update();
-    if (!b.inMap()) bulletsToRemove.push(i);
+    if (!b.inMap(b.r * 2)) bulletsToRemove.push(i);
   }
   if (bulletsToRemove.length > 0) {
     game.entities.bullets.remove(bulletsToRemove);
@@ -136,7 +136,7 @@ function update() {
   for (let i = 0; i < enemyBullets.length; i++) {
     const b = enemyBullets[i];
     b.update();
-    if (!b.inMap()) {
+    if (!b.inMap(b.r * 2)) {
       enemyBulletsToRemove.push(i);
     } else {
       const dist = Math.hypot(player.x - b.x, player.y - b.y);
@@ -164,7 +164,6 @@ function update() {
     game.entities.enemyAbilityEffects.remove(enemyAbilityEffectsToRemove);
 
   // investigate pooling?
-  const enemiesToRemove = [];
   bulletsToRemove = [];
   const abilitiesToRemove = [];
   const enemies = game.entities.enemies.value;
@@ -172,41 +171,36 @@ function update() {
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i];
     e.update();
-    let enemyDestroyed = false;
-    const dist = Math.hypot(player.x - e.x, player.y - e.y);
-    if (!player.invulnerable && dist - e.r - player.r < 0.01) {
-      player.life -= Math.floor(e.damage - e.damage * player.damageReduction);
-      if (player.life <= 0) {
-        return endGame();
-      } else {
-        player.vel.x += e.vel.x * 3;
-        player.vel.y += e.vel.y * 3;
-      }
+    const [hit, playerKilled] = Projectile.handleEnemyCollision(e, player);
+    if (playerKilled) return endGame();
+    if (hit) {
+      player.vel.x += e.vel.x * 3;
+      player.vel.y += e.vel.y * 3;
     }
+
     let bullets = game.entities.bullets.value;
     const num_bullets = bullets.length;
     for (let j = 0; j < num_bullets; j++) {
       const [hit, kill] = bullets[j].handleEnemyCollision(e);
-      enemyDestroyed = kill;
+      e.killed = kill;
       if (hit) {
         //debugger;
         game.score.add(100);
         scoreEl.innerText = game.score.value;
         bulletsToRemove.push(j);
       }
-      if (enemyDestroyed) break;
+      if (e.killed) break;
     }
-    if (!enemyDestroyed) {
+    if (!e.killed) {
       for (let j = 0; j < abilityEffects.length; j++) {
         const ae = abilityEffects[j];
         const [hit, kill] = ae.handleEnemyCollision(e);
-        enemyDestroyed = kill;
+        if (kill) e.killed = true;
         if (hit && ae.destroyOnCollision) abilitiesToRemove.push(j);
       }
     }
 
-    if (enemyDestroyed) {
-      enemiesToRemove.push(i);
+    if (e.killed) {
       player.xp += XP_PER_KILL + e.initialR * player.xpMulti;
       game.score.add(e.killValue);
       player.onKill();
@@ -214,7 +208,8 @@ function update() {
       if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
   }
-  if (enemiesToRemove.length > 0) game.entities.enemies.remove(enemiesToRemove);
+
+  game.entities.enemies.removeKilled();
   if (bulletsToRemove.length > 0) game.entities.bullets.remove(bulletsToRemove);
   if (abilitiesToRemove.length > 0)
     game.entities.abilityEffects.remove(abilitiesToRemove);
