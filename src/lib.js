@@ -1679,7 +1679,8 @@ export class Vortex extends Ability {
       false,
       0,
       itemInstance.damage,
-      itemInstance.name
+      itemInstance.name,
+      owner
     );
     this.remainingFrames = 1;
     this.shapeType = 'circle';
