@@ -2,6 +2,7 @@
 import {
   AbilityBoss,
   BlackHole,
+  Boomerang,
   Enemy,
   Kamehameha,
   ShooterBoss,
@@ -121,7 +122,7 @@ export const STAT_DISPLAYS = [
     displayText: 'Critical Chance',
   },
   {
-    key: 'critDamageMulti',
+    key: 'critMulti',
     displayText: 'Critical Multiplier',
   },
   {
@@ -131,6 +132,10 @@ export const STAT_DISPLAYS = [
   {
     key: 'maxInstances',
     displayText: 'Max Instances',
+  },
+  {
+    key: 'maxDistance',
+    displayText: 'Max Distance',
   },
 ];
 
@@ -232,7 +237,7 @@ export const BONUS_TYPES = [
     rarity_weights: [9, 6, 4, 2],
     modifiers: [
       {
-        key: 'critDamageMulti',
+        key: 'critMulti',
         amounts: [0.07, 0.15, 0.35, 0.5],
       },
     ],
@@ -258,6 +263,11 @@ export const BONUS_TYPES = [
     type: 'ability',
     name: 'Vortex',
     weight: 10,
+  },
+  {
+    type: 'ability',
+    name: 'Boomerang',
+    weight: 500,
   },
 ];
 const BONUS_UPGRADES = [
@@ -354,6 +364,30 @@ const BONUS_UPGRADES = [
       {
         key: 'damage',
         amounts: [1, 2, 4],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Boomerang',
+    weight: 5,
+    rarity_weights: [9, 6, 2],
+    modifiers: [
+      {
+        key: 'maxDistance',
+        amounts: [20, 40, 80],
+      },
+    ],
+  },
+  {
+    type: 'upgrade',
+    name: 'Boomerang',
+    weight: 5,
+    rarity_weights: [9, 6, 2],
+    modifiers: [
+      {
+        key: 'damage',
+        amounts: [1, 2, 3],
       },
     ],
   },
@@ -480,6 +514,30 @@ export const ITEM_TYPES = [
       }
     },
   },
+  {
+    name: 'Boomerang',
+    getColor: () => 'orange',
+    isAbility: true,
+    cooldown: 1800,
+    //cooldown: 1e3,
+    remainingMs: 32,
+    size: 70,
+    damage: 2,
+    maxDistance: 300,
+    trigger: (player, self, cx, cy) => {
+      game.entities.abilityEffects.add(
+        new Boomerang(player.x, player.y, self, { x: 0, y: 0 }, cx, cy, player)
+      );
+    },
+    onAdded: (bonus) => {
+      game.bonuses.remove(bonus);
+      for (const upgrade of BONUS_UPGRADES.filter(
+        (bu) => bu.name == bonus.name
+      )) {
+        game.bonuses.add(upgrade);
+      }
+    },
+  },
 ];
 
 export const BOSS_ITEMS = [
@@ -490,6 +548,7 @@ export const BOSS_ITEMS = [
     cooldown: 4e3,
     //cooldown: 1e3,
     remainingMs: 2e3,
+    weight: 1,
     size: 22,
     damage: 1,
     trigger: (boss, self, cx, cy) => {
@@ -499,6 +558,23 @@ export const BOSS_ITEMS = [
     },
     onAdded: (bonus) => {},
   },
+  // {
+  //   name: 'Boomerang',
+  //   getColor: () => 'red',
+  //   isAbility: true,
+  //   cooldown: 1500,
+  //   //cooldown: 1e3,
+  //   remainingMs: 500,
+  //   weight: 50,
+  //   size: 70,
+  //   damage: 2,
+  //   trigger: (boss, self, cx, cy) => {
+  //     game.entities.enemyAbilityEffects.add(
+  //       new Boomerang(boss.x, boss.y, self, { x: 0, y: 0 }, cx, cy, boss)
+  //     );
+  //   },
+  //   onAdded: (bonus) => {},
+  // },
 ];
 
 const renderEventName = (name) => {
@@ -615,7 +691,7 @@ export const EVENT_TYPES = [
   {
     name: `Meganoth the Wicked`,
     type: 'boss',
-    weight: 50,
+    weight: 5,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,

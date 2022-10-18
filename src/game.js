@@ -158,7 +158,9 @@ function update() {
     const [hit, kill] = eae.handleEnemyCollision(player);
     if (hit && eae.destroyOnCollision) enemyAbilityEffectsToRemove.push(i);
     if (kill) return endGame();
-    if (eae.remainingFrames <= 0) enemyAbilityEffectsToRemove.push(i);
+    if (eae.usesFrames && eae.remainingFrames <= 0)
+      enemyAbilityEffectsToRemove.push(i);
+    if (!eae.usesFrames && eae.remove) enemyAbilityEffectsToRemove.push(i);
   }
   if (enemyAbilityEffectsToRemove.length > 0)
     game.entities.enemyAbilityEffects.remove(enemyAbilityEffectsToRemove);
@@ -250,7 +252,9 @@ function update() {
   for (let i = 0; i < game.entities.abilityEffects.value.length; i++) {
     const ae = game.entities.abilityEffects.value[i];
     ae.update();
-    if (ae.remainingFrames <= 0) abilityEffectsToRemove.push(i);
+    if (ae.usesFrames && ae.remainingFrames <= 0)
+      abilityEffectsToRemove.push(i);
+    if (!ae.usesFrames && ae.remove) abilityEffectsToRemove.push(i);
   }
   if (abilityEffectsToRemove.length > 0)
     game.entities.abilityEffects.remove(abilityEffectsToRemove);

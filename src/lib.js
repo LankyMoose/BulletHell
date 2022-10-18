@@ -29,6 +29,7 @@ import {
   radiansToDeg,
   rectCircleCollision,
   randomAreaCoords,
+  degreesToRad,
 } from './util.js';
 
 function strokeCircle(circle) {
@@ -173,6 +174,14 @@ export class Sprite {
     };
   }
 
+  followTarget(v2) {
+    const angle = Math.atan2(v2.y - this.y, v2.x - this.x);
+    this.vel = {
+      x: Math.cos(angle) * this.speed,
+      y: Math.sin(angle) * this.speed,
+    };
+  }
+
   getDots() {
     const full = (Math.PI * 2) / 4;
 
@@ -229,7 +238,7 @@ export class Sprite {
       c.lineTo(points[n].startX, points[n].startY);
       c.lineTo(points[n].endX, points[n].endY);
       c.lineTo(points[i].endX, points[i].endY);
-      c.fillStyle = `rgba(${BACKGROUND_RGB}, .2)`;
+      c.fillStyle = `rgba(${BACKGROUND_RGB}, .1)`;
       c.fill();
     }
   }
@@ -237,6 +246,9 @@ export class Sprite {
   distanceToPlayer() {
     const player = game.entities.player.value;
     return Math.hypot(player.x - this.x, player.y - this.y);
+  }
+  distToTarget(v2) {
+    return Math.hypot(v2.x - this.x, v2.y - this.y);
   }
 
   applyLighting() {
@@ -261,6 +273,8 @@ export class Boss extends Sprite {
     this.life = this.maxLife;
     this.onDeath = null;
     this.phases = [];
+    this.critChance = 10;
+    this.critMulti = 1.5;
   }
   update() {
     super.update();
@@ -313,6 +327,7 @@ export class ShooterBoss extends Boss {
     this.bulletCooldown = 1000;
     this.bulletTick = 900;
     this.bulletSpeed = 5;
+    this.damage = 6;
     const player = game.entities.player.value;
     this.phases = [
       {
@@ -407,8 +422,6 @@ export class AbilityBoss extends Boss {
     this.bulletTick = 0;
     this.bulletSpeed = 4;
     this.damage = 6;
-    this.critChance = 10;
-    this.critDamageMulti = 1.5;
     this.bulletColor = '#710f0f';
     this.bulletSize = BULLET_SIZE * 3;
     this.phases = [
@@ -549,7 +562,7 @@ export class AbilityBoss extends Boss {
           0,
           this.damage,
           this.critChance,
-          this.critDamageMulti
+          this.critMulti
         )
       );
     }
@@ -571,7 +584,7 @@ export class AbilityBoss extends Boss {
           0,
           this.damage,
           this.critChance,
-          this.critDamageMulti
+          this.critMulti
         )
       );
     }
@@ -601,7 +614,7 @@ export class AbilityBoss extends Boss {
           0,
           this.damage,
           this.critChance,
-          this.critDamageMulti
+          this.critMulti
         )
       );
     }
@@ -646,6 +659,8 @@ export class Turret extends Sprite {
     this.r = 0;
     this.appliesLighting = true;
     this.applyLighting();
+    this.critChance = 10;
+    this.critMulti = 1.5;
   }
   update() {
     super.update();
@@ -757,7 +772,7 @@ export class Player extends Sprite {
     this.bulletCooldown = 400;
     this.bulletTick = 0;
     this.critChance = 10;
-    this.critDamageMulti = 1.5;
+    this.critMulti = 1.5;
     this.kills = 0;
     this.inputs = {
       left: false,
@@ -993,7 +1008,7 @@ export class Player extends Sprite {
         0,
         this.damage,
         this.critChance,
-        this.critDamageMulti
+        this.critMulti
       )
     );
   }
@@ -1057,7 +1072,7 @@ export class Player extends Sprite {
           0,
           this.damage,
           this.critChance,
-          this.critDamageMulti
+          this.critMulti
         )
       );
     }
@@ -1089,7 +1104,7 @@ export class Player extends Sprite {
           0,
           this.damage,
           this.critChance,
-          this.critDamageMulti
+          this.critMulti
         )
       );
     }
@@ -1260,6 +1275,8 @@ export class Enemy extends Sprite {
     this.fixed = false;
     this.damage = 5;
     this.damageReduction = 0.3;
+    this.critChance = 10;
+    this.critMulti = 1.5;
     this.appliesLighting = true;
     this.applyLighting();
   }
@@ -1469,13 +1486,14 @@ export class DamageText {
 }
 
 export class Ability extends Sprite {
-  constructor(x, y, r, color, vel, renderGlow, glowSize, damage, name) {
+  constructor(x, y, r, color, vel, renderGlow, glowSize, damage, name, owner) {
     super(x, y, r, color, vel, renderGlow, glowSize);
     this.damage = damage;
-    const player = game.entities.player.value;
-    this.critChance = player.critChance;
-    this.critMulti = player.critDamageMulti;
+    this.owner = owner;
+    this.critChance = owner.critChance;
+    this.critMulti = owner.critMulti;
     this.name = name;
+    this.usesFrames = true;
   }
   handleEnemyCollision(e) {
     if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
@@ -1525,7 +1543,8 @@ export class Kamehameha extends Ability {
       false,
       0,
       itemInstance.damage,
-      itemInstance.name
+      itemInstance.name,
+      owner
     );
     this.remainingFrames = 40;
     this.targetX = clientX;
@@ -1567,7 +1586,7 @@ export class Kamehameha extends Ability {
 }
 
 export class SolarFlare extends Ability {
-  constructor(x, y, itemInstance) {
+  constructor(x, y, itemInstance, owner) {
     super(
       x,
       y,
@@ -1577,7 +1596,8 @@ export class SolarFlare extends Ability {
       true,
       70,
       itemInstance.damage,
-      itemInstance.name
+      itemInstance.name,
+      owner
     );
     this.remainingFrames = 20;
     this.shapeType = 'circle';
@@ -1607,7 +1627,8 @@ export class Slash extends Ability {
       false,
       0,
       itemInstance.damage,
-      itemInstance.name
+      itemInstance.name,
+      owner
     );
     this.totalFrames = 14;
     this.remainingFrames = this.totalFrames;
@@ -1689,6 +1710,80 @@ export class Vortex extends Ability {
   //   c.translate(this.x, this.y);
   //   c.rotate(this.angle);
   // }
+}
+
+export class Boomerang extends Ability {
+  constructor(x, y, itemInstance, vel, clientX, clientY, owner) {
+    super(
+      x,
+      y,
+      itemInstance.size,
+      itemInstance.getColor(),
+      vel,
+      false,
+      0,
+      itemInstance.damage,
+      itemInstance.name,
+      owner
+    );
+    this.usesFrames = false;
+    this.targetX = clientX;
+    this.targetY = clientY;
+    this.h = this.r;
+    this.speed = 12;
+    this.maxSpeed = 20;
+    this.w = 12;
+    this.angle = 0;
+    this.shapeType = 'square';
+    this.owner = owner;
+    this.cachedOwner = { ...owner };
+    this.reachedTarget = false;
+    this.remove = false;
+    this.distance = 0;
+    this.maxDistance = itemInstance.maxDistance;
+    this.setDirection();
+  }
+  setDirection() {
+    const angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+    this.vel = {
+      x: Math.cos(angle) * this.speed,
+      y: Math.sin(angle) * this.speed,
+    };
+  }
+  update() {
+    if (this.owner) this.cachedOwner = { ...this.owner };
+    if (this.reachedTarget) {
+      this.targetX = this.cachedOwner.x;
+      this.targetY = this.cachedOwner.y;
+      this.followTarget({ x: this.targetX, y: this.targetY });
+    }
+    const dist = this.distToTarget({ x: this.targetX, y: this.targetY });
+
+    if (!this.reachedTarget && this.distance >= this.maxDistance) {
+      this.reachedTarget = true;
+    } else if (this.reachedTarget && dist <= this.cachedOwner.r) {
+      this.remove = true;
+    }
+
+    this.angle += 0.65;
+    this.updatePosition();
+    this.distance += this.speed;
+  }
+  draw(lagOffset) {
+    this.preDraw(lagOffset);
+    c.save();
+    c.translate(this.x, this.y);
+    c.rotate(this.angle);
+    c.shadowColor = this.color;
+    c.shadowBlur = 10;
+    c.beginPath();
+    c.rect(-this.w / 2, -this.h / 2, this.w, this.h);
+    c.fillStyle = this.color;
+    c.fill();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.restore();
+    this.postDraw();
+  }
 }
 
 export class LightningBeam extends Ability {
