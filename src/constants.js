@@ -453,7 +453,7 @@ export const ITEM_TYPES = [
     damage: 10,
     trigger: (player, self, cx, cy) => {
       game.entities.abilityEffects.add(
-        new SolarFlare(player.x, player.y, self)
+        new SolarFlare(player.x, player.y, self, player)
       );
     },
     onAdded: (bonus) => {
