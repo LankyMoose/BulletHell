@@ -238,7 +238,7 @@ export class Sprite {
       c.lineTo(points[n].startX, points[n].startY);
       c.lineTo(points[n].endX, points[n].endY);
       c.lineTo(points[i].endX, points[i].endY);
-      c.fillStyle = `rgba(${BACKGROUND_RGB}, .1)`;
+      c.fillStyle = `rgba(${BACKGROUND_RGB}, .025)`;
       c.fill();
     }
   }

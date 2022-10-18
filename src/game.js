@@ -71,7 +71,7 @@ function main() {
   const elapsed = now - window.start;
   window.start = now;
   window.lag += elapsed;
-  c.fillStyle = `rgba(${BACKGROUND_RGB}, 1)`;
+  c.fillStyle = `rgb(${BACKGROUND_RGB})`;
   c.fillRect(0, 0, canvas.width, canvas.height);
 
   const nextFrameActions = game.nextFrameActionQueue.value;

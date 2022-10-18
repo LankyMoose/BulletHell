@@ -65,7 +65,7 @@ export const DEBUG_ENABLED = false;
 export const MAX_LEVEL = Infinity;
 //export const FONT = 'sans-serif'
 export const FONT = 'monospace';
-export const BACKGROUND_RGB = '24,24,24';
+export const BACKGROUND_RGB = '18,18,18';
 
 export const setFPS = (numFrames) => {
   window.fps = numFrames;
@@ -428,7 +428,7 @@ export const ITEM_TYPES = [
     //cooldown: 1e3,
     remainingMs: 32,
     size: 22,
-    damage: 6,
+    damage: 3,
     trigger: (player, self, cx, cy) => {
       game.entities.abilityEffects.add(
         new Kamehameha(player.x, player.y, self, cx, cy, player)
