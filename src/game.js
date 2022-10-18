@@ -44,6 +44,7 @@ import {
   musicPrevEl,
   musicToggleEl,
   BACKGROUND_RGB,
+  PLAYER_COLOR,
 } from './constants.js';
 
 import {
@@ -719,6 +720,10 @@ gameVolumeEl.addEventListener('input', (e) => {
 musicNextEl.addEventListener('click', () => musicPlayer.next());
 musicToggleEl.addEventListener('click', () => musicPlayer.togglePlay());
 musicPrevEl.addEventListener('click', () => musicPlayer.next());
+playerColorEl.value = PLAYER_COLOR;
+playerColorEl.addEventListener('change', (e) => {
+  localStorage.setItem('player_color', e.target.value);
+});
 
 async function renderLeaderboard() {
   leaderboard.innerHTML = 'Loading...';

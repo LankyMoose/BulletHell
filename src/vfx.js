@@ -1,5 +1,6 @@
 import { Howl, Howler } from 'howler';
-export const GAME_VOLUME = localStorage.getItem('game_volume') ?? 0.25;
+import { GAME_VOLUME } from './constants';
+
 Howler.volume(GAME_VOLUME);
 
 const trackSources = [

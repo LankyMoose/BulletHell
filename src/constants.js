@@ -67,6 +67,9 @@ export const MAX_LEVEL = Infinity;
 export const FONT = 'monospace';
 export const BACKGROUND_RGB = '18,18,18';
 
+export const GAME_VOLUME = localStorage.getItem('game_volume') ?? 0.25;
+export const PLAYER_COLOR = localStorage.getItem('player_color') ?? '#FFFFFF';
+
 export const setFPS = (numFrames) => {
   window.fps = numFrames;
   window.start = performance.now();
