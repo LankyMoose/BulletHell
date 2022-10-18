@@ -267,7 +267,7 @@ export const BONUS_TYPES = [
   {
     type: 'ability',
     name: 'Boomerang',
-    weight: 500,
+    weight: 10,
   },
 ];
 const BONUS_UPGRADES = [
