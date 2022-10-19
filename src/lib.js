@@ -693,7 +693,7 @@ export class Turret extends Sprite {
       y: Math.sin(angle) * this.bulletSpeed,
     };
     game.entities.enemyBullets.add(
-      new Bullet(this.x, this.y, 20, 'purple', vel, false, 0, 10, 10)
+      new Bullet(this.x, this.y, 20, 'purple', vel, false, 0, 10, 10, 1.5)
     );
   }
 }
