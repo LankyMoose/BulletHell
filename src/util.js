@@ -1,5 +1,6 @@
 'use strict';
 import { canvas } from './constants.js';
+import { Vec2 } from './lib.js';
 /*
  CX @ Origin X  
  CY @ Origin Y
@@ -64,31 +65,51 @@ export function randomAreaCoords(vec2, size) {
 export function rectCircleCollision(rect, circle) {
   var cx, cy;
 
-  if (circle.x < rect.x) {
-    cx = rect.x - rect.w / 2;
-  } else if (circle.x > rect.x + rect.w) {
-    cx = rect.x + rect.w / 2;
+  if (circle.pos.x < rect.pos.x) {
+    cx = rect.pos.x - rect.w / 2;
+  } else if (circle.pos.x > rect.pos.x + rect.w) {
+    cx = rect.pos.x + rect.w / 2;
   } else {
-    cx = circle.x;
+    cx = circle.pos.x;
   }
 
-  if (circle.y < rect.y) {
-    cy = rect.y;
-  } else if (circle.y > rect.y + rect.h) {
-    cy = rect.y + rect.h;
+  if (circle.pos.y < rect.pos.y) {
+    cy = rect.pos.y;
+  } else if (circle.pos.y > rect.pos.y + rect.h) {
+    cy = rect.pos.y + rect.h;
   } else {
-    cy = circle.y;
+    cy = circle.pos.y;
   }
 
-  if (distance(circle.x, circle.y, cx, cy) < circle.r) {
+  if (circle.pos.distance(new Vec2(cx, cy)) < circle.r) {
     return true;
   }
 
   return false;
 }
 
-function distance(x1, y1, x2, y2) {
-  return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+export function collisionDetection(circle, rect) {
+  var distX = Math.abs(circle.pos.x - rect.pos.x - rect.w / 2);
+  var distY = Math.abs(circle.pos.y - rect.pos.y - rect.h / 2);
+
+  if (distX > rect.w / 2 + circle.r) {
+    return false;
+  }
+  if (distY > rect.h / 2 + circle.r) {
+    return false;
+  }
+
+  if (distX <= rect.w / 2) {
+    return true;
+  }
+  if (distY <= rect.h / 2) {
+    return true;
+  }
+
+  // also test for corner collisions
+  var dx = distX - rect.w / 2;
+  var dy = distY - rect.h / 2;
+  return dx * dx + dy * dy <= circle.r * circle.r;
 }
 
 export function radiansToDeg(radians) {
@@ -114,3 +135,9 @@ export function getWeightMap(arr) {
 export function getRandomWeightMapIndex(wm) {
   return wm[Math.floor(Math.random() * wm.length)];
 }
+
+export function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+//https://stackoverflow.com/questions/66849616/how-to-maintain-circle-velocity-after-colliding-with-a-square?noredirect=1&lq=1

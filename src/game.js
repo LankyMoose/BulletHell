@@ -2,7 +2,7 @@
 
 import { game, resetGame } from './state';
 
-import { Enemy, Item, BonusSet, Projectile } from './lib.js';
+import { Enemy, Item, BonusSet, Projectile, Wall } from './lib.js';
 import { Howl, Howler } from 'howler';
 
 import {
@@ -140,8 +140,10 @@ function update() {
     if (!b.inMap(b.r * 2)) {
       enemyBulletsToRemove.push(i);
     } else {
-      const dist = Math.hypot(player.x - b.x, player.y - b.y);
-      if (!player.invulnerable && dist - b.r - player.r < 0.01) {
+      if (
+        !player.invulnerable &&
+        b.distanceToPlayer() - b.r - player.r < 0.01
+      ) {
         const [hit, kill] = b.handleEnemyCollision(player);
         if (hit) enemyBulletsToRemove.push(i);
         if (kill) return endGame();
@@ -235,8 +237,7 @@ function update() {
   const items = game.entities.items.value;
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    const dist = Math.hypot(player.x - item.x, player.y - item.y);
-    if (dist - item.r - player.r < 1) {
+    if (item.distanceToPlayer() - item.r - player.r < 1) {
       player.items.push({ ...item.itemType });
       itemsToRemove.push(i);
       continue;
@@ -319,6 +320,9 @@ function queuePlayerLevelUp() {
 }
 
 function render(lagOffset) {
+  for (const wall of game.entities.walls.value) {
+    wall.draw();
+  }
   for (const bh of game.entities.blackHoles.value) {
     bh.draw(lagOffset);
   }
@@ -380,13 +384,13 @@ function renderPlayerLight() {
   const player = game.entities.player.value;
   c.save();
   c.beginPath();
-  c.arc(player.x, player.y, player.lightRadius, 0, 2 * Math.PI);
+  c.arc(player.pos.x, player.pos.y, player.lightRadius, 0, 2 * Math.PI);
   const gradient1 = c.createRadialGradient(
-    player.x,
-    player.y,
+    player.pos.x,
+    player.pos.y,
     0,
-    player.x,
-    player.y,
+    player.pos.x,
+    player.pos.y,
     player.lightRadius
   );
   gradient1.addColorStop(0, 'rgba(255,255,255,.07)');
@@ -427,14 +431,16 @@ function startGame() {
   resetGame();
   game.running.set(true);
   if (DEBUG_ENABLED) {
-    const newEnemy = new Enemy(
-      canvas.width / 2 + 100,
-      canvas.height / 2 - 100,
-      50
-    );
-    newEnemy.fixed = true;
-    newEnemy.invulnerable = true;
-    game.entities.enemies.add(newEnemy);
+    // const newEnemy = new Enemy(
+    //   canvas.width / 2 + 100,
+    //   canvas.height / 2 - 100,
+    //   50
+    // );
+    // newEnemy.fixed = true;
+    // newEnemy.invulnerable = true;
+    // game.entities.enemies.add(newEnemy);
+
+    game.entities.walls.add(new Wall());
   }
   game.entities.player.value.color = playerColorEl.value;
   main();
@@ -708,8 +714,8 @@ addEventListener('resize', () => {
     ...abilityEffects.value,
     player.value,
   ].forEach((el) => {
-    el.x += x - old.x;
-    el.y += y - old.y;
+    el.pos.x += x - old.x;
+    el.pos.y += y - old.y;
   });
 });
 gameVolumeEl.value = GAME_VOLUME;

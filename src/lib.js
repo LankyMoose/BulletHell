@@ -30,11 +30,14 @@ import {
   rectCircleCollision,
   randomAreaCoords,
   degreesToRad,
+  circleRectangleCollision,
+  getCircleRectangleDisplacement,
+  collisionDetection,
 } from './util.js';
 
 function strokeCircle(circle) {
   c.beginPath();
-  c.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2, false);
+  c.arc(circle.pos.x, circle.pos.y, circle.r, 0, Math.PI * 2, false);
   c.lineWidth = '2';
   c.strokeStyle = 'white';
   c.stroke();
@@ -44,18 +47,15 @@ function strokeCircle(circle) {
 
 export class Sprite {
   constructor(x, y, r, color, vel, renderGlow, glowSize) {
-    this.x = x;
-    this.oldX = x;
-    this.renderX = x;
-    this.y = y;
-    this.oldY = y;
-    this.renderY = y;
+    this.pos = new Vec2(x, y);
+    this.oldPos = new Vec2(x, y);
+    this.renderPos = new Vec2(x, y);
     this.r = r;
     this.initialR = r;
     this.killValue = Math.floor((r / 3) * 10);
     this.color = color;
     this.alpha = 1;
-    this.vel = vel;
+    this.vel = vel ? new Vec2(vel.x, vel.y) : undefined;
     this.fixed = false;
     this.renderGlow = renderGlow;
     this.glowSize = glowSize;
@@ -68,12 +68,12 @@ export class Sprite {
   preDraw(lagOffset) {
     //Use the `lagOffset` and previous x/y positions to
     //calculate the render positions
-    this.renderX = (this.x - this.oldX) * lagOffset + this.oldX;
-    this.renderY = (this.y - this.oldY) * lagOffset + this.oldY;
+    this.renderPos.x = (this.pos.x - this.oldPos.x) * lagOffset + this.oldPos.x;
+    this.renderPos.y = (this.pos.y - this.oldPos.y) * lagOffset + this.oldPos.y;
   }
   postDraw() {
-    this.oldX = this.x;
-    this.oldY = this.y;
+    this.oldPos.x = this.pos.x;
+    this.oldPos.y = this.pos.y;
   }
   draw(lagOffset) {
     this.preDraw(lagOffset);
@@ -85,7 +85,7 @@ export class Sprite {
     }
     c.beginPath();
     const r = Math.max(this.r, 0.1);
-    c.arc(this.renderX, this.renderY, r, 0, Math.PI * 2, false);
+    c.arc(this.renderPos.x, this.renderPos.y, r, 0, Math.PI * 2, false);
     c.closePath();
     c.fillStyle = this.color;
     c.fill();
@@ -94,8 +94,8 @@ export class Sprite {
       try {
         c.drawImage(
           this.image,
-          this.renderX - (r * 2) / 2,
-          this.renderY - (r * 2) / 2,
+          this.renderPos.x - (r * 2) / 2,
+          this.renderPos.y - (r * 2) / 2,
           r * 2,
           r * 2
         );
@@ -108,9 +108,8 @@ export class Sprite {
   }
 
   updatePosition() {
-    if (this.fixed) return;
-    if (this.vel && !isNaN(this.vel.y)) this.y += this.vel.y;
-    if (this.vel && !isNaN(this.vel.x)) this.x += this.vel.x;
+    if (this.fixed || !this.vel) return;
+    this.pos = this.pos.add(this.vel);
   }
 
   applyGlobalScale() {
@@ -119,13 +118,10 @@ export class Sprite {
 
   applyGravity() {
     for (const bh of game.entities.blackHoles.value) {
-      const angle = Math.atan2(bh.y - this.y, bh.x - this.x);
-      const vel = {
-        x: Math.cos(angle) * bh.pullForce,
-        y: Math.sin(angle) * bh.pullForce,
-      };
-      this.vel.x += vel.x;
-      this.vel.y += vel.y;
+      const angle = Math.atan2(bh.pos.y - this.pos.y, bh.pos.x - this.pos.x);
+      this.vel = this.vel.add(
+        new Vec2(Math.cos(angle) * bh.pullForce, Math.sin(angle) * bh.pullForce)
+      );
     }
   }
 
@@ -136,30 +132,56 @@ export class Sprite {
   }
 
   enforceMapBoundaries() {
-    if (this.x - this.r < 0) {
-      this.x = this.r;
+    if (this.pos.x - this.r < 0) {
+      this.pos.x = this.r;
       this.vel.x *= -1;
     }
-    if (this.x + this.r > canvas.width) {
-      this.x = canvas.width - this.r;
+    if (this.pos.x + this.r > canvas.width) {
+      this.pos.x = canvas.width - this.r;
       this.vel.x *= -1;
     }
-    if (this.y - this.r < 0) {
-      this.y = this.r;
+    if (this.pos.y - this.r < 0) {
+      this.pos.y = this.r;
       this.vel.y *= -1;
     }
-    if (this.y + this.r > canvas.height) {
-      this.y = canvas.height - this.r;
+    if (this.pos.y + this.r > canvas.height) {
+      this.pos.y = canvas.height - this.r;
       this.vel.y *= -1;
+    }
+  }
+  enforceWallCollisions() {
+    //https://stackoverflow.com/questions/45370692/circle-rectangle-collision-response
+
+    for (const wall of game.entities.walls.value) {
+      if (collisionDetection(this, wall)) {
+        const NearestX = Math.max(
+          wall.pos.x,
+          Math.min(this.pos.x, wall.pos.x + wall.w)
+        );
+        const NearestY = Math.max(
+          wall.pos.y,
+          Math.min(this.pos.y, wall.pos.y + wall.h)
+        );
+
+        const dist = new Vec2(this.pos.x - NearestX, this.pos.y - NearestY);
+        const dnormal = new Vec2(-dist.y, dist.x);
+
+        const normal_angle = Math.atan2(dnormal.y, dnormal.x);
+        const incoming_angle = Math.atan2(this.vel.y, this.vel.x);
+        const theta = normal_angle - incoming_angle;
+        this.vel = this.vel.rotate(2 * theta);
+        //circleRectangleCollision(this, wall);
+        //this.vel = getCircleRectangleDisplacement(this, wall);
+      }
     }
   }
 
   inMap(dist = 0) {
     return (
-      this.x - this.r > 0 - dist &&
-      this.x + this.r < canvas.width + dist &&
-      this.y - this.r > 0 - dist &&
-      this.y + this.r < canvas.height + dist
+      this.pos.x - this.r > 0 - dist &&
+      this.pos.x + this.r < canvas.width + dist &&
+      this.pos.y - this.r > 0 - dist &&
+      this.pos.y + this.r < canvas.height + dist
     );
   }
 
@@ -167,39 +189,33 @@ export class Sprite {
     const player = game.entities.player.value;
     let speedMod = this.speed + player.level * 0.1;
     if (speedMod <= 1) speedMod = 1;
-    const angle = Math.atan2(player.y - this.y, player.x - this.x);
-    this.vel = {
-      x: Math.cos(angle) * speedMod,
-      y: Math.sin(angle) * speedMod,
-    };
+    const angle = Math.atan2(player.y - this.pos.y, player.pos.x - this.pos.x);
+    this.vel = new Vec2(Math.cos(angle) * speedMod, Math.sin(angle) * speedMod);
   }
 
   followTarget(v2) {
-    const angle = Math.atan2(v2.y - this.y, v2.x - this.x);
-    this.vel = {
-      x: Math.cos(angle) * this.speed,
-      y: Math.sin(angle) * this.speed,
-    };
+    const angle = Math.atan2(v2.y - this.pos.y, v2.x - this.pos.x);
+    this.vel = new Vec2(Math.cos(angle) * speedMod, Math.sin(angle) * speedMod);
   }
 
   getDots() {
     const full = (Math.PI * 2) / 4;
 
     const p1 = {
-      x: this.x + this.r * Math.sin(this.r),
-      y: this.y + this.r * Math.cos(this.r),
+      x: this.pos.x + this.r * Math.sin(this.r),
+      y: this.pos.y + this.r * Math.cos(this.r),
     };
     const p2 = {
-      x: this.x + this.r * Math.sin(this.r + full),
-      y: this.y + this.r * Math.cos(this.r + full),
+      x: this.pos.x + this.r * Math.sin(this.r + full),
+      y: this.pos.y + this.r * Math.cos(this.r + full),
     };
     const p3 = {
-      x: this.x + this.r * Math.sin(this.r + full * 2),
-      y: this.y + this.r * Math.cos(this.r + full * 2),
+      x: this.pos.x + this.r * Math.sin(this.r + full * 2),
+      y: this.pos.y + this.r * Math.cos(this.r + full * 2),
     };
     const p4 = {
-      x: this.x + this.r * Math.sin(this.r + full * 3),
-      y: this.y + this.r * Math.cos(this.r + full * 3),
+      x: this.pos.x + this.r * Math.sin(this.r + full * 3),
+      y: this.pos.y + this.r * Math.cos(this.r + full * 3),
     };
 
     return {
@@ -217,7 +233,10 @@ export class Sprite {
     const player = game.entities.player.value;
 
     for (const dot in dots) {
-      const angle = Math.atan2(player.y - dots[dot].y, player.x - dots[dot].x);
+      const angle = Math.atan2(
+        player.pos.y - dots[dot].y,
+        player.pos.x - dots[dot].x
+      );
       const endX =
         dots[dot].x + this.shadow_length * Math.sin(-angle - Math.PI / 2);
       const endY =
@@ -245,10 +264,10 @@ export class Sprite {
 
   distanceToPlayer() {
     const player = game.entities.player.value;
-    return Math.hypot(player.x - this.x, player.y - this.y);
+    return this.pos.distance(player.pos);
   }
   distToTarget(v2) {
-    return Math.hypot(v2.x - this.x, v2.y - this.y);
+    return this.pos.distance(v2);
   }
 
   applyLighting() {
@@ -387,13 +406,27 @@ export class ShooterBoss extends Boss {
 
   shoot() {
     const player = game.entities.player.value;
-    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+    const angle = Math.atan2(
+      player.pos.y - this.pos.y,
+      player.pos.x - this.pos.x
+    );
     const vel = {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
     game.entities.enemyBullets.add(
-      new Bullet(this.x, this.y, 50, 'crimson', vel, false, 0, 20, 10, 1.5)
+      new Bullet(
+        this.pos.x,
+        this.pos.y,
+        50,
+        'crimson',
+        vel,
+        false,
+        0,
+        20,
+        10,
+        1.5
+      )
     );
   }
   spawnPhase(numTurrets) {
@@ -499,7 +532,7 @@ export class AbilityBoss extends Boss {
     this.bulletTick += window.animFrameDuration;
     if (this.bulletTick >= this.bulletCooldown) {
       const player = game.entities.player.value;
-      this.shootMultipleBullets(player.x, player.y);
+      this.shootMultipleBullets(player.pos.x, player.pos.y);
       this.bulletTick = 0;
     }
   }
@@ -538,14 +571,17 @@ export class AbilityBoss extends Boss {
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
-        this.x,
-        this.y,
+        this.pos.x,
+        this.pos.y,
         targetX,
         targetY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread,
         true
       );
-      const angle = Math.atan2(target.y - this.y, target.x - this.x);
+      const angle = Math.atan2(
+        target.pos.y - this.pos.y,
+        target.pos.x - this.pos.x
+      );
 
       const vel = {
         x: Math.cos(angle) * this.bulletSpeed,
@@ -553,8 +589,8 @@ export class AbilityBoss extends Boss {
       };
       game.entities.enemyBullets.add(
         new Bullet(
-          this.x,
-          this.y,
+          this.pos.x,
+          this.pos.y,
           this.bulletSize,
           this.bulletColor,
           vel,
@@ -568,15 +604,15 @@ export class AbilityBoss extends Boss {
     }
 
     if (bulletCount % 2 == 1) {
-      const angle = Math.atan2(targetY - this.y, targetX - this.x);
+      const angle = Math.atan2(targetY - this.pos.y, targetX - this.pos.x);
       const vel = {
         x: Math.cos(angle) * this.bulletSpeed,
         y: Math.sin(angle) * this.bulletSpeed,
       };
       game.entities.enemyBullets.add(
         new Bullet(
-          this.x,
-          this.y,
+          this.pos.x,
+          this.pos.y,
           this.bulletSize,
           this.bulletColor,
           vel,
@@ -591,13 +627,16 @@ export class AbilityBoss extends Boss {
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
-        this.x,
-        this.y,
+        this.pos.x,
+        this.pos.y,
         targetX,
         targetY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread
       );
-      const angle = Math.atan2(target.y - this.y, target.x - this.x);
+      const angle = Math.atan2(
+        target.pos.y - this.pos.y,
+        target.pos.x - this.pos.x
+      );
 
       const vel = {
         x: Math.cos(angle) * this.bulletSpeed,
@@ -605,8 +644,8 @@ export class AbilityBoss extends Boss {
       };
       game.entities.enemyBullets.add(
         new Bullet(
-          this.x,
-          this.y,
+          this.pos.x,
+          this.pos.y,
           this.bulletSize,
           this.bulletColor,
           vel,
@@ -627,8 +666,8 @@ export class AbilityBoss extends Boss {
         ability.trigger(
           this,
           ability,
-          game.entities.player.value.x,
-          game.entities.player.value.y
+          game.entities.player.value.pos.x,
+          game.entities.player.value.pos.y
         );
         ability.remainingMs = ability.cooldown;
       }
@@ -687,13 +726,27 @@ export class Turret extends Sprite {
 
   shoot() {
     const player = game.entities.player.value;
-    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+    const angle = Math.atan2(
+      player.pos.y - this.pos.y,
+      player.pos.x - this.pos.x
+    );
     const vel = {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
     game.entities.enemyBullets.add(
-      new Bullet(this.x, this.y, 20, 'purple', vel, false, 0, 10, 10, 1.5)
+      new Bullet(
+        this.pos.x,
+        this.pos.y,
+        20,
+        'purple',
+        vel,
+        false,
+        0,
+        10,
+        10,
+        1.5
+      )
     );
   }
 }
@@ -722,11 +775,11 @@ export class BlackHole extends Sprite {
     this.preDraw(lagOffset);
     c.save();
     let grd = c.createRadialGradient(
-      this.renderX,
-      this.renderY,
+      this.renderPos.x,
+      this.renderPos.y,
       this.r * 0.8,
-      this.renderX,
-      this.renderY,
+      this.renderPos.x,
+      this.renderPos.y,
       this.r
     );
     grd.addColorStop(0, 'black');
@@ -739,7 +792,7 @@ export class BlackHole extends Sprite {
     c.fillStyle = grd;
 
     c.beginPath();
-    c.arc(this.renderX, this.renderY, this.r, 0, Math.PI * 2, false);
+    c.arc(this.renderPos.x, this.renderPos.y, this.r, 0, Math.PI * 2, false);
     c.closePath();
     c.fill();
     c.restore();
@@ -756,6 +809,7 @@ export class BlackHole extends Sprite {
 export class Player extends Sprite {
   constructor() {
     super(...arguments);
+    console.log('new player', this.pos);
     this.speed = 0.4;
     this.bulletSpeed = 15;
     this.maxSpeed = 4;
@@ -765,10 +819,7 @@ export class Player extends Sprite {
     this.dashReady = true;
     this.dashDuration = 160;
     this.dashTick = 0;
-    this.dashVelocity = {
-      x: 0,
-      y: 0,
-    };
+    this.dashVelocity = new Vec2(0, 0);
     this.bulletCooldown = 400;
     this.bulletTick = 0;
     this.critChance = 10;
@@ -835,10 +886,7 @@ export class Player extends Sprite {
       this.dashing = true;
       this.dashReady = false;
       triggeredDash = true;
-      this.dashVelocity = {
-        x: 0,
-        y: 0,
-      };
+      this.dashVelocity = new Vec2(0, 0)
     }
     const allowMove = game.settings.player.allowMove.value;
     if (anyDir && allowMove) {
@@ -859,9 +907,7 @@ export class Player extends Sprite {
         if (triggeredDash) this.dashVelocity.y -= this.speed * 3;
       }
     }
-
-    this.vel.x += this.dashVelocity.x;
-    this.vel.y += this.dashVelocity.y;
+    this.vel = this.vel.add(this.dashVelocity);
   }
   update() {
     this.applyGravity();
@@ -869,6 +915,7 @@ export class Player extends Sprite {
     this.applyMaxSpeed();
     this.applyFriction();
     this.enforceMapBoundaries();
+    this.enforceWallCollisions();
     super.update();
     this.updateBullets();
     this.updateAbilities();
@@ -880,10 +927,7 @@ export class Player extends Sprite {
     if (this.dashTick > this.dashDuration) {
       this.dashTick = 0;
       this.dashing = false;
-      this.dashVelocity = {
-        x: 0,
-        y: 0,
-      };
+      this.dashVelocity = new Vec2(0, 0);
     }
     this.dashCooldownMs -= window.animFrameDuration;
     if (this.dashCooldownMs <= 0) {
@@ -947,14 +991,14 @@ export class Player extends Sprite {
   renderDashCooldown() {
     const height = 5;
     const gap = 5;
-    const topOffset = this.renderY - this.r - height - gap;
+    const topOffset = this.renderPos.y - this.r - height - gap;
     //c.restore();
     c.save();
 
     c.fillStyle = 'white';
     c.globalAlpha = 0.1;
     c.beginPath();
-    c.arc(this.x, topOffset, height, 0, Math.PI * 2, false);
+    c.arc(this.pos.x, topOffset, height, 0, Math.PI * 2, false);
     c.fill();
     c.closePath();
     //c.restore();
@@ -969,8 +1013,8 @@ export class Player extends Sprite {
     const rotation = Math.PI / 2;
     const startAngle = offset * Math.PI + rotation;
     const endAngle = Math.PI * 2 + rotation;
-    c.arc(this.renderX, topOffset, height, -startAngle, -endAngle, true);
-    c.arc(this.renderX, topOffset, 0, -startAngle, -endAngle, true);
+    c.arc(this.renderPos.x, topOffset, height, -startAngle, -endAngle, true);
+    c.arc(this.renderPos.x, topOffset, 0, -startAngle, -endAngle, true);
 
     c.fill();
     c.closePath();
@@ -992,15 +1036,15 @@ export class Player extends Sprite {
   }
 
   shootSingleBullet(clientX, clientY) {
-    const angle = Math.atan2(clientY - this.y, clientX - this.x);
+    const angle = Math.atan2(clientY - this.pos.y, clientX - this.pos.x);
     const vel = {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
     game.entities.bullets.add(
       new Bullet(
-        this.x,
-        this.y,
+        this.pos.x,
+        this.pos.y,
         BULLET_SIZE,
         BULLET_COLOR,
         vel,
@@ -1048,14 +1092,14 @@ export class Player extends Sprite {
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
-        this.x,
-        this.y,
+        this.pos.x,
+        this.pos.y,
         clientX,
         clientY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread,
         true
       );
-      const angle = Math.atan2(target.y - this.y, target.x - this.x);
+      const angle = Math.atan2(target.y - this.pos.y, target.x - this.pos.x);
 
       const vel = {
         x: Math.cos(angle) * this.bulletSpeed,
@@ -1063,8 +1107,8 @@ export class Player extends Sprite {
       };
       game.entities.bullets.add(
         new Bullet(
-          this.x,
-          this.y,
+          this.pos.x,
+          this.pos.y,
           BULLET_SIZE,
           BULLET_COLOR,
           vel,
@@ -1081,13 +1125,13 @@ export class Player extends Sprite {
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
-        this.x,
-        this.y,
+        this.pos.x,
+        this.pos.y,
         clientX,
         clientY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread
       );
-      const angle = Math.atan2(target.y - this.y, target.x - this.x);
+      const angle = Math.atan2(target.y - this.pos.y, target.x - this.pos.x);
 
       const vel = {
         x: Math.cos(angle) * this.bulletSpeed,
@@ -1095,8 +1139,8 @@ export class Player extends Sprite {
       };
       game.entities.bullets.add(
         new Bullet(
-          this.x,
-          this.y,
+          this.pos.x,
+          this.pos.y,
           BULLET_SIZE,
           BULLET_COLOR,
           vel,
@@ -1210,14 +1254,13 @@ export class Projectile extends Sprite {
   }
   static handleEnemyCollision(self, e) {
     if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
-    const dist = Math.hypot(self.x - e.x, self.y - e.y);
-    if (dist - e.r - self.r < 1) {
+    if (this.distanceToPlayer() - e.r - self.r < 1) {
       const r = e.r > 0.1 ? e.r : 0.1;
       let numParticles = r * 2;
       if (numParticles > 30) numParticles = 30;
       for (let i = 0; i < numParticles; i++) {
         game.entities.particles.add(
-          new Particle(self.x, self.y, Math.random() * 2, 'darkred', {
+          new Particle(self.pos.x, self.pos.y, Math.random() * 2, 'darkred', {
             x: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
             y: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
           })
@@ -1230,7 +1273,7 @@ export class Projectile extends Sprite {
       const damage = isCrit ? self.damage * self.critMulti : self.damage;
       const mitigatedDamage = damage - damage * e.damageReduction;
       game.entities.damageTexts.add(
-        new DamageText(self.x, self.y, mitigatedDamage, isCrit)
+        new DamageText(self.pos.x, self.pos.y, mitigatedDamage, isCrit)
       );
       if (e.invulnerable) return [true, false];
       return e.takeDamage(mitigatedDamage);
@@ -1285,8 +1328,7 @@ export class Enemy extends Sprite {
     super.update();
     const player = game.entities.player.value;
     if (!this.fixed) {
-      const dist = Math.hypot(this.x - player.x, this.y - player.y);
-      if (dist - player.r - this.r < this.aggroRange) {
+      if (this.distanceToPlayer() - player.r - this.r < this.aggroRange) {
         this.followPlayer();
       }
       if (!this.enteredMap && this.inMap()) this.enteredMap = true;
@@ -1309,7 +1351,7 @@ export class Enemy extends Sprite {
       config?.r ?? Math.random() * (max - Enemy.minSize) + Enemy.minSize;
     if (!coords) coords = randomScreenEdgeCoords(rad);
 
-    const angle = Math.atan2(player.y - coords.y, player.x - coords.x);
+    const angle = Math.atan2(player.pos.y - coords.y, player.pos.x - coords.x);
     const vel = {
       x: Math.cos(angle) * ENEMY_SPEED,
       y: Math.sin(angle) * ENEMY_SPEED,
@@ -1335,13 +1377,18 @@ export class Enemy extends Sprite {
     enemy.cur_frame = 0;
     enemy.cur_image = enemy.cur_image == 0 ? 1 : 0;
     const player = game.entities.player.value;
-    let imgDir = enemy.x > player.x ? enemy.images.left : enemy.images.right;
-    if (player.y + player.r < enemy.y - enemy.r)
+    let imgDir =
+      enemy.pos.x > player.pos.x ? enemy.images.left : enemy.images.right;
+    if (player.pos.y + player.r < enemy.pos.y - enemy.r)
       imgDir =
-        enemy.x > player.x ? enemy.images.up.left : enemy.images.up.right;
-    if (player.y - player.r > enemy.y + enemy.r)
+        enemy.pos.x > player.pos.x
+          ? enemy.images.up.left
+          : enemy.images.up.right;
+    if (player.pos.y - player.r > enemy.pos.y + enemy.r)
       imgDir =
-        enemy.x > player.x ? enemy.images.down.left : enemy.images.down.right;
+        enemy.pos.x > player.pos.x
+          ? enemy.images.down.left
+          : enemy.images.down.right;
     enemy.image = document.getElementById(imgDir[enemy.cur_image]);
   }
 
@@ -1371,7 +1418,6 @@ export class Item extends Sprite {
     super(...arguments);
     this.itemType = null;
     this.itemLife = 100;
-    this.angle = 0;
     this.i = 0;
   }
 
@@ -1392,9 +1438,10 @@ export class Item extends Sprite {
   }
 
   update() {
-    this.angle = 0.03 * this.i;
-    this.x = this.x + this.angle * Math.cos(this.angle);
-    this.y = this.y + this.angle * Math.sin(this.angle);
+    const angle = 0.03 * this.i;
+    this.pos = this.pos.add(
+      new Vec2(angle * Math.cos(angle), angle * Math.sin(angle))
+    );
     this.i++;
   }
 }
@@ -1447,12 +1494,9 @@ export class BonusSet {
 
 export class DamageText {
   constructor(x, y, damage, isCrit) {
-    this.x = x;
-    this.oldX = x;
-    this.renderX = x;
-    this.y = y;
-    this.oldY = y;
-    this.renderY = y;
+    this.pos = new Vec2(x, y);
+    this.oldPos = new Vec2(x, y);
+    this.renderPos = new Vec2(x, y);
 
     this.damage = Math.floor(damage);
     this.isCrit = isCrit;
@@ -1463,12 +1507,12 @@ export class DamageText {
     this.alpha -= 0.05;
   }
   preDraw(lagOffset) {
-    this.renderX = (this.x - this.oldX) * lagOffset + this.oldX;
-    this.renderY = (this.y - this.oldY) * lagOffset + this.oldY;
+    this.renderPos.x = (this.pos.x - this.oldPos.x) * lagOffset + this.oldPos.x;
+    this.renderPos.y = (this.pos.y - this.oldPos.y) * lagOffset + this.oldPos.y;
   }
   postDraw() {
-    this.oldX = this.x;
-    this.oldY = this.y;
+    this.oldPos.x = this.pos.x;
+    this.oldPos.y = this.pos.y;
   }
   draw(lagOffset) {
     this.preDraw(lagOffset);
@@ -1478,7 +1522,7 @@ export class DamageText {
     //c.strokeStyle = 'black';
     c.fillStyle = 'gold';
     //if (this.isCrit) c.fillStyle = 'orangered';
-    c.fillText(this.damage.toString(), this.renderX, this.renderY);
+    c.fillText(this.damage.toString(), this.renderPos.x, this.renderPos.y);
     //c.strokeText(this.dmg.toString(), this.x, this.y);
     c.restore();
     this.postDraw();
@@ -1499,7 +1543,14 @@ export class Ability extends Sprite {
     if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
     if (this.shapeType == 'square') {
       const angle = radiansToDeg(this.angle);
-      const rotatedEnemyCoords = rotate(this.x, this.y, e.x, e.y, angle, true);
+      const rotatedEnemyCoords = rotate(
+        this.pos.x,
+        this.pos.y,
+        e.pos.x,
+        e.pos.y,
+        angle,
+        true
+      );
       const projectedEnemy = {
         x: rotatedEnemyCoords.x,
         y: rotatedEnemyCoords.y,
@@ -1515,7 +1566,7 @@ export class Ability extends Sprite {
         const damage = isCrit ? this.damage * this.critMulti : this.damage;
         const mitigatedDamage = damage - damage * e.damageReduction;
         game.entities.damageTexts.add(
-          new DamageText(e.x, e.y, mitigatedDamage, isCrit)
+          new DamageText(e.pos.x, e.pos.y, mitigatedDamage, isCrit)
         );
         if (e.invulnerable) return [true, false];
         if (!e.takeDamage) {
@@ -1552,7 +1603,8 @@ export class Kamehameha extends Ability {
     this.h = 5;
     this.w = this.r;
     this.angle =
-      Math.PI / 2 + Math.atan2(this.y - this.targetY, this.x - this.targetX);
+      Math.PI / 2 +
+      Math.atan2(this.pos.y - this.pos.targetY, this.pos.x - this.targetX);
     this.shapeType = 'square';
     this.owner = owner;
     this.cachedOwner = owner;
@@ -1572,7 +1624,7 @@ export class Kamehameha extends Ability {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    c.translate(this.x, this.y);
+    c.translate(this.renderPos.x, this.renderPos.y);
     c.rotate(this.angle);
     c.beginPath();
     c.shadowColor = this.color;
@@ -1637,7 +1689,8 @@ export class Slash extends Ability {
     this.h = this.r;
     this.w = 13;
     this.angle =
-      Math.PI + Math.atan2(this.y - this.targetY, this.x - this.targetX);
+      Math.PI +
+      Math.atan2(this.pos.y - this.targetY, this.pos.x - this.targetX);
     this.shapeType = 'square';
     this.owner = owner;
     this.cachedOwner = owner;
@@ -1645,8 +1698,8 @@ export class Slash extends Ability {
 
   update() {
     if (this.owner) this.cachedOwner = this.owner;
-    this.x = this.cachedOwner.x;
-    this.y = this.cachedOwner.y;
+    this.pos.x = this.cachedOwner.pos.x;
+    this.pos.y = this.cachedOwner.pos.y;
     this.angle -= Math.PI / this.totalFrames;
     this.remainingFrames -= 1;
   }
@@ -1654,7 +1707,7 @@ export class Slash extends Ability {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    c.translate(this.x, this.y);
+    c.translate(this.renderPos.x, this.renderPos.y);
     c.rotate(this.angle);
     c.shadowColor = this.color;
     c.shadowBlur = 10;
@@ -1694,14 +1747,13 @@ export class Vortex extends Ability {
     if (this.owner) this.cachedOwner = this.owner;
     super.update();
     const { x, y } = rotate(
-      this.cachedOwner.x,
-      this.cachedOwner.y,
-      this.cachedOwner.x + this.offset,
-      this.cachedOwner.y + this.offset,
+      this.cachedOwner.renderPos.x,
+      this.cachedOwner.renderPos.y,
+      this.cachedOwner.renderPos.x + this.offset,
+      this.cachedOwner.renderPos.y + this.offset,
       this.angle
     );
-    this.x = x;
-    this.y = y;
+    this.pos = new Vec2(x, y);
     this.angle += 4;
     if (this.offset <= 50) this.offset++;
   }
@@ -1745,11 +1797,11 @@ export class Boomerang extends Ability {
     this.setDirection();
   }
   setDirection() {
-    const angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
-    this.vel = {
-      x: Math.cos(angle) * this.speed,
-      y: Math.sin(angle) * this.speed,
-    };
+    const angle = Math.atan2(
+      this.targetY - this.pos.y,
+      this.targetX - this.pos.x
+    );
+    this.vel = new Vec2(Math.cos(angle) * speedMod, Math.sin(angle) * speedMod);
   }
   update() {
     if (this.owner) this.cachedOwner = { ...this.owner };
@@ -1758,11 +1810,14 @@ export class Boomerang extends Ability {
       this.targetY = this.cachedOwner.y;
       this.followTarget({ x: this.targetX, y: this.targetY });
     }
-    const dist = this.distToTarget({ x: this.targetX, y: this.targetY });
 
     if (!this.reachedTarget && this.distance >= this.maxDistance) {
       this.reachedTarget = true;
-    } else if (this.reachedTarget && dist <= this.cachedOwner.r) {
+    } else if (
+      this.reachedTarget &&
+      this.distToTarget({ x: this.targetX, y: this.targetY }) <=
+        this.cachedOwner.r
+    ) {
       this.remove = true;
     }
 
@@ -1773,7 +1828,7 @@ export class Boomerang extends Ability {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    c.translate(this.x, this.y);
+    c.translate(this.renderPos.x, this.renderPos.y);
     c.rotate(this.angle);
     c.shadowColor = this.color;
     c.shadowBlur = 10;
@@ -1781,6 +1836,7 @@ export class Boomerang extends Ability {
     c.rect(-this.w / 2, -this.h / 2, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
+    c.closePath();
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.restore();
     this.postDraw();
@@ -1830,3 +1886,85 @@ export class LightningBeam extends Ability {
     c.restore();
   }
 }
+
+export class Wall {
+  constructor(pos, w, h) {
+    this.pos = pos ?? randomCoords(200);
+    this.w = w ?? 200;
+    this.h = h ?? 100;
+    this.color = 'blue';
+  }
+  draw() {
+    c.save();
+    c.beginPath();
+    c.rect(this.pos.x, this.pos.y, this.w, this.h);
+    c.fillStyle = this.color;
+    c.fill();
+    c.closePath();
+    c.restore();
+  }
+}
+
+export class Vec2 {
+  constructor(x, y) {
+    this.x = x || 0;
+    this.y = y || 0;
+  }
+
+  distance(v) {
+    let x = v.x - this.x;
+    let y = v.y - this.y;
+
+    return Math.sqrt(x * x + y * y);
+  }
+
+  magnitude() {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  }
+
+  dot(v) {
+    return this.x * v.x + this.y * v.y;
+  }
+
+  normalize() {
+    let magnitude = this.magnitude();
+
+    return new Vec2(this.x / magnitude, this.y / magnitude);
+  }
+
+  multiply(val) {
+    return typeof val === 'number'
+      ? new Vec2(this.x * val, this.y * val)
+      : new Vec2(this.x * val.x, this.y * val.y);
+  }
+
+  subtract(val) {
+    return typeof val === 'number'
+      ? new Vec2(this.x - val, this.y - val)
+      : new Vec2(this.x - val.x, this.y - val.y);
+  }
+
+  add(val) {
+    return typeof val === 'number'
+      ? new Vec2(this.x + val, this.y + val)
+      : new Vec2(this.x + val.x, this.y + val.y);
+  }
+
+  crossProductZ(v) {
+    return this.x * v.y - v.x * this.y;
+  }
+
+  perpendicular() {
+    return new Vec2(this.y, -this.x);
+  }
+  rotate(angle) {
+    let tmp = new Vec2(0, 0);
+    let cosAngle = Math.cos(angle);
+    let sinAngle = Math.sin(angle);
+    tmp.x = this.x * cosAngle - this.y * sinAngle;
+    tmp.y = this.x * sinAngle + this.y * cosAngle;
+
+    return tmp;
+  }
+}
+//http://infochim.u-strasbg.fr/cgi-bin/libs/smilesDrawer-master/doc/Vector2.js.html

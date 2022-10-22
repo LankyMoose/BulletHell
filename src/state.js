@@ -7,7 +7,7 @@ class GameState {
   static #defaults = {
     score: () => 0,
     animId: () => null,
-    allowEnemySpawn: () => true,
+    allowEnemySpawn: () => false,
     allowPlayerShoot: () => true,
     playerDashTime: () => 2000,
     allowAbilities: () => true,
@@ -23,6 +23,7 @@ class GameState {
       items: () => [],
       turrets: () => [],
       damageTexts: () => [],
+      walls: () => [],
       player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
       // player: () =>
       //   Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
@@ -230,6 +231,17 @@ class GameState {
       },
       reset: () =>
         (this.entities.turrets.value = GameState.#defaults.entities.turrets()),
+    },
+    walls: {
+      value: GameState.#defaults.entities.walls(),
+      add: (evt) => this.entities.walls.value.push(evt),
+      remove: (indxArray) => {
+        this.entities.walls.value = this.entities.walls.value.filter(
+          (_, i) => indxArray.indexOf(i) == -1
+        );
+      },
+      reset: () =>
+        (this.entities.walls.value = GameState.#defaults.walls.turrets()),
     },
   };
   score = {

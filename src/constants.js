@@ -61,7 +61,7 @@ export const FRICTION = 0.97;
 export const BULLET_COLOR = 'rgba(255,255,255,.75)';
 export const BULLET_SIZE = 5;
 export const ENEMY_SPEED = 0.6;
-export const DEBUG_ENABLED = false;
+export const DEBUG_ENABLED = true;
 export const MAX_LEVEL = Infinity;
 //export const FONT = 'sans-serif'
 export const FONT = 'monospace';
@@ -433,9 +433,7 @@ export const ITEM_TYPES = [
     size: 22,
     damage: 3,
     trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(
-        new Kamehameha(player.x, player.y, self, cx, cy, player)
-      );
+      game.entities.abilityEffects.add(new Kamehameha(player, self, cx, cy));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -455,9 +453,7 @@ export const ITEM_TYPES = [
     size: 50,
     damage: 10,
     trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(
-        new SolarFlare(player.x, player.y, self, player)
-      );
+      game.entities.abilityEffects.add(new SolarFlare(player, self));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -477,9 +473,7 @@ export const ITEM_TYPES = [
     size: 100,
     damage: 10,
     trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(
-        new Slash(player.x, player.y, self, { x: 0, y: 0 }, cx, cy, player)
-      );
+      game.entities.abilityEffects.add(new Slash(player, self, cx, cy));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -504,9 +498,7 @@ export const ITEM_TYPES = [
         game.entities.abilityEffects.value.filter((ae) => ae.name == 'Vortex')
           .length < self.maxInstances
       )
-        game.entities.abilityEffects.add(
-          new Vortex(player.x, player.y, self, player)
-        );
+        game.entities.abilityEffects.add(new Vortex(player, self));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -528,9 +520,7 @@ export const ITEM_TYPES = [
     damage: 2,
     maxDistance: 300,
     trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(
-        new Boomerang(player.x, player.y, self, { x: 0, y: 0 }, cx, cy, player)
-      );
+      game.entities.abilityEffects.add(new Boomerang(player, self, cx, cy));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -555,9 +545,7 @@ export const BOSS_ITEMS = [
     size: 22,
     damage: 1,
     trigger: (boss, self, cx, cy) => {
-      game.entities.enemyAbilityEffects.add(
-        new Kamehameha(boss.x, boss.y, self, cx, cy, boss)
-      );
+      game.entities.enemyAbilityEffects.add(new Kamehameha(boss, self, cx, cy));
     },
     onAdded: (bonus) => {},
   },
