@@ -1,7 +1,8 @@
 'use strict';
 import { Player } from './lib';
-import { x, y, BONUS_TYPES, EVENT_TYPES } from './constants';
+import { x, y, BONUS_TYPES, EVENT_TYPES, HTML } from './constants';
 import { getRandomIndexByWeight } from './util';
+import { showLevelUpScreen } from './game';
 
 class GameState {
   static #defaults = {
@@ -96,11 +97,9 @@ class GameState {
     value: GameState.#defaults.bonuses(),
     add: (bonus) => this.bonuses.value.push(bonus),
     remove: (bonus) => {
-      for (let i = 0; i < this.bonuses.value.length; i++) {
-        if (this.bonuses.value[i].name == bonus.name) {
-          this.bonuses.value.splice(i, 1);
-        }
-      }
+      this.bonuses.value = this.bonuses.value.filter(
+        (b) => b.name != bonus.name
+      );
     },
     reset: () => (this.bonuses = GameState.#defaults.bonuses()),
   };
@@ -129,20 +128,27 @@ class GameState {
 }
 
 class EntityStore {
-  constructor() {
-    this.value = [];
+  _length = 0;
+  value = [];
+  constructor() {}
+  get length() {
+    return this._length;
   }
+
   add(e) {
     this.value.push(e);
+    this._length++;
   }
   reset() {
     this.value = [];
+    this._length = 0;
   }
   removeFlagged() {
     this.value = this.value.filter((e) => !e.removed);
+    this._length = this.value.length;
   }
   update() {
-    for (let i = 0; i < this.value.length; i++) {
+    for (let i = 0; i < this._length; i++) {
       this.value[i].update();
     }
     this.removeFlagged();
@@ -158,6 +164,35 @@ class EventStore extends EntityStore {
     );
     const evtIndex = getRandomIndexByWeight(filteredEvents);
     return filteredEvents[evtIndex];
+  }
+
+  update() {
+    for (let i = 0; i < this._length; i++) {
+      const evt = this.value[i];
+      if (!evt) throw new Error('trying to execute non-existing event');
+      if (evt.activations == 0 && evt.remainingMs <= 0) {
+        if (evt.onExit) {
+          for (const fn of evt.onExit) {
+            fn();
+          }
+        }
+        evt.removed = true;
+        if (evt.type == 'boss')
+          game.nextFrameActionQueue.add(() => {
+            HTML.levelUpHeadingEl.textContent = '';
+            showLevelUpScreen();
+          });
+        continue;
+      }
+      evt.remainingMs -= window.animFrameDuration;
+
+      if (evt.remainingMs <= 0 && evt.activations > 0) {
+        evt.functions.forEach((f) => f(evt));
+        if (evt.activations > 0) evt.remainingMs = evt.cooldown;
+        evt.activations -= 1;
+      }
+    }
+    this.removeFlagged();
   }
 }
 

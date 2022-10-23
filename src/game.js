@@ -89,8 +89,8 @@ function update() {
 
   game.entities.bullets.update();
 
-  const ebLength = game.entities.enemyBullets.value.length;
-  for (let i = 0; i < ebLength; i++) {
+  const ebLen = game.entities.enemyBullets.length;
+  for (let i = 0; i < ebLen; i++) {
     const b = game.entities.enemyBullets.value[i];
     b.update();
     if (!player.invulnerable) {
@@ -101,8 +101,8 @@ function update() {
   }
   game.entities.enemyBullets.removeFlagged();
 
-  const eaeLength = game.entities.enemyAbilityEffects.value.length;
-  for (let i = 0; i < eaeLength; i++) {
+  const eaeLen = game.entities.enemyAbilityEffects.length;
+  for (let i = 0; i < eaeLen; i++) {
     const eae = game.entities.enemyAbilityEffects.value[i];
     eae.update();
     const [hit, kill] = eae.handleEnemyCollision(player);
@@ -111,10 +111,10 @@ function update() {
   }
   game.entities.enemyAbilityEffects.removeFlagged();
 
-  const eLength = game.entities.enemies.value.length;
-  let aeLength = game.entities.abilityEffects.value.length;
-  let bLength = game.entities.bullets.value.length;
-  for (let i = 0; i < eLength; i++) {
+  const eLen = game.entities.enemies.length;
+  let aeLen = game.entities.abilityEffects.length;
+  let bLen = game.entities.bullets.length;
+  for (let i = 0; i < eLen; i++) {
     const e = game.entities.enemies.value[i];
     e.update();
     const [hit, playerKilled] = Projectile.handleEnemyCollision(
@@ -128,7 +128,7 @@ function update() {
       player.vel.y += e.vel.y * 3;
     }
 
-    for (let j = 0; j < bLength; j++) {
+    for (let j = 0; j < bLen; j++) {
       const b = game.entities.bullets.value[j];
       const [hit, kill] = b.handleEnemyCollision(e);
       e.removed = kill;
@@ -140,7 +140,7 @@ function update() {
       if (e.removed) break;
     }
     if (!e.removed) {
-      for (let j = 0; j < aeLength; j++) {
+      for (let j = 0; j < aeLen; j++) {
         const ae = game.entities.abilityEffects.value[j];
         const [hit, kill] = ae.handleEnemyCollision(e);
         if (kill) e.removed = true;
@@ -162,12 +162,12 @@ function update() {
   game.entities.enemies.removeFlagged();
 
   game.entities.turrets.update();
-  const tLength = game.entities.turrets.value.length;
-  bLength = game.entities.bullets.value.length;
-  aeLength = game.entities.abilityEffects.value.length;
-  for (let i = 0; i < tLength; i++) {
+  const tLen = game.entities.turrets.length;
+  bLen = game.entities.bullets.length;
+  aeLen = game.entities.abilityEffects.length;
+  for (let i = 0; i < tLen; i++) {
     const t = game.entities.turrets.value[i];
-    for (let j = 0; j < bLength; j++) {
+    for (let j = 0; j < bLen; j++) {
       const b = game.entities.bullets.value[j];
       const [hit, kill] = b.handleEnemyCollision(t);
       t.removed = kill;
@@ -175,7 +175,7 @@ function update() {
       if (t.removed) break;
     }
     if (!t.removed) {
-      for (let j = 0; j < aeLength; j++) {
+      for (let j = 0; j < aeLen; j++) {
         const ae = game.entities.abilityEffects.value[j];
         const [hit, kill] = ae.handleEnemyCollision(t);
         if (kill) t.removed = true;
@@ -187,8 +187,8 @@ function update() {
   game.entities.turrets.removeFlagged();
   game.entities.particles.update();
 
-  const iLength = game.entities.items.value.length;
-  for (let i = 0; i < iLength; i++) {
+  const iLen = game.entities.items.length;
+  for (let i = 0; i < iLen; i++) {
     const item = game.entities.items.value[i];
     if (item.distanceToPlayer() - item.r - player.r < 1) {
       player.items.push({ ...item.itemType });
@@ -203,34 +203,7 @@ function update() {
   }
   game.entities.items.removeFlagged();
   game.entities.abilityEffects.update();
-
-  const evtLength = game.entities.events.value.length;
-  for (let i = 0; i < evtLength; i++) {
-    const evt = game.entities.events.value[i];
-    if (!evt) throw new Error('trying to execute non-existing event');
-    if (evt.activations == 0 && evt.remainingMs <= 0) {
-      if (evt.onExit) {
-        for (const fn of evt.onExit) {
-          fn();
-        }
-      }
-      evt.removed = true;
-      if (evt.type == 'boss')
-        game.nextFrameActionQueue.add(() => {
-          HTML.levelUpHeadingEl.textContent = '';
-          showLevelUpScreen();
-        });
-      continue;
-    }
-    evt.remainingMs -= window.animFrameDuration;
-
-    if (evt.remainingMs <= 0 && evt.activations > 0) {
-      evt.functions.forEach((f) => f(evt));
-      if (evt.activations > 0) evt.remainingMs = evt.cooldown;
-      evt.activations -= 1;
-    }
-  }
-  game.entities.events.removeFlagged();
+  game.entities.events.update();
   game.entities.damageTexts.update();
 }
 
@@ -340,7 +313,7 @@ function handleProgression() {
   if (
     !DEBUG_ENABLED &&
     player.kills % 10 == 0 &&
-    game.entities.items.value.length <= 2
+    game.entities.items.length <= 2
   ) {
     Item.spawn();
   }
@@ -461,7 +434,7 @@ function hideLevelUpScreen() {
   resumeGame();
   musicPlayer.resetLowPass();
 }
-function showLevelUpScreen() {
+export function showLevelUpScreen() {
   pauseGame();
   musicPlayer.setLowPass(320);
   levelUpScreenShowing = true;
@@ -642,7 +615,7 @@ addEventListener('resize', () => {
     ...enemies.value,
     ...bullets.value,
     ...abilityEffects.value,
-    ...player.value,
+    player.value,
   ].forEach((el) => {
     el.pos.x += x - old.x;
     el.pos.y += y - old.y;
