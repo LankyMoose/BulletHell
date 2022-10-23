@@ -1320,6 +1320,7 @@ export class Projectile extends Sprite {
   }
   static handleEnemyCollision(self, e, vfxOnEnemy = false) {
     if (self.pos.distance(e.pos) - e.r - self.r < 1) {
+      if (e.invulnerable) return [true, false];
       const r = e.r > 0.1 ? e.r : 0.1;
       let numParticles = r * 2;
       if (numParticles > 30) numParticles = 30;
@@ -1345,7 +1346,6 @@ export class Projectile extends Sprite {
       game.entities.damageTexts.add(
         new DamageText(vfxOnEnemy ? e.pos : self.pos, mitigatedDamage, isCrit)
       );
-      if (e.invulnerable) return [true, false];
       return e.takeDamage(mitigatedDamage);
     }
     return [false, false];
@@ -1736,6 +1736,7 @@ export class Ability extends Sprite {
         console.error(this.name, error);
       }
       if (isColliding) {
+        if (e.invulnerable) return [true, false];
         if (DEBUG_ENABLED) this.color = 'red';
         let isCrit = false;
         if (this.critChance > 0) {
@@ -1746,7 +1747,7 @@ export class Ability extends Sprite {
         game.entities.damageTexts.add(
           new DamageText(e.pos, mitigatedDamage, isCrit)
         );
-        if (e.invulnerable) return [true, false];
+
         if (!e.takeDamage) {
           console.error('attempting to call takeDamage() on invalid entity', e);
           throw new Error('attempting to call takeDamage() on invalid entity');
