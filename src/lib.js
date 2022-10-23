@@ -29,9 +29,6 @@ import {
   radiansToDeg,
   rectCircleCollision,
   randomAreaCoords,
-  degreesToRad,
-  circleRectangleCollision,
-  getCircleRectangleDisplacement,
   collisionDetection,
 } from './util.js';
 
@@ -57,12 +54,15 @@ export class Sprite {
     this.alpha = 1;
     this.vel = vel ? new Vec2(vel.x, vel.y) : undefined;
     this.fixed = false;
+    this.shapeType = 'circle';
     this.renderGlow = renderGlow;
     this.glowSize = glowSize;
     this.glowColor = null;
     this.invulnerable = false;
     this.shadow_length = canvas.width;
     this.appliesLighting = false;
+    this.collideBoundary = false;
+    this.collideWalls = false;
   }
 
   preDraw(lagOffset) {
@@ -129,29 +129,37 @@ export class Sprite {
     if (this.appliesLighting) this.applyLighting();
     this.updatePosition();
     this.applyGlobalScale();
+    if (this.collideWalls) this.enforceWallCollisions();
+    if (this.collideBoundary) this.enforceMapBoundaries();
   }
 
   enforceMapBoundaries() {
+    let collisionCount = 0;
     if (this.pos.x - this.r < 0) {
       this.pos.x = this.r;
       this.vel.x *= -1;
+      collisionCount++;
     }
     if (this.pos.x + this.r > canvas.width) {
       this.pos.x = canvas.width - this.r;
       this.vel.x *= -1;
+      collisionCount++;
     }
     if (this.pos.y - this.r < 0) {
       this.pos.y = this.r;
       this.vel.y *= -1;
+      collisionCount++;
     }
     if (this.pos.y + this.r > canvas.height) {
       this.pos.y = canvas.height - this.r;
       this.vel.y *= -1;
+      collisionCount++;
     }
+    return collisionCount;
   }
   enforceWallCollisions() {
     //https://stackoverflow.com/questions/45370692/circle-rectangle-collision-response
-
+    let collisionCount = 0;
     for (const wall of game.entities.walls.value) {
       if (collisionDetection(this, wall)) {
         const NearestX = Math.max(
@@ -170,10 +178,10 @@ export class Sprite {
         const incoming_angle = Math.atan2(this.vel.y, this.vel.x);
         const theta = normal_angle - incoming_angle;
         this.vel = this.vel.rotate(2 * theta);
-        //circleRectangleCollision(this, wall);
-        //this.vel = getCircleRectangleDisplacement(this, wall);
+        collisionCount++;
       }
     }
+    return collisionCount;
   }
 
   inMap(dist = 0) {
@@ -189,40 +197,60 @@ export class Sprite {
     const player = game.entities.player.value;
     let speedMod = this.speed + player.level * 0.1;
     if (speedMod <= 1) speedMod = 1;
-    const angle = Math.atan2(player.y - this.pos.y, player.pos.x - this.pos.x);
+    const angle = Math.atan2(
+      player.pos.y - this.pos.y,
+      player.pos.x - this.pos.x
+    );
     this.vel = new Vec2(Math.cos(angle) * speedMod, Math.sin(angle) * speedMod);
   }
 
   followTarget(v2) {
     const angle = Math.atan2(v2.y - this.pos.y, v2.x - this.pos.x);
-    this.vel = new Vec2(Math.cos(angle) * speedMod, Math.sin(angle) * speedMod);
+    this.vel = new Vec2(
+      Math.cos(angle) * this.speed,
+      Math.sin(angle) * this.speed
+    );
   }
 
   getDots() {
+    if (this.shapeType == 'square') {
+      return {
+        p1: {
+          x: this.pos.x,
+          y: this.pos.y,
+        },
+        p2: {
+          x: this.pos.x + this.w,
+          y: this.pos.y,
+        },
+        p3: {
+          x: this.pos.x + this.w,
+          y: this.pos.y + this.h,
+        },
+        p4: {
+          x: this.pos.x,
+          y: this.pos.y + this.h,
+        },
+      };
+    }
     const full = (Math.PI * 2) / 4;
-
-    const p1 = {
-      x: this.pos.x + this.r * Math.sin(this.r),
-      y: this.pos.y + this.r * Math.cos(this.r),
-    };
-    const p2 = {
-      x: this.pos.x + this.r * Math.sin(this.r + full),
-      y: this.pos.y + this.r * Math.cos(this.r + full),
-    };
-    const p3 = {
-      x: this.pos.x + this.r * Math.sin(this.r + full * 2),
-      y: this.pos.y + this.r * Math.cos(this.r + full * 2),
-    };
-    const p4 = {
-      x: this.pos.x + this.r * Math.sin(this.r + full * 3),
-      y: this.pos.y + this.r * Math.cos(this.r + full * 3),
-    };
-
     return {
-      p1,
-      p2,
-      p3,
-      p4,
+      p1: {
+        x: this.pos.x + this.r * Math.sin(this.r),
+        y: this.pos.y + this.r * Math.cos(this.r),
+      },
+      p2: {
+        x: this.pos.x + this.r * Math.sin(this.r + full),
+        y: this.pos.y + this.r * Math.cos(this.r + full),
+      },
+      p3: {
+        x: this.pos.x + this.r * Math.sin(this.r + full * 2),
+        y: this.pos.y + this.r * Math.cos(this.r + full * 2),
+      },
+      p4: {
+        x: this.pos.x + this.r * Math.sin(this.r + full * 3),
+        y: this.pos.y + this.r * Math.cos(this.r + full * 3),
+      },
     };
   }
   drawShadow() {
@@ -578,10 +606,7 @@ export class AbilityBoss extends Boss {
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread,
         true
       );
-      const angle = Math.atan2(
-        target.pos.y - this.pos.y,
-        target.pos.x - this.pos.x
-      );
+      const angle = Math.atan2(target.y - this.pos.y, target.x - this.pos.x);
 
       const vel = {
         x: Math.cos(angle) * this.bulletSpeed,
@@ -633,10 +658,7 @@ export class AbilityBoss extends Boss {
         targetY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread
       );
-      const angle = Math.atan2(
-        target.pos.y - this.pos.y,
-        target.pos.x - this.pos.x
-      );
+      const angle = Math.atan2(target.y - this.pos.y, target.x - this.pos.x);
 
       const vel = {
         x: Math.cos(angle) * this.bulletSpeed,
@@ -770,6 +792,7 @@ export class BlackHole extends Sprite {
     if (this.r < 0) this.r = 0.01;
     this.pullForce += this.remainingFrames / this.totalFrames / 5;
     this.remainingFrames -= 1;
+    if (this.remainingFrames <= 0) this.removed = true;
   }
   draw(lagOffset) {
     this.preDraw(lagOffset);
@@ -848,6 +871,9 @@ export class Player extends Sprite {
     this.damage = 10;
     this.damageReduction = 0.1;
     this.lightRadius = 500;
+    this.collideWalls = true;
+    this.collideBoundary = true;
+    this.bulletBounce = 0;
   }
   applyMaxSpeed() {
     if (!game.settings.player.applyMaxSpeed.value) return;
@@ -914,8 +940,6 @@ export class Player extends Sprite {
     this.applyVelocity();
     this.applyMaxSpeed();
     this.applyFriction();
-    this.enforceMapBoundaries();
-    this.enforceWallCollisions();
     super.update();
     this.updateBullets();
     this.updateAbilities();
@@ -1035,12 +1059,13 @@ export class Player extends Sprite {
     c.restore();
   }
 
-  shootSingleBullet(clientX, clientY) {
+  shootSingleBullet(clientX, clientY, bounces) {
     const angle = Math.atan2(clientY - this.pos.y, clientX - this.pos.x);
     const vel = {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
     };
+
     game.entities.bullets.add(
       new Bullet(
         this.pos.x,
@@ -1052,36 +1077,13 @@ export class Player extends Sprite {
         0,
         this.damage,
         this.critChance,
-        this.critMulti
+        this.critMulti,
+        bounces
       )
     );
   }
 
-  shootMultipleBullets(clientX, clientY) {
-    let bulletCount = 1;
-    const itemsToRemove = [];
-    for (let i = 0; i < this.items.length; i++) {
-      const item = this.items[i];
-      if (
-        !item.modifiers ||
-        !item.modifiers.some((m) => m.key == 'bulletsFired')
-      )
-        continue;
-
-      item.modifiers.forEach((b) => {
-        bulletCount += b.amount;
-      });
-      if (!item.permanent) {
-        item.duration--;
-        if (item.duration <= 0) {
-          itemsToRemove.push(i);
-        }
-      }
-    }
-    this.items = this.items.filter((_, i) => {
-      return itemsToRemove.indexOf(i) == -1;
-    });
-
+  shootMultipleBullets(clientX, clientY, bulletCount, bounces) {
     let bulletSpread = 10;
     if (360 / bulletCount < 10) {
       bulletSpread = 360 / bulletCount;
@@ -1099,29 +1101,10 @@ export class Player extends Sprite {
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread,
         true
       );
-      const angle = Math.atan2(target.y - this.pos.y, target.x - this.pos.x);
-
-      const vel = {
-        x: Math.cos(angle) * this.bulletSpeed,
-        y: Math.sin(angle) * this.bulletSpeed,
-      };
-      game.entities.bullets.add(
-        new Bullet(
-          this.pos.x,
-          this.pos.y,
-          BULLET_SIZE,
-          BULLET_COLOR,
-          vel,
-          false,
-          0,
-          this.damage,
-          this.critChance,
-          this.critMulti
-        )
-      );
+      this.shootSingleBullet(target.x, target.y, bounces);
     }
 
-    if (bulletCount % 2 == 1) this.shootSingleBullet(clientX, clientY);
+    if (bulletCount % 2 == 1) this.shootSingleBullet(clientX, clientY, bounces);
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
@@ -1131,26 +1114,7 @@ export class Player extends Sprite {
         clientY,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread
       );
-      const angle = Math.atan2(target.y - this.pos.y, target.x - this.pos.x);
-
-      const vel = {
-        x: Math.cos(angle) * this.bulletSpeed,
-        y: Math.sin(angle) * this.bulletSpeed,
-      };
-      game.entities.bullets.add(
-        new Bullet(
-          this.pos.x,
-          this.pos.y,
-          BULLET_SIZE,
-          BULLET_COLOR,
-          vel,
-          false,
-          0,
-          this.damage,
-          this.critChance,
-          this.critMulti
-        )
-      );
+      this.shootSingleBullet(target.x, target.y, bounces);
     }
   }
   updateBullets() {
@@ -1165,13 +1129,44 @@ export class Player extends Sprite {
 
     const { clientX, clientY } = this.lastMouseMove;
 
-    const bulletMods = this.items.filter(
-      (i) => i.modifiers && i.modifiers.some((m) => m.key == 'bulletsFired')
-    );
-    if (!bulletMods.length) {
-      this.shootSingleBullet(clientX, clientY);
+    const itemsToRemove = [];
+    let bounces = 0;
+    let bulletCount = 1;
+    for (let i = 0; i < this.items.length; i++) {
+      const item = this.items[i];
+      if (item.modifiers && item.modifiers.some((m) => m.key == 'bulletsFired'))
+        bulletCount += item.modifiers
+          .filter((m) => m.key == 'bulletsFired')
+          .map((m) => m.amount)
+          .reduce((a, b) => a + b, 0);
+
+      if (
+        item.modifiers &&
+        item.modifiers.some((m) => m.key == 'bulletBounce')
+      ) {
+        bounces += item.modifiers
+          .filter((m) => m.key == 'bulletBounce')
+          .map((m) => m.amount)
+          .reduce((a, b) => a + b, 0);
+      }
+
+      if (!item.permanent) {
+        item.duration--;
+        if (item.duration <= 0) {
+          itemsToRemove.push(i);
+        }
+      }
+    }
+
+    if (itemsToRemove.length > 0)
+      this.items = this.items.filter((_, i) => {
+        return itemsToRemove.indexOf(i) == -1;
+      });
+
+    if (bulletCount == 1) {
+      this.shootSingleBullet(clientX, clientY, bounces);
     } else {
-      this.shootMultipleBullets(clientX, clientY);
+      this.shootMultipleBullets(clientX, clientY, bulletCount, bounces);
     }
   }
   onKill() {
@@ -1240,7 +1235,8 @@ export class Projectile extends Sprite {
     glowSize,
     damage,
     critChance,
-    critMulti
+    critMulti,
+    bounces
   ) {
     super(x, y, r, color, vel, renderGlow, glowSize);
     this.damage = damage;
@@ -1248,13 +1244,14 @@ export class Projectile extends Sprite {
     this.critMulti = critMulti;
     this.appliesLighting = true;
     this.applyLighting();
+    this.bounces = bounces;
   }
   handleEnemyCollision(e) {
     return Projectile.handleEnemyCollision(this, e);
   }
   static handleEnemyCollision(self, e) {
     if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
-    if (this.distanceToPlayer() - e.r - self.r < 1) {
+    if (self.pos.distance(e.pos) - e.r - self.r < 1) {
       const r = e.r > 0.1 ? e.r : 0.1;
       let numParticles = r * 2;
       if (numParticles > 30) numParticles = 30;
@@ -1281,15 +1278,30 @@ export class Projectile extends Sprite {
     return [false, false];
   }
   update() {
+    this.collideBoundary = this.bounces > 0;
+    this.collideWalls = this.bounces > 0;
+
     this.applyGravity();
-    super.update();
+    this.applyLighting();
+    this.updatePosition();
+    this.applyGlobalScale();
+
+    let bounceCount = 0;
+    if (this.collideWalls) bounceCount += this.enforceWallCollisions();
+    if (this.collideBoundary) bounceCount += this.enforceMapBoundaries();
+
+    if (this.bounces > 0) {
+      this.bounces -= bounceCount;
+    } else if (!this.inMap(this.r * 2)) {
+      this.removed = true;
+    }
   }
 }
 
 export class Bullet extends Projectile {
   //prettier-ignore
-  constructor(x,y,r,color,vel,renderGlow,glowSize,damage,critChance,critMulti) {
-    super(...arguments);
+  constructor(x,y,r,color,vel,renderGlow,glowSize,damage,critChance,critMulti, bounces) {
+    super(x,y,r,color,vel,renderGlow,glowSize,damage,critChance,critMulti, bounces);
   }
 }
 
@@ -1322,6 +1334,7 @@ export class Enemy extends Sprite {
     this.critMulti = 1.5;
     this.appliesLighting = true;
     this.applyLighting();
+    this.collideWalls = true;
   }
 
   update() {
@@ -1331,8 +1344,7 @@ export class Enemy extends Sprite {
       if (this.distanceToPlayer() - player.r - this.r < this.aggroRange) {
         this.followPlayer();
       }
-      if (!this.enteredMap && this.inMap()) this.enteredMap = true;
-      if (this.enteredMap) this.enforceMapBoundaries();
+      if (!this.collideBoundary && this.inMap()) this.collideBoundary = true;
       this.applyGravity();
     }
     this.cur_frame++;
@@ -1410,6 +1422,7 @@ export class Particle extends Sprite {
     this.r *= 0.9;
     this.vel.x *= FRICTION;
     this.vel.y *= FRICTION;
+    if (this.r <= 0.1) this.removed = true;
   }
 }
 
@@ -1505,6 +1518,7 @@ export class DamageText {
 
   update() {
     this.alpha -= 0.05;
+    if (this.alpha <= 0) this.removed = true;
   }
   preDraw(lagOffset) {
     this.renderPos.x = (this.pos.x - this.oldPos.x) * lagOffset + this.oldPos.x;
@@ -1530,8 +1544,8 @@ export class DamageText {
 }
 
 export class Ability extends Sprite {
-  constructor(x, y, r, color, vel, renderGlow, glowSize, damage, name, owner) {
-    super(x, y, r, color, vel, renderGlow, glowSize);
+  constructor(pos, r, color, vel, renderGlow, glowSize, damage, name, owner) {
+    super(pos.x, pos.y, r, color, vel, renderGlow, glowSize);
     this.damage = damage;
     this.owner = owner;
     this.critChance = owner.critChance;
@@ -1552,12 +1566,20 @@ export class Ability extends Sprite {
         true
       );
       const projectedEnemy = {
-        x: rotatedEnemyCoords.x,
-        y: rotatedEnemyCoords.y,
+        pos: {
+          x: rotatedEnemyCoords.x,
+          y: rotatedEnemyCoords.y,
+        },
         r: e.r,
       };
       if (DEBUG_ENABLED) this.color = 'yellow';
-      if (rectCircleCollision(this, projectedEnemy)) {
+      let isColliding = false;
+      try {
+        isColliding = collisionDetection(projectedEnemy, this);
+      } catch (error) {
+        console.error(this.name, error);
+      }
+      if (isColliding) {
         if (DEBUG_ENABLED) this.color = 'red';
         let isCrit = false;
         if (this.critChance > 0) {
@@ -1581,13 +1603,22 @@ export class Ability extends Sprite {
 
     return [false, false];
   }
+
+  update() {
+    super.update();
+    if (this.usesFrames && this.remainingFrames <= 0) this.removed = true;
+  }
+
+  handleFrames() {
+    this.remainingFrames -= 1;
+    if (this.remainingFrames <= 0) this.removed = true;
+  }
 }
 
 export class Kamehameha extends Ability {
-  constructor(x, y, itemInstance, clientX, clientY, owner) {
+  constructor(owner, itemInstance, clientX, clientY) {
     super(
-      x,
-      y,
+      owner.pos,
       itemInstance.size,
       itemInstance.getColor(),
       { x: 0, y: 0 },
@@ -1604,7 +1635,7 @@ export class Kamehameha extends Ability {
     this.w = this.r;
     this.angle =
       Math.PI / 2 +
-      Math.atan2(this.pos.y - this.pos.targetY, this.pos.x - this.targetX);
+      Math.atan2(this.pos.y - this.targetY, this.pos.x - this.targetX);
     this.shapeType = 'square';
     this.owner = owner;
     this.cachedOwner = owner;
@@ -1618,7 +1649,7 @@ export class Kamehameha extends Ability {
     } else if (this.w > 1) {
       this.w *= 0.9;
     }
-    this.remainingFrames -= 1;
+    this.handleFrames();
   }
 
   draw(lagOffset) {
@@ -1638,10 +1669,9 @@ export class Kamehameha extends Ability {
 }
 
 export class SolarFlare extends Ability {
-  constructor(x, y, itemInstance, owner) {
+  constructor(owner, itemInstance) {
     super(
-      x,
-      y,
+      owner.pos,
       itemInstance.size,
       itemInstance.getColor(),
       { x: 0, y: 0 },
@@ -1660,22 +1690,21 @@ export class SolarFlare extends Ability {
     super.update();
     if (this.remainingFrames > 10) {
       this.r += 8;
-      this.alpha += 0.7;
+      this.alpha += 0.07;
     } else {
-      this.alpha -= 0.7;
+      this.alpha -= 0.07;
     }
-    this.remainingFrames -= 1;
+    this.handleFrames();
   }
 }
 
 export class Slash extends Ability {
-  constructor(x, y, itemInstance, vel, clientX, clientY, owner) {
+  constructor(owner, itemInstance, clientX, clientY) {
     super(
-      x,
-      y,
+      owner.pos,
       itemInstance.size,
       itemInstance.getColor(),
-      vel,
+      new Vec2(0, 0),
       false,
       0,
       itemInstance.damage,
@@ -1701,7 +1730,7 @@ export class Slash extends Ability {
     this.pos.x = this.cachedOwner.pos.x;
     this.pos.y = this.cachedOwner.pos.y;
     this.angle -= Math.PI / this.totalFrames;
-    this.remainingFrames -= 1;
+    this.handleFrames();
   }
 
   draw(lagOffset) {
@@ -1722,10 +1751,9 @@ export class Slash extends Ability {
 }
 
 export class Vortex extends Ability {
-  constructor(x, y, itemInstance, owner) {
+  constructor(owner, itemInstance) {
     super(
-      x,
-      y,
+      owner.pos,
       itemInstance.size,
       itemInstance.getColor(),
       { x: 0, y: 0 },
@@ -1747,10 +1775,10 @@ export class Vortex extends Ability {
     if (this.owner) this.cachedOwner = this.owner;
     super.update();
     const { x, y } = rotate(
-      this.cachedOwner.renderPos.x,
-      this.cachedOwner.renderPos.y,
-      this.cachedOwner.renderPos.x + this.offset,
-      this.cachedOwner.renderPos.y + this.offset,
+      this.cachedOwner.pos.x,
+      this.cachedOwner.pos.y,
+      this.cachedOwner.pos.x + this.offset,
+      this.cachedOwner.pos.y + this.offset,
       this.angle
     );
     this.pos = new Vec2(x, y);
@@ -1766,13 +1794,12 @@ export class Vortex extends Ability {
 }
 
 export class Boomerang extends Ability {
-  constructor(x, y, itemInstance, vel, clientX, clientY, owner) {
+  constructor(owner, itemInstance, clientX, clientY) {
     super(
-      x,
-      y,
+      owner.pos,
       itemInstance.size,
       itemInstance.getColor(),
-      vel,
+      new Vec2(0, 0),
       false,
       0,
       itemInstance.damage,
@@ -1791,7 +1818,7 @@ export class Boomerang extends Ability {
     this.owner = owner;
     this.cachedOwner = { ...owner };
     this.reachedTarget = false;
-    this.remove = false;
+    this.removed = false;
     this.distance = 0;
     this.maxDistance = itemInstance.maxDistance;
     this.setDirection();
@@ -1801,13 +1828,16 @@ export class Boomerang extends Ability {
       this.targetY - this.pos.y,
       this.targetX - this.pos.x
     );
-    this.vel = new Vec2(Math.cos(angle) * speedMod, Math.sin(angle) * speedMod);
+    this.vel = new Vec2(
+      Math.cos(angle) * this.speed,
+      Math.sin(angle) * this.speed
+    );
   }
   update() {
     if (this.owner) this.cachedOwner = { ...this.owner };
     if (this.reachedTarget) {
-      this.targetX = this.cachedOwner.x;
-      this.targetY = this.cachedOwner.y;
+      this.targetX = this.cachedOwner.pos.x;
+      this.targetY = this.cachedOwner.pos.y;
       this.followTarget({ x: this.targetX, y: this.targetY });
     }
 
@@ -1818,7 +1848,7 @@ export class Boomerang extends Ability {
       this.distToTarget({ x: this.targetX, y: this.targetY }) <=
         this.cachedOwner.r
     ) {
-      this.remove = true;
+      this.removed = true;
     }
 
     this.angle += 0.65;
@@ -1887,12 +1917,13 @@ export class LightningBeam extends Ability {
   }
 }
 
-export class Wall {
+export class Wall extends Sprite {
   constructor(pos, w, h) {
-    this.pos = pos ?? randomCoords(200);
+    const coords = pos ?? randomCoords(200);
+    super(coords.x, coords.y, 200, 'blue');
     this.w = w ?? 200;
     this.h = h ?? 100;
-    this.color = 'blue';
+    this.shapeType = 'square';
   }
   draw() {
     c.save();
@@ -1902,6 +1933,9 @@ export class Wall {
     c.fill();
     c.closePath();
     c.restore();
+  }
+  drawShadow() {
+    super.drawShadow();
   }
 }
 

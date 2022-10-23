@@ -109,72 +109,39 @@ function update() {
   const player = game.entities.player.value;
   if (DEBUG_ENABLED) player.xp += 50 * player.xpMulti;
 
-  const blackHoles = game.entities.blackHoles.value;
-  const blackHolesToRemove = [];
-  for (let i = 0; i < blackHoles.length; i++) {
-    const bh = blackHoles[i];
-    bh.update();
-    if (bh.remainingFrames <= 0) blackHolesToRemove.push(i);
-  }
-  if (blackHolesToRemove.length > 0)
-    game.entities.blackHoles.remove(blackHolesToRemove);
+  game.entities.blackHoles.update();
 
   player.update();
 
-  let bulletsToRemove = [];
-  let bullets = game.entities.bullets.value;
-  for (let i = 0; i < bullets.length; i++) {
-    const b = bullets[i];
+  game.entities.bullets.update();
+
+  const ebLength = game.entities.enemyBullets.value.length;
+  for (let i = 0; i < ebLength; i++) {
+    const b = game.entities.enemyBullets.value[i];
     b.update();
-    if (!b.inMap(b.r * 2)) bulletsToRemove.push(i);
-  }
-  if (bulletsToRemove.length > 0) {
-    game.entities.bullets.remove(bulletsToRemove);
-    bulletsToRemove = [];
-  }
-  const enemyBulletsToRemove = [];
-  const enemyBullets = game.entities.enemyBullets.value;
-  for (let i = 0; i < enemyBullets.length; i++) {
-    const b = enemyBullets[i];
-    b.update();
-    if (!b.inMap(b.r * 2)) {
-      enemyBulletsToRemove.push(i);
-    } else {
-      if (
-        !player.invulnerable &&
-        b.distanceToPlayer() - b.r - player.r < 0.01
-      ) {
-        const [hit, kill] = b.handleEnemyCollision(player);
-        if (hit) enemyBulletsToRemove.push(i);
-        if (kill) return endGame();
-      }
+    if (!player.invulnerable) {
+      const [hit, kill] = b.handleEnemyCollision(player);
+      if (kill) return endGame();
+      if (hit) b.removed = true;
     }
   }
-  if (enemyBulletsToRemove.length > 0)
-    game.entities.enemyBullets.remove(enemyBulletsToRemove);
+  game.entities.enemyBullets.removeFlagged();
 
-  const enemyAbilityEffectsToRemove = [];
-  const enemyAbilityEffects = game.entities.enemyAbilityEffects.value;
-  for (let i = 0; i < enemyAbilityEffects.length; i++) {
-    const eae = enemyAbilityEffects[i];
+  const eaeLength = game.entities.enemyAbilityEffects.value.length;
+  for (let i = 0; i < eaeLength; i++) {
+    const eae = game.entities.enemyAbilityEffects.value[i];
     eae.update();
     const [hit, kill] = eae.handleEnemyCollision(player);
-    if (hit && eae.destroyOnCollision) enemyAbilityEffectsToRemove.push(i);
     if (kill) return endGame();
-    if (eae.usesFrames && eae.remainingFrames <= 0)
-      enemyAbilityEffectsToRemove.push(i);
-    if (!eae.usesFrames && eae.remove) enemyAbilityEffectsToRemove.push(i);
+    if (hit && eae.destroyOnCollision) eae.removed = true;
   }
-  if (enemyAbilityEffectsToRemove.length > 0)
-    game.entities.enemyAbilityEffects.remove(enemyAbilityEffectsToRemove);
+  game.entities.enemyAbilityEffects.removeFlagged();
 
-  // investigate pooling?
-  bulletsToRemove = [];
-  const abilitiesToRemove = [];
-  const enemies = game.entities.enemies.value;
-  const abilityEffects = game.entities.abilityEffects.value;
-  for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i];
+  const eLength = game.entities.enemies.value.length;
+  const aeLength = game.entities.abilityEffects.value.length;
+  const bLength = game.entities.bullets.value.length;
+  for (let i = 0; i < eLength; i++) {
+    const e = game.entities.enemies.value[i];
     e.update();
     const [hit, playerKilled] = Projectile.handleEnemyCollision(e, player);
     if (playerKilled) return endGame();
@@ -183,29 +150,27 @@ function update() {
       player.vel.y += e.vel.y * 3;
     }
 
-    let bullets = game.entities.bullets.value;
-    const num_bullets = bullets.length;
-    for (let j = 0; j < num_bullets; j++) {
-      const [hit, kill] = bullets[j].handleEnemyCollision(e);
-      e.killed = kill;
+    for (let j = 0; j < bLength; j++) {
+      const b = game.entities.bullets.value[j];
+      const [hit, kill] = b.handleEnemyCollision(e);
+      e.removed = kill;
       if (hit) {
-        //debugger;
         game.score.add(100);
         scoreEl.innerText = game.score.value;
-        bulletsToRemove.push(j);
+        b.removed = true;
       }
-      if (e.killed) break;
+      if (e.removed) break;
     }
-    if (!e.killed) {
-      for (let j = 0; j < abilityEffects.length; j++) {
-        const ae = abilityEffects[j];
+    if (!e.removed) {
+      for (let j = 0; j < aeLength; j++) {
+        const ae = game.entities.abilityEffects.value[j];
         const [hit, kill] = ae.handleEnemyCollision(e);
-        if (kill) e.killed = true;
-        if (hit && ae.destroyOnCollision) abilitiesToRemove.push(j);
+        if (kill) e.removed = true;
+        if (hit && ae.destroyOnCollision) ae.removed = true;
       }
     }
 
-    if (e.killed) {
+    if (e.removed) {
       player.xp += XP_PER_KILL + e.initialR * player.xpMulti;
       game.score.add(e.killValue);
       player.onKill();
@@ -213,98 +178,58 @@ function update() {
       if (player.xp >= player.next_level) queuePlayerLevelUp();
     }
   }
+  game.entities.bullets.removeFlagged();
+  game.entities.abilityEffects.removeFlagged();
+  game.entities.enemies.removeFlagged();
 
-  game.entities.enemies.removeKilled();
-  if (bulletsToRemove.length > 0) game.entities.bullets.remove(bulletsToRemove);
-  if (abilitiesToRemove.length > 0)
-    game.entities.abilityEffects.remove(abilitiesToRemove);
+  game.entities.turrets.update();
+  game.entities.particles.update();
 
-  const turrets = game.entities.turrets.value;
-  for (let i = 0; i < turrets.length; i++) {
-    turrets[i].update();
-  }
-  const particlesToRemove = [];
-  const particles = game.entities.particles.value;
-  for (let i = 0; i < particles.length; i++) {
-    const p = particles[i];
-    p.update();
-    if (p.r <= 0.1) particlesToRemove.push(i);
-  }
-  if (particlesToRemove.length > 0)
-    game.entities.particles.remove(particlesToRemove);
-
-  const itemsToRemove = [];
-  const items = game.entities.items.value;
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+  const iLength = game.entities.items.value.length;
+  for (let i = 0; i < iLength; i++) {
+    const item = game.entities.items.value[i];
     if (item.distanceToPlayer() - item.r - player.r < 1) {
       player.items.push({ ...item.itemType });
-      itemsToRemove.push(i);
+      item.removed = true;
       continue;
     }
 
     item.update();
     if (item.i > 540) {
-      itemsToRemove.push(i);
+      item.removed = true;
     }
   }
-  if (itemsToRemove.length > 0) game.entities.items.remove(itemsToRemove);
+  game.entities.items.removeFlagged();
+  game.entities.abilityEffects.update();
 
-  const abilityEffectsToRemove = [];
-  for (let i = 0; i < game.entities.abilityEffects.value.length; i++) {
-    const ae = game.entities.abilityEffects.value[i];
-    ae.update();
-    if (ae.usesFrames && ae.remainingFrames <= 0)
-      abilityEffectsToRemove.push(i);
-    if (!ae.usesFrames && ae.remove) abilityEffectsToRemove.push(i);
-  }
-  if (abilityEffectsToRemove.length > 0)
-    game.entities.abilityEffects.remove(abilityEffectsToRemove);
-
-  const eventsToRemove = [];
-  const events = game.entities.events.value;
-  for (let i = 0; i < events.length; i++) {
-    try {
-      const evt = events[i];
-      if (!evt) throw new Error('trying to execute non-existing event');
-      if (evt.activations == 0 && evt.remainingMs <= 0) {
-        if (evt.onExit) {
-          for (const fn of evt.onExit) {
-            fn();
-          }
+  const evtLength = game.entities.events.value.length;
+  for (let i = 0; i < evtLength; i++) {
+    const evt = game.entities.events.value[i];
+    if (!evt) throw new Error('trying to execute non-existing event');
+    if (evt.activations == 0 && evt.remainingMs <= 0) {
+      if (evt.onExit) {
+        for (const fn of evt.onExit) {
+          fn();
         }
-        //removeEvent(i);
-        eventsToRemove.push(i);
-        if (evt.type == 'boss')
-          game.nextFrameActionQueue.add(() => {
-            levelUpHeadingEl.textContent = '';
-            showLevelUpScreen();
-          });
-        continue;
       }
-      evt.remainingMs -= window.animFrameDuration;
+      evt.removed = true;
+      if (evt.type == 'boss')
+        game.nextFrameActionQueue.add(() => {
+          levelUpHeadingEl.textContent = '';
+          showLevelUpScreen();
+        });
+      continue;
+    }
+    evt.remainingMs -= window.animFrameDuration;
 
-      if (evt.remainingMs <= 0 && evt.activations > 0) {
-        evt.functions.forEach((f) => f(evt));
-        if (evt.activations > 0) evt.remainingMs = evt.cooldown;
-        evt.activations -= 1;
-      }
-    } catch (error) {
-      console.error(error);
+    if (evt.remainingMs <= 0 && evt.activations > 0) {
+      evt.functions.forEach((f) => f(evt));
+      if (evt.activations > 0) evt.remainingMs = evt.cooldown;
+      evt.activations -= 1;
     }
   }
-
-  if (eventsToRemove.length > 0) game.entities.events.remove(eventsToRemove);
-
-  const damageTextsToRemove = [];
-  const damageTexts = game.entities.damageTexts.value;
-  for (let i = 0; i < damageTexts.length; i++) {
-    const d = damageTexts[i];
-    d.update();
-    if (d.alpha <= 0) damageTextsToRemove.push(i);
-  }
-  if (damageTextsToRemove.length > 0)
-    game.entities.damageTexts.remove(damageTextsToRemove);
+  game.entities.events.removeFlagged();
+  game.entities.damageTexts.update();
 }
 
 function queuePlayerLevelUp() {
@@ -320,9 +245,6 @@ function queuePlayerLevelUp() {
 }
 
 function render(lagOffset) {
-  for (const wall of game.entities.walls.value) {
-    wall.draw();
-  }
   for (const bh of game.entities.blackHoles.value) {
     bh.draw(lagOffset);
   }
@@ -335,6 +257,12 @@ function render(lagOffset) {
 
   for (const enemy of game.entities.enemies.value) {
     enemy.drawShadow();
+  }
+  for (const wall of game.entities.walls.value) {
+    wall.drawShadow();
+  }
+  for (const wall of game.entities.walls.value) {
+    wall.draw();
   }
   for (const bullet of game.entities.enemyBullets.value) {
     bullet.draw(lagOffset);
@@ -366,6 +294,7 @@ function render(lagOffset) {
   const lifeRenderers = game.entities.enemies.value.filter(
     (ent) => typeof ent.renderLife != 'undefined'
   );
+
   for (const lr of lifeRenderers) {
     lr.renderLife();
   }
@@ -431,17 +360,16 @@ function startGame() {
   resetGame();
   game.running.set(true);
   if (DEBUG_ENABLED) {
-    // const newEnemy = new Enemy(
-    //   canvas.width / 2 + 100,
-    //   canvas.height / 2 - 100,
-    //   50
-    // );
-    // newEnemy.fixed = true;
-    // newEnemy.invulnerable = true;
-    // game.entities.enemies.add(newEnemy);
-
-    game.entities.walls.add(new Wall());
+    const newEnemy = new Enemy(
+      canvas.width / 2 + 100,
+      canvas.height / 2 - 100,
+      50
+    );
+    newEnemy.fixed = true;
+    newEnemy.invulnerable = true;
+    game.entities.enemies.add(newEnemy);
   }
+  //game.entities.walls.add(new Wall());
   game.entities.player.value.color = playerColorEl.value;
   main();
   attachEventHandlers();

@@ -61,7 +61,7 @@ export const FRICTION = 0.97;
 export const BULLET_COLOR = 'rgba(255,255,255,.75)';
 export const BULLET_SIZE = 5;
 export const ENEMY_SPEED = 0.6;
-export const DEBUG_ENABLED = true;
+export const DEBUG_ENABLED = false;
 export const MAX_LEVEL = Infinity;
 //export const FONT = 'sans-serif'
 export const FONT = 'monospace';
@@ -424,6 +424,19 @@ export const ITEM_TYPES = [
     ],
   },
   {
+    name: 'Bouncing Bullets',
+    image: document.getElementById('img_bulletBounce'),
+    permanent: false,
+    duration: 5,
+    weight: 20,
+    modifiers: [
+      {
+        key: 'bulletBounce',
+        amount: 1,
+      },
+    ],
+  },
+  {
     name: 'Laser',
     getColor: () => 'aqua',
     isAbility: true,
@@ -514,7 +527,6 @@ export const ITEM_TYPES = [
     getColor: () => 'orange',
     isAbility: true,
     cooldown: 1800,
-    //cooldown: 1e3,
     remainingMs: 32,
     size: 70,
     damage: 2,
@@ -534,12 +546,26 @@ export const ITEM_TYPES = [
 ];
 
 export const BOSS_ITEMS = [
+  // {
+  //   name: 'Boomerang',
+  //   getColor: () => 'red',
+  //   isAbility: true,
+  //   cooldown: 1800,
+  //   weight: 6,
+  //   remainingMs: 32,
+  //   size: 70,
+  //   damage: 2,
+  //   maxDistance: 300,
+  //   trigger: (boss, self, cx, cy) => {
+  //     game.entities.enemyAbilityEffects.add(new Boomerang(boss, self, cx, cy));
+  //   },
+  //   onAdded: (bonus) => {},
+  // },
   {
     name: 'Laser',
     getColor: () => 'red',
     isAbility: true,
     cooldown: 4e3,
-    //cooldown: 1e3,
     remainingMs: 2e3,
     weight: 1,
     size: 22,
@@ -549,23 +575,6 @@ export const BOSS_ITEMS = [
     },
     onAdded: (bonus) => {},
   },
-  // {
-  //   name: 'Boomerang',
-  //   getColor: () => 'red',
-  //   isAbility: true,
-  //   cooldown: 1500,
-  //   //cooldown: 1e3,
-  //   remainingMs: 500,
-  //   weight: 50,
-  //   size: 70,
-  //   damage: 2,
-  //   trigger: (boss, self, cx, cy) => {
-  //     game.entities.enemyAbilityEffects.add(
-  //       new Boomerang(boss.x, boss.y, self, { x: 0, y: 0 }, cx, cy, boss)
-  //     );
-  //   },
-  //   onAdded: (bonus) => {},
-  // },
 ];
 
 const renderEventName = (name) => {
@@ -682,7 +691,7 @@ export const EVENT_TYPES = [
   {
     name: `Meganoth the Wicked`,
     type: 'boss',
-    weight: 5,
+    weight: 500,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,
