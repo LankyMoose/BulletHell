@@ -393,8 +393,8 @@ export const ITEM_TYPES = [
     name: 'Bouncing Bullets',
     image: document.getElementById('img_bulletBounce'),
     permanent: false,
-    duration: 20,
-    weight: 20,
+    duration: 30,
+    weight: 8,
     modifiers: [
       {
         key: 'bulletBounce',
