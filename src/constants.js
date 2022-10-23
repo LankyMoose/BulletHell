@@ -106,7 +106,7 @@ export const BONUS_TYPES = [
   {
     type: 'attribute',
     name: '+ Resurrections',
-    weight: 2,
+    weight: 1,
     rarity_weights: [1],
     modifiers: [
       {
