@@ -27,7 +27,7 @@ import {
   getRandomWeightMapIndex,
   radiansToDeg,
   randomAreaCoords,
-  collisionDetection,
+  circleRectCollision,
 } from './util.js';
 
 function strokeCircle(circle) {
@@ -159,7 +159,7 @@ export class Sprite {
     //https://stackoverflow.com/questions/45370692/circle-rectangle-collision-response
     let collisionCount = 0;
     for (const wall of game.entities.walls.value) {
-      if (collisionDetection(this, wall)) {
+      if (circleRectCollision(this, wall)) {
         const NearestX = Math.max(
           wall.pos.x,
           Math.min(this.pos.x, wall.pos.x + wall.w)
@@ -1668,7 +1668,7 @@ export class Ability extends Sprite {
       if (DEBUG_ENABLED) this.color = 'yellow';
       let isColliding = false;
       try {
-        isColliding = collisionDetection(projectedEnemy, this);
+        isColliding = circleRectCollision(projectedEnemy, this);
       } catch (error) {
         console.error(this.name, error);
       }

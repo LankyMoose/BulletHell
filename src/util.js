@@ -62,33 +62,8 @@ export function randomAreaCoords(vec2, size) {
     y: vec2.y + Math.random() * size - size,
   };
 }
-export function rectCircleCollision(rect, circle) {
-  var cx, cy;
 
-  if (circle.pos.x < rect.pos.x) {
-    cx = rect.pos.x - rect.w / 2;
-  } else if (circle.pos.x > rect.pos.x + rect.w) {
-    cx = rect.pos.x + rect.w / 2;
-  } else {
-    cx = circle.pos.x;
-  }
-
-  if (circle.pos.y < rect.pos.y) {
-    cy = rect.pos.y;
-  } else if (circle.pos.y > rect.pos.y + rect.h) {
-    cy = rect.pos.y + rect.h;
-  } else {
-    cy = circle.pos.y;
-  }
-
-  if (circle.pos.distance(new Vec2(cx, cy)) < circle.r) {
-    return true;
-  }
-
-  return false;
-}
-
-export function collisionDetection(circle, rect) {
+export function circleRectCollision(circle, rect) {
   var distX = Math.abs(circle.pos.x - rect.pos.x - rect.w / 2);
   var distY = Math.abs(circle.pos.y - rect.pos.y - rect.h / 2);
 
