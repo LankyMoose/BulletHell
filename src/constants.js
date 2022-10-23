@@ -56,57 +56,20 @@ export const setFPS = (numFrames) => {
     );
   })();
 };
-
-export const STAT_DISPLAYS = [
-  {
-    key: 'xpMulti',
-    displayText: 'XP Multiplier',
-  },
-  {
-    key: 'speed',
-    displayText: 'Acceleration',
-  },
-  {
-    key: 'bulletSpeed',
-    displayText: 'Bullet Speed',
-  },
-  {
-    key: 'maxSpeed',
-    displayText: 'Max Speed',
-  },
-  {
-    key: 'bulletCooldown',
-    displayText: 'Bullet Cooldown',
-  },
-  {
-    key: 'damage',
-    displayText: 'Damage',
-  },
-  {
-    key: 'size',
-    displayText: 'Size',
-  },
-  {
-    key: 'critChance',
-    displayText: 'Critical Chance',
-  },
-  {
-    key: 'critMulti',
-    displayText: 'Critical Multiplier',
-  },
-  {
-    key: 'maxLife',
-    displayText: 'Max Life',
-  },
-  {
-    key: 'maxInstances',
-    displayText: 'Max Instances',
-  },
-  {
-    key: 'maxDistance',
-    displayText: 'Max Distance',
-  },
-];
+export const STAT_DISPLAYS = new Map([
+  ['xpMulti', 'XP Multiplier'],
+  ['speed', 'Acceleration'],
+  ['bulletSpeed', 'Bullet Speed'],
+  ['maxSpeed', 'Max Speed'],
+  ['bulletCooldown', 'Bullet Cooldown'],
+  ['damage', 'Damage'],
+  ['size', 'Size'],
+  ['critChance', 'Critical Chance'],
+  ['critMulti', 'Critical Multiplier'],
+  ['maxLife', 'Max Life'],
+  ['maxInstances', 'Max Instances'],
+  ['maxDistance', 'Max Distance'],
+]);
 
 export const BONUS_TYPES = [
   // {

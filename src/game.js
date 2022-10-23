@@ -380,11 +380,9 @@ function renderPlayerStats() {
   HTML.playerStatsWrapper.style.opacity = 1;
   HTML.playerStatsEl.innerHTML = '';
   Object.entries(game.entities.player.value).forEach(([k, v]) => {
-    const displayKey = STAT_DISPLAYS.find((item) => item.key == k);
-    if (!displayKey) return;
-    HTML.playerStatsEl.innerHTML += `<p>${displayKey.displayText}: ${v.toFixed(
-      2
-    )}</p>`;
+    const displayText = STAT_DISPLAYS.get(k);
+    if (!displayText) return;
+    HTML.playerStatsEl.innerHTML += `<p>${displayText}: ${v.toFixed(2)}</p>`;
   });
 }
 
@@ -472,10 +470,11 @@ export function showLevelUpScreen() {
 }
 
 function renderBonusModifiers(btn, bonus) {
-  for (let mod of bonus.modifiers) {
+  for (const mod of bonus.modifiers) {
     const amount = mod.amounts[bonus.rarity];
-    const displayKey = STAT_DISPLAYS.find((item) => item.key == mod.key);
-    btn.innerHTML += `${displayKey.displayText}: ${
+    const displayText = STAT_DISPLAYS.get(mod.key);
+    if (!displayText) continue;
+    btn.innerHTML += `${displayText}: ${
       amount > 0 ? `+${amount.toFixed(2)}` : amount.toFixed(2)
     }<br />`;
   }
