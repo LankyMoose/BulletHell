@@ -720,7 +720,7 @@ export class Turret extends Sprite {
     this.critChance = 10;
     this.critMulti = 1.5;
     this.damage = 0; // no collision damage
-    this.damageReduction = 0.3;
+    this.damageReduction = 0.5;
     this.invulnerable = true;
   }
   update() {
@@ -867,7 +867,6 @@ export class Player extends Sprite {
     this.life = 100;
     this.maxLife = 100;
     this.friction = 0.8;
-    this.cooldownRefs = [];
     this.lastMouseMove = {
       clientX: 0,
       clientY: 0,
@@ -878,6 +877,31 @@ export class Player extends Sprite {
     this.collideWalls = true;
     this.collideBoundary = true;
     this.bulletBounce = 0;
+
+    this.stateCache = [];
+    this.isRewinding = false;
+    this.rewinds = 0;
+    this.ghost = null;
+  }
+  cacheState() {
+    this.stateCache.push({
+      pos: this.pos,
+      life: this.life,
+      maxLife: this.maxLife,
+      xp: this.xp,
+      next_level: this.next_level,
+      xpMulti: this.xpMulti,
+      level: this.level,
+      items: this.items,
+    });
+    if (this.stateCache.length > 60 * 2) {
+      this.stateCache.shift();
+    }
+  }
+  rewind() {
+    this.isRewinding = true;
+    this.invulnerable = true;
+    this.rewinds--;
   }
   applyMaxSpeed() {
     if (!game.settings.player.applyMaxSpeed.value) return;
@@ -940,14 +964,53 @@ export class Player extends Sprite {
     this.vel = this.vel.add(this.dashVelocity);
   }
   update() {
-    this.applyGravity();
-    this.applyVelocity();
-    this.applyMaxSpeed();
-    this.applyFriction();
-    super.update();
-    this.updateBullets();
-    this.updateAbilities();
-    this.updateDash();
+    if (this.isRewinding) {
+      const stateCacheLen = this.stateCache.length;
+      if (stateCacheLen > 0) {
+        this.ghost = this.stateCache.pop();
+      } else {
+        this.isRewinding = false;
+        Object.assign(this, this.ghost);
+        this.ghost = null;
+        this.invulnerable = false;
+        this.life = this.maxLife / 2;
+      }
+    } else {
+      this.applyGravity();
+      this.applyVelocity();
+      this.applyMaxSpeed();
+      this.applyFriction();
+      super.update();
+      this.updateBullets();
+      this.updateAbilities();
+      this.updateDash();
+      this.cacheState();
+    }
+  }
+
+  renderGhost() {
+    if (this.ghost) {
+      c.save();
+      c.globalAlpha = 0.8;
+      c.beginPath();
+      const r = Math.max(this.r, 0.1);
+      c.arc(this.ghost.pos.x, this.ghost.pos.y, r, 0, Math.PI * 2, false);
+      c.closePath();
+      const gradient1 = c.createRadialGradient(
+        this.ghost.pos.x,
+        this.ghost.pos.y,
+        0,
+        this.ghost.pos.x,
+        this.ghost.pos.y,
+        r * 2
+      );
+      gradient1.addColorStop(0, 'rgba(255,255,255,1)');
+      gradient1.addColorStop(0.5, 'rgba(255,255,255,.5)');
+      gradient1.addColorStop(0.9, 'rgba(255,255,255,0)');
+      c.fillStyle = gradient1;
+      c.fill();
+      c.restore();
+    }
   }
 
   updateDash() {
@@ -1053,7 +1116,8 @@ export class Player extends Sprite {
     c.save();
     const maxWidth = canvas.width * 0.1 + this.maxLife;
     const height = 7;
-    const curPercent = this.life / this.maxLife;
+    let curPercent = this.life / this.maxLife;
+    if (curPercent < 0) curPercent = 0;
     const leftOffset = (canvas.width - maxWidth) / 2;
     const topOffset = 10;
     c.fillStyle = '#066206aa';
@@ -1254,7 +1318,6 @@ export class Projectile extends Sprite {
     return Projectile.handleEnemyCollision(this, e);
   }
   static handleEnemyCollision(self, e, vfxOnEnemy = false) {
-    if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
     if (self.pos.distance(e.pos) - e.r - self.r < 1) {
       const r = e.r > 0.1 ? e.r : 0.1;
       let numParticles = r * 2;
@@ -1647,7 +1710,6 @@ export class Ability extends Sprite {
     this.usesFrames = true;
   }
   handleEnemyCollision(e) {
-    if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
     if (this.shapeType == 'square') {
       const angle = radiansToDeg(this.angle);
       const rotatedEnemyCoords = rotate(

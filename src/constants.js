@@ -69,6 +69,7 @@ export const STAT_DISPLAYS = new Map([
   ['maxLife', 'Max Life'],
   ['maxInstances', 'Max Instances'],
   ['maxDistance', 'Max Distance'],
+  ['rewinds', 'Resurrections'],
 ]);
 
 export const BONUS_TYPES = [
@@ -99,6 +100,18 @@ export const BONUS_TYPES = [
             player.life += player.maxLife / percent;
           },
         ],
+      },
+    ],
+  },
+  {
+    type: 'attribute',
+    name: '+ Resurrections',
+    weight: 2,
+    rarity_weights: [1],
+    modifiers: [
+      {
+        key: 'rewinds',
+        amounts: [1],
       },
     ],
   },

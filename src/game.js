@@ -95,7 +95,11 @@ function update() {
     b.update();
     if (!player.invulnerable) {
       const [hit, kill] = b.handleEnemyCollision(player);
-      if (kill) return endGame();
+      if (kill) {
+        player.renderLife();
+        if (player.rewinds == 0) return endGame();
+        player.rewind();
+      }
       if (hit) b.removed = true;
     }
   }
@@ -106,7 +110,11 @@ function update() {
     const eae = game.entities.enemyAbilityEffects.value[i];
     eae.update();
     const [hit, kill] = eae.handleEnemyCollision(player);
-    if (kill) return endGame();
+    if (kill) {
+      player.renderLife();
+      if (player.rewinds == 0) return endGame();
+      player.rewind();
+    }
     if (hit && eae.destroyOnCollision) eae.removed = true;
   }
   game.entities.enemyAbilityEffects.removeFlagged();
@@ -117,12 +125,12 @@ function update() {
   for (let i = 0; i < eLen; i++) {
     const e = game.entities.enemies.value[i];
     e.update();
-    const [hit, playerKilled] = Projectile.handleEnemyCollision(
-      e,
-      player,
-      true
-    );
-    if (playerKilled) return endGame();
+    const [hit, kill] = Projectile.handleEnemyCollision(e, player, true);
+    if (kill) {
+      player.renderLife();
+      if (player.rewinds == 0) return endGame();
+      player.rewind();
+    }
     if (hit) {
       player.vel.x += e.vel.x * 3;
       player.vel.y += e.vel.y * 3;
@@ -273,6 +281,7 @@ function render(lagOffset) {
   for (const lr of lifeRenderers) {
     lr.renderLife();
   }
+  game.entities.player.value.renderGhost();
   game.entities.player.value.renderLife();
   game.entities.player.value.renderDashCooldown();
   game.entities.player.value.renderAbilityCooldowns();
@@ -396,7 +405,6 @@ let subData = {
 };
 
 function endGame() {
-  game.entities.player.value.renderLife();
   game.animId.reset();
   game.running.set(false);
   HTML.menu.classList.remove('hide');
