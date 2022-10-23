@@ -74,18 +74,18 @@ class GameState {
           y: 0,
         })),
     },
-    abilityEffects: new EntityStore('abilityEffects'),
-    enemyAbilityEffects: new EntityStore('enemyAbilityEffects'),
-    blackHoles: new EntityStore('blackHoles'),
-    bullets: new EntityStore('bullets'),
-    enemyBullets: new EntityStore('enemyBullets'),
-    damageTexts: new EntityStore('damageTexts'),
-    enemies: new EntityStore('enemies'),
+    abilityEffects: new EntityStore(),
+    enemyAbilityEffects: new EntityStore(),
+    blackHoles: new EntityStore(),
+    bullets: new EntityStore(),
+    enemyBullets: new EntityStore(),
+    damageTexts: new EntityStore(),
+    enemies: new EntityStore(),
     events: new EventStore(),
-    particles: new EntityStore('particles'),
-    items: new EntityStore('items'),
-    turrets: new EntityStore('turrets'),
-    walls: new EntityStore('walls'),
+    particles: new EntityStore(),
+    items: new EntityStore(),
+    turrets: new EntityStore(),
+    walls: new EntityStore(),
   };
   score = {
     value: GameState.#defaults.score(),
@@ -129,8 +129,7 @@ class GameState {
 }
 
 class EntityStore {
-  constructor(name) {
-    this.name = name;
+  constructor() {
     this.value = [];
   }
   add(e) {
