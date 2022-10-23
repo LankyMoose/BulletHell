@@ -1,48 +1,23 @@
 'use strict';
 
 import { game, resetGame } from './state';
-
-import { Enemy, Item, BonusSet, Projectile, Wall } from './lib.js';
-import { Howl, Howler } from 'howler';
+import { Sprite, Enemy, Item, BonusSet, Projectile } from './lib.js';
+import { Howler } from 'howler';
 
 import {
-  menu,
-  startButton,
-  scoreEl,
-  menuScoreEl,
-  killsEl,
-  menuKillsEl,
+  HTML,
   canvas,
   c,
   x,
   y,
-  xpBarEl,
   set_x,
   set_y,
-  lvlEl,
   XP_PER_KILL,
-  levelUpScreen,
-  levelUpOptionsEl,
-  pauseScreen,
-  playerStatsEl,
   STAT_DISPLAYS,
-  playerColorEl,
-  submitScoreDiv,
-  submitScoreButton,
-  leaderboard,
-  playerStatsWrapper,
-  userContainer,
-  signInDiv,
-  signInButton,
   DEBUG_ENABLED,
   MAX_LEVEL,
   FONT,
-  levelUpHeadingEl,
   setFPS,
-  gameVolumeEl,
-  musicNextEl,
-  musicPrevEl,
-  musicToggleEl,
   BACKGROUND_RGB,
   PLAYER_COLOR,
 } from './constants.js';
@@ -54,7 +29,6 @@ import {
   submitScore,
   userData,
 } from './firebase.js';
-//import {  } from './util.js';
 
 setFPS(60);
 import { GAME_VOLUME, musicPlayer } from './vfx.js';
@@ -143,7 +117,11 @@ function update() {
   for (let i = 0; i < eLength; i++) {
     const e = game.entities.enemies.value[i];
     e.update();
-    const [hit, playerKilled] = Projectile.handleEnemyCollision(e, player);
+    const [hit, playerKilled] = Projectile.handleEnemyCollision(
+      e,
+      player,
+      true
+    );
     if (playerKilled) return endGame();
     if (hit) {
       player.vel.x += e.vel.x * 3;
@@ -156,7 +134,7 @@ function update() {
       e.removed = kill;
       if (hit) {
         game.score.add(100);
-        scoreEl.innerText = game.score.value;
+        HTML.scoreEl.innerText = game.score.value;
         b.removed = true;
       }
       if (e.removed) break;
@@ -215,7 +193,7 @@ function update() {
       evt.removed = true;
       if (evt.type == 'boss')
         game.nextFrameActionQueue.add(() => {
-          levelUpHeadingEl.textContent = '';
+          HTML.levelUpHeadingEl.textContent = '';
           showLevelUpScreen();
         });
       continue;
@@ -238,7 +216,7 @@ function queuePlayerLevelUp() {
   game.nextFrameActionQueue.add(() => {
     player.onLevelUp();
     handleProgression();
-    levelUpHeadingEl.innerText = 'Level up!';
+    HTML.levelUpHeadingEl.innerText = 'Level up!';
     showLevelUpScreen();
     game.nextFrameActionQueue.reset();
   });
@@ -331,9 +309,9 @@ function renderPlayerLight() {
 }
 
 function handleProgression() {
-  scoreEl.innerText = game.score.value;
+  HTML.scoreEl.innerText = game.score.value;
   const player = game.entities.player.value;
-  killsEl.innerText = player.kills;
+  HTML.killsEl.innerText = player.kills;
 
   if (
     !DEBUG_ENABLED &&
@@ -342,19 +320,19 @@ function handleProgression() {
   ) {
     Item.spawn();
   }
-  xpBarEl.value = (player.xp / player.next_level) * 100;
-  lvlEl.innerHTML = player.level;
+  HTML.xpBarEl.value = (player.xp / player.next_level) * 100;
+  HTML.lvlEl.innerHTML = player.level;
 }
 
 function startGame() {
   if (game.running.value) return false;
   window.start = performance.now();
-  submitScoreDiv.style.display = 'none';
-  signInDiv.style.display = 'none';
-  submitScoreButton.setAttribute('disabled', '');
-  signInButton.setAttribute('disabled', '');
-  startButton.setAttribute('disabled', '');
-  menu.classList.add('hide');
+  HTML.submitScoreDiv.style.display = 'none';
+  HTML.signInDiv.style.display = 'none';
+  HTML.submitScoreButton.setAttribute('disabled', '');
+  HTML.signInButton.setAttribute('disabled', '');
+  HTML.startButton.setAttribute('disabled', '');
+  HTML.menu.classList.add('hide');
   window.document.activeElement?.blur();
   canvas.focus();
   resetGame();
@@ -370,7 +348,7 @@ function startGame() {
     game.entities.enemies.add(newEnemy);
   }
   //game.entities.walls.add(new Wall());
-  game.entities.player.value.color = playerColorEl.value;
+  game.entities.player.value.color = HTML.playerColorEl.value;
   main();
   attachEventHandlers();
 }
@@ -378,10 +356,10 @@ function startGame() {
 function togglePause() {
   if (levelUpScreenShowing) return;
   if (game.running.value) {
-    pauseScreen.classList.remove('hide');
+    HTML.pauseScreen.classList.remove('hide');
     return pauseGame();
   }
-  pauseScreen.classList.add('hide');
+  HTML.pauseScreen.classList.add('hide');
   resumeGame();
 }
 
@@ -402,19 +380,19 @@ function resumeGame() {
 }
 
 function renderPlayerStats() {
-  playerStatsWrapper.style.opacity = 1;
-  playerStatsEl.innerHTML = '';
+  HTML.playerStatsWrapper.style.opacity = 1;
+  HTML.playerStatsEl.innerHTML = '';
   Object.entries(game.entities.player.value).forEach(([k, v]) => {
     const displayKey = STAT_DISPLAYS.find((item) => item.key == k);
     if (!displayKey) return;
-    playerStatsEl.innerHTML += `<p>${displayKey.displayText}: ${v.toFixed(
+    HTML.playerStatsEl.innerHTML += `<p>${displayKey.displayText}: ${v.toFixed(
       2
     )}</p>`;
   });
 }
 
 function hidePlayerStats() {
-  playerStatsWrapper.style.opacity = 0;
+  HTML.playerStatsWrapper.style.opacity = 0;
 }
 
 let subData = {
@@ -426,27 +404,27 @@ function endGame() {
   game.entities.player.value.renderLife();
   game.animId.reset();
   game.running.set(false);
-  menu.classList.remove('hide');
-  menuScoreEl.innerText = game.score.value;
-  scoreEl.innerText = 0;
-  menuKillsEl.innerText = game.entities.player.value.kills;
-  killsEl.innerText = 0;
+  HTML.menu.classList.remove('hide');
+  HTML.menuScoreEl.innerText = game.score.value;
+  HTML.scoreEl.innerText = 0;
+  HTML.menuKillsEl.innerText = game.entities.player.value.kills;
+  HTML.killsEl.innerText = 0;
   subData = {
     score: game.score.value,
     kills: game.entities.player.value.kills,
   };
   //resetGame();
-  xpBarEl.value = 0;
-  lvlEl.innerHTML = 1;
+  HTML.xpBarEl.value = 0;
+  HTML.lvlEl.innerHTML = 1;
 
   removeEventHandlers();
-  startButton.removeAttribute('disabled');
+  HTML.startButton.removeAttribute('disabled');
   if (userData.user) {
-    submitScoreDiv.style.display = 'block';
-    submitScoreButton.removeAttribute('disabled');
+    HTML.submitScoreDiv.style.display = 'block';
+    HTML.submitScoreButton.removeAttribute('disabled');
   } else {
-    signInDiv.style.display = 'block';
-    signInButton.removeAttribute('disabled');
+    HTML.signInDiv.style.display = 'block';
+    HTML.signInButton.removeAttribute('disabled');
   }
 
   renderLeaderboard();
@@ -454,8 +432,8 @@ function endGame() {
 
 function hideLevelUpScreen() {
   levelUpScreenShowing = false;
-  levelUpOptionsEl.innerHTML = '';
-  levelUpScreen.classList.add('hide');
+  HTML.levelUpOptionsEl.innerHTML = '';
+  HTML.levelUpScreen.classList.add('hide');
   resumeGame();
   musicPlayer.resetLowPass();
 }
@@ -463,9 +441,9 @@ function showLevelUpScreen() {
   pauseGame();
   musicPlayer.setLowPass(320);
   levelUpScreenShowing = true;
-  levelUpScreen.classList.remove('hide');
+  HTML.levelUpScreen.classList.remove('hide');
   const bonusSet = new BonusSet();
-  levelUpOptionsEl.innerHTML = '';
+  HTML.levelUpOptionsEl.innerHTML = '';
   bonusSet.items.forEach((b) => {
     const btn = Object.assign(document.createElement('button'), {
       type: 'button',
@@ -492,7 +470,7 @@ function showLevelUpScreen() {
       default:
         break;
     }
-    levelUpOptionsEl.appendChild(btn);
+    HTML.levelUpOptionsEl.appendChild(btn);
   });
 }
 
@@ -591,16 +569,16 @@ function handleKeyUp(e) {
   }
 }
 
-startButton.addEventListener('click', () => {
+HTML.startButton.addEventListener('click', () => {
   startGame();
 });
 
-submitScoreButton.addEventListener('click', async () => {
-  submitScoreButton.setAttribute('disabled', '');
+HTML.submitScoreButton.addEventListener('click', async () => {
+  HTML.submitScoreButton.setAttribute('disabled', '');
   const success = await submitScore(subData.score, subData.kills);
-  submitScoreButton.removeAttribute('disabled');
+  HTML.submitScoreButton.removeAttribute('disabled');
   if (success) {
-    submitScoreDiv.style.display = 'none';
+    HTML.submitScoreDiv.style.display = 'none';
     alert('score submitted!');
     renderLeaderboard();
     subData.score = 0;
@@ -609,13 +587,13 @@ submitScoreButton.addEventListener('click', async () => {
   }
 });
 
-signInButton.addEventListener('click', async () => {
+HTML.signInButton.addEventListener('click', async () => {
   const res = await login();
   if (res) {
-    signInDiv.style.display = 'none';
-    signInButton.setAttribute('disabled', '');
-    submitScoreDiv.style.display = 'block';
-    submitScoreButton.removeAttribute('disabled');
+    HTML.signInDiv.style.display = 'none';
+    HTML.signInButton.setAttribute('disabled', '');
+    HTML.submitScoreDiv.style.display = 'block';
+    HTML.submitScoreButton.removeAttribute('disabled');
   }
 });
 
@@ -640,27 +618,26 @@ addEventListener('resize', () => {
     ...enemies.value,
     ...bullets.value,
     ...abilityEffects.value,
-    player.value,
+    ...player.value,
   ].forEach((el) => {
     el.pos.x += x - old.x;
     el.pos.y += y - old.y;
   });
 });
-gameVolumeEl.value = GAME_VOLUME;
-gameVolumeEl.addEventListener('input', (e) => {
+HTML.gameVolumeEl.addEventListener('input', (e) => {
   Howler.volume(e.target.value);
   localStorage.setItem('game_volume', e.target.value);
 });
-musicNextEl.addEventListener('click', () => musicPlayer.next());
-musicToggleEl.addEventListener('click', () => musicPlayer.togglePlay());
-musicPrevEl.addEventListener('click', () => musicPlayer.next());
-playerColorEl.value = PLAYER_COLOR;
-playerColorEl.addEventListener('change', (e) => {
+HTML.musicNextEl.addEventListener('click', () => musicPlayer.next());
+HTML.musicToggleEl.addEventListener('click', () => musicPlayer.togglePlay());
+HTML.musicPrevEl.addEventListener('click', () => musicPlayer.next());
+HTML.playerColorEl.value = PLAYER_COLOR;
+HTML.playerColorEl.addEventListener('change', (e) => {
   localStorage.setItem('player_color', e.target.value);
 });
 
 async function renderLeaderboard() {
-  leaderboard.innerHTML = 'Loading...';
+  HTML.leaderboard.innerHTML = 'Loading...';
   const scores = await loadScores();
   const list = document.createElement('ul');
   list.append(
@@ -683,14 +660,14 @@ async function renderLeaderboard() {
         innerText: 'No high scores yet 🥱',
       })
     );
-  leaderboard.innerHTML = '';
-  leaderboard.appendChild(list);
+  HTML.leaderboard.innerHTML = '';
+  HTML.leaderboard.appendChild(list);
 }
 
 renderLeaderboard();
 
 function renderUser(userData) {
-  userContainer.innerHTML = '';
+  HTML.userContainer.innerHTML = '';
   if (userData.user) {
     const userDataRow = Object.assign(document.createElement('div'), {
       className: 'user-data',
@@ -707,18 +684,18 @@ function renderUser(userData) {
         type: 'button',
         onclick: async () => {
           await logout();
-          submitScoreDiv.style.display = 'none';
-          submitScoreButton.setAttribute('disabled', '');
+          HTML.submitScoreDiv.style.display = 'none';
+          HTML.submitScoreButton.setAttribute('disabled', '');
           if (subData.score > 0) {
-            signInDiv.style.display = 'block';
-            signInButton.removeAttribute('disabled');
+            HTML.signInDiv.style.display = 'block';
+            HTML.signInButton.removeAttribute('disabled');
           }
         },
       })
     );
-    userContainer.appendChild(userDataRow);
+    HTML.userContainer.appendChild(userDataRow);
   }
-  userContainer.appendChild(
+  HTML.userContainer.appendChild(
     Object.assign(document.createElement('span'), {
       innerText: `Your top score: ${userData.topScore}`,
       id: 'top-score',

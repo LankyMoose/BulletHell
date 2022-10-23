@@ -15,7 +15,6 @@ import {
   XP_REQ_MULTI_PER_LEVEL,
   BOSS_ITEMS,
   FONT,
-  setFPS,
   BACKGROUND_RGB,
 } from './constants.js';
 
@@ -27,7 +26,6 @@ import {
   getWeightMap,
   getRandomWeightMapIndex,
   radiansToDeg,
-  rectCircleCollision,
   randomAreaCoords,
   collisionDetection,
 } from './util.js';
@@ -832,7 +830,6 @@ export class BlackHole extends Sprite {
 export class Player extends Sprite {
   constructor() {
     super(...arguments);
-    console.log('new player', this.pos);
     this.speed = 0.4;
     this.bulletSpeed = 15;
     this.maxSpeed = 4;
@@ -1249,7 +1246,7 @@ export class Projectile extends Sprite {
   handleEnemyCollision(e) {
     return Projectile.handleEnemyCollision(this, e);
   }
-  static handleEnemyCollision(self, e) {
+  static handleEnemyCollision(self, e, vfxOnEnemy = false) {
     if (!DEBUG_ENABLED && e.invulnerable) return [false, false];
     if (self.pos.distance(e.pos) - e.r - self.r < 1) {
       const r = e.r > 0.1 ? e.r : 0.1;
@@ -1257,10 +1254,15 @@ export class Projectile extends Sprite {
       if (numParticles > 30) numParticles = 30;
       for (let i = 0; i < numParticles; i++) {
         game.entities.particles.add(
-          new Particle(self.pos.x, self.pos.y, Math.random() * 2, 'darkred', {
-            x: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
-            y: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
-          })
+          new Particle(
+            vfxOnEnemy ? e.pos : self.pos,
+            Math.random() * 2,
+            'darkred',
+            {
+              x: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
+              y: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
+            }
+          )
         );
       }
       let isCrit = false;
@@ -1270,7 +1272,7 @@ export class Projectile extends Sprite {
       const damage = isCrit ? self.damage * self.critMulti : self.damage;
       const mitigatedDamage = damage - damage * e.damageReduction;
       game.entities.damageTexts.add(
-        new DamageText(self.pos.x, self.pos.y, mitigatedDamage, isCrit)
+        new DamageText(vfxOnEnemy ? e.pos : self.pos, mitigatedDamage, isCrit)
       );
       if (e.invulnerable) return [true, false];
       return e.takeDamage(mitigatedDamage);
@@ -1412,8 +1414,8 @@ export class Enemy extends Sprite {
 }
 
 export class Particle extends Sprite {
-  constructor() {
-    super(...arguments);
+  constructor(pos, r, color, vel, renderGlow, glowSize) {
+    super(pos.x, pos.y, r, color, vel, renderGlow, glowSize);
     this.appliesLighting = true;
     this.applyLighting();
   }
@@ -1506,10 +1508,10 @@ export class BonusSet {
 }
 
 export class DamageText {
-  constructor(x, y, damage, isCrit) {
-    this.pos = new Vec2(x, y);
-    this.oldPos = new Vec2(x, y);
-    this.renderPos = new Vec2(x, y);
+  constructor(pos, damage, isCrit) {
+    this.pos = pos;
+    this.oldPos = pos;
+    this.renderPos = pos;
 
     this.damage = Math.floor(damage);
     this.isCrit = isCrit;
@@ -1540,6 +1542,91 @@ export class DamageText {
     //c.strokeText(this.dmg.toString(), this.x, this.y);
     c.restore();
     this.postDraw();
+  }
+}
+
+export class Wall extends Sprite {
+  constructor(pos, w, h) {
+    const coords = pos ?? randomCoords(200);
+    super(coords.x, coords.y, 200, 'blue');
+    this.w = w ?? 200;
+    this.h = h ?? 100;
+    this.shapeType = 'square';
+  }
+  draw() {
+    c.save();
+    c.beginPath();
+    c.rect(this.pos.x, this.pos.y, this.w, this.h);
+    c.fillStyle = this.color;
+    c.fill();
+    c.closePath();
+    c.restore();
+  }
+  drawShadow() {
+    super.drawShadow();
+  }
+}
+
+export class Vec2 {
+  constructor(x, y) {
+    this.x = x || 0;
+    this.y = y || 0;
+  }
+
+  distance(v) {
+    let x = v.x - this.x;
+    let y = v.y - this.y;
+
+    return Math.sqrt(x * x + y * y);
+  }
+
+  magnitude() {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  }
+
+  dot(v) {
+    return this.x * v.x + this.y * v.y;
+  }
+
+  normalize() {
+    let magnitude = this.magnitude();
+
+    return new Vec2(this.x / magnitude, this.y / magnitude);
+  }
+
+  multiply(val) {
+    return typeof val === 'number'
+      ? new Vec2(this.x * val, this.y * val)
+      : new Vec2(this.x * val.x, this.y * val.y);
+  }
+
+  subtract(val) {
+    return typeof val === 'number'
+      ? new Vec2(this.x - val, this.y - val)
+      : new Vec2(this.x - val.x, this.y - val.y);
+  }
+
+  add(val) {
+    return typeof val === 'number'
+      ? new Vec2(this.x + val, this.y + val)
+      : new Vec2(this.x + val.x, this.y + val.y);
+  }
+
+  crossProductZ(v) {
+    return this.x * v.y - v.x * this.y;
+  }
+
+  perpendicular() {
+    return new Vec2(this.y, -this.x);
+  }
+  rotate(angle) {
+    let tmp = new Vec2(0, 0);
+    let cosAngle = Math.cos(angle);
+    let sinAngle = Math.sin(angle);
+    tmp.x = this.x * cosAngle - this.y * sinAngle;
+    tmp.y = this.x * sinAngle + this.y * cosAngle;
+
+    return tmp;
   }
 }
 
@@ -1588,7 +1675,7 @@ export class Ability extends Sprite {
         const damage = isCrit ? this.damage * this.critMulti : this.damage;
         const mitigatedDamage = damage - damage * e.damageReduction;
         game.entities.damageTexts.add(
-          new DamageText(e.pos.x, e.pos.y, mitigatedDamage, isCrit)
+          new DamageText(e.pos, mitigatedDamage, isCrit)
         );
         if (e.invulnerable) return [true, false];
         if (!e.takeDamage) {
@@ -1615,7 +1702,7 @@ export class Ability extends Sprite {
   }
 }
 
-export class Kamehameha extends Ability {
+export class Laser extends Ability {
   constructor(owner, itemInstance, clientX, clientY) {
     super(
       owner.pos,
@@ -1668,7 +1755,7 @@ export class Kamehameha extends Ability {
   }
 }
 
-export class SolarFlare extends Ability {
+export class Explode extends Ability {
   constructor(owner, itemInstance) {
     super(
       owner.pos,
@@ -1689,7 +1776,7 @@ export class SolarFlare extends Ability {
   update() {
     super.update();
     if (this.remainingFrames > 10) {
-      this.r += 8;
+      this.r += 10;
       this.alpha += 0.07;
     } else {
       this.alpha -= 0.07;
@@ -1917,88 +2004,4 @@ export class LightningBeam extends Ability {
   }
 }
 
-export class Wall extends Sprite {
-  constructor(pos, w, h) {
-    const coords = pos ?? randomCoords(200);
-    super(coords.x, coords.y, 200, 'blue');
-    this.w = w ?? 200;
-    this.h = h ?? 100;
-    this.shapeType = 'square';
-  }
-  draw() {
-    c.save();
-    c.beginPath();
-    c.rect(this.pos.x, this.pos.y, this.w, this.h);
-    c.fillStyle = this.color;
-    c.fill();
-    c.closePath();
-    c.restore();
-  }
-  drawShadow() {
-    super.drawShadow();
-  }
-}
-
-export class Vec2 {
-  constructor(x, y) {
-    this.x = x || 0;
-    this.y = y || 0;
-  }
-
-  distance(v) {
-    let x = v.x - this.x;
-    let y = v.y - this.y;
-
-    return Math.sqrt(x * x + y * y);
-  }
-
-  magnitude() {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
-  }
-
-  dot(v) {
-    return this.x * v.x + this.y * v.y;
-  }
-
-  normalize() {
-    let magnitude = this.magnitude();
-
-    return new Vec2(this.x / magnitude, this.y / magnitude);
-  }
-
-  multiply(val) {
-    return typeof val === 'number'
-      ? new Vec2(this.x * val, this.y * val)
-      : new Vec2(this.x * val.x, this.y * val.y);
-  }
-
-  subtract(val) {
-    return typeof val === 'number'
-      ? new Vec2(this.x - val, this.y - val)
-      : new Vec2(this.x - val.x, this.y - val.y);
-  }
-
-  add(val) {
-    return typeof val === 'number'
-      ? new Vec2(this.x + val, this.y + val)
-      : new Vec2(this.x + val.x, this.y + val.y);
-  }
-
-  crossProductZ(v) {
-    return this.x * v.y - v.x * this.y;
-  }
-
-  perpendicular() {
-    return new Vec2(this.y, -this.x);
-  }
-  rotate(angle) {
-    let tmp = new Vec2(0, 0);
-    let cosAngle = Math.cos(angle);
-    let sinAngle = Math.sin(angle);
-    tmp.x = this.x * cosAngle - this.y * sinAngle;
-    tmp.y = this.x * sinAngle + this.y * cosAngle;
-
-    return tmp;
-  }
-}
 //http://infochim.u-strasbg.fr/cgi-bin/libs/smilesDrawer-master/doc/Vector2.js.html

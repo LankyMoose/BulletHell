@@ -2,49 +2,15 @@
 import {
   AbilityBoss,
   BlackHole,
-  Boomerang,
   Enemy,
-  Kamehameha,
   ShooterBoss,
+  Boomerang,
+  Explode,
+  Laser,
   Slash,
-  SolarFlare,
-  Turret,
   Vortex,
 } from './lib.js';
 import { game } from './state.js';
-
-export const menu = document.getElementById('menu');
-export const leaderboard = document.getElementById('leaderboard');
-export const startButton = document.getElementById('startButton');
-export const userContainer = document.getElementById('user');
-export const playerColorEl = document.getElementById('player_color');
-export const scoreEl = document.getElementById('scoreEl');
-export const menuScoreEl = document.getElementById('menuScoreEl');
-export const killsEl = document.getElementById('killsEl');
-export const lifeEl = document.getElementById('lifeEl');
-export const menuKillsEl = document.getElementById('menuKillsEl');
-export const xpBarEl = document.getElementById('xp');
-export const lvlEl = document.getElementById('level');
-
-export const gameVolumeEl = document.getElementById('game_volume');
-
-export const musicPrevEl = document.getElementById('music_prev');
-export const musicToggleEl = document.getElementById('music_toggle');
-export const musicNextEl = document.getElementById('music_next');
-
-export const levelUpScreen = document.getElementById('levelup');
-export const levelUpOptionsEl = document.getElementById('levelup_options');
-export const levelUpHeadingEl = document.getElementById('levelup_text');
-
-export const pauseScreen = document.getElementById('pause');
-export const playerStatsEl = document.getElementById('player_stats');
-export const playerStatsWrapper = document.getElementById(
-  'player_stats_container'
-);
-export const submitScoreDiv = document.getElementById('submit_score');
-export const submitScoreButton = document.getElementById('submit_button');
-export const signInDiv = document.getElementById('sign_in');
-export const signInButton = document.getElementById('sign_in_button');
 
 export const canvas = document.querySelector('canvas');
 export const c = canvas.getContext('2d');
@@ -427,7 +393,7 @@ export const ITEM_TYPES = [
     name: 'Bouncing Bullets',
     image: document.getElementById('img_bulletBounce'),
     permanent: false,
-    duration: 5,
+    duration: 20,
     weight: 20,
     modifiers: [
       {
@@ -446,7 +412,7 @@ export const ITEM_TYPES = [
     size: 22,
     damage: 3,
     trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(new Kamehameha(player, self, cx, cy));
+      game.entities.abilityEffects.add(new Laser(player, self, cx, cy));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -466,7 +432,7 @@ export const ITEM_TYPES = [
     size: 50,
     damage: 10,
     trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(new SolarFlare(player, self));
+      game.entities.abilityEffects.add(new Explode(player, self));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -483,8 +449,8 @@ export const ITEM_TYPES = [
     isAbility: true,
     cooldown: 1.5e3,
     remainingMs: 32,
-    size: 100,
-    damage: 10,
+    size: 85,
+    damage: 7,
     trigger: (player, self, cx, cy) => {
       game.entities.abilityEffects.add(new Slash(player, self, cx, cy));
     },
@@ -571,7 +537,7 @@ export const BOSS_ITEMS = [
     size: 22,
     damage: 1,
     trigger: (boss, self, cx, cy) => {
-      game.entities.enemyAbilityEffects.add(new Kamehameha(boss, self, cx, cy));
+      game.entities.enemyAbilityEffects.add(new Laser(boss, self, cx, cy));
     },
     onAdded: (bonus) => {},
   },
@@ -691,7 +657,7 @@ export const EVENT_TYPES = [
   {
     name: `Meganoth the Wicked`,
     type: 'boss',
-    weight: 500,
+    weight: 5,
     cooldown: Infinity,
     remainingMs: 0,
     activations: 1,
@@ -765,3 +731,36 @@ export const EVENT_TYPES = [
     ],
   },
 ];
+
+export const HTML = {
+  menu: document.getElementById('menu'),
+  leaderboard: document.getElementById('leaderboard'),
+  startButton: document.getElementById('startButton'),
+  userContainer: document.getElementById('user'),
+  playerColorEl: document.getElementById('player_color'),
+  scoreEl: document.getElementById('scoreEl'),
+  menuScoreEl: document.getElementById('menuScoreEl'),
+  killsEl: document.getElementById('killsEl'),
+  menuKillsEl: document.getElementById('menuKillsEl'),
+  xpBarEl: document.getElementById('xp'),
+  lvlEl: document.getElementById('level'),
+
+  gameVolumeEl: document.getElementById('game_volume'),
+  musicPrevEl: document.getElementById('music_prev'),
+  musicToggleEl: document.getElementById('music_toggle'),
+  musicNextEl: document.getElementById('music_next'),
+
+  levelUpScreen: document.getElementById('levelup'),
+  levelUpOptionsEl: document.getElementById('levelup_options'),
+  levelUpHeadingEl: document.getElementById('levelup_text'),
+
+  pauseScreen: document.getElementById('pause'),
+  playerStatsEl: document.getElementById('player_stats'),
+  playerStatsWrapper: document.getElementById('player_stats_container'),
+
+  submitScoreDiv: document.getElementById('submit_score'),
+  submitScoreButton: document.getElementById('submit_button'),
+  signInDiv: document.getElementById('sign_in'),
+  signInButton: document.getElementById('sign_in_button'),
+};
+HTML.gameVolumeEl.value = GAME_VOLUME;

@@ -4,44 +4,23 @@ import { x, y, BONUS_TYPES, EVENT_TYPES } from './constants';
 import { getRandomIndexByWeight } from './util';
 
 class GameState {
-  static defaults = {
+  static #defaults = {
     score: () => 0,
     animId: () => null,
     allowEnemySpawn: () => true,
     allowPlayerShoot: () => true,
     playerDashTime: () => 2000,
     allowAbilities: () => true,
-    entities: {
-      abilityEffects: () => [],
-      enemyAbilityEffects: () => [],
-      bullets: () => [],
-      enemyBullets: () => [],
-      blackHoles: () => [],
-      enemies: () => [],
-      events: () => [],
-      particles: () => [],
-      items: () => [],
-      turrets: () => [],
-      damageTexts: () => [],
-      walls: () => [],
-      player: () => new Player(x, y, 24, 'white', { x: 0, y: 0 }),
-      // player: () =>
-      //   Object.assign(new Player(x, y, 24, 'white', { x: 0, y: 0 }), {
-      //     level: 2,
-      //     xp: 1000,
-      //     invulnerable: true,
-      //   }),
-    },
     bonuses: () => [...BONUS_TYPES],
     running: () => false,
     nextFrameActionQueue: () => [],
   };
   animId = {
-    value: GameState.defaults.animId(),
+    value: GameState.#defaults.animId(),
     set: (id) => (this.animId.value = id),
     reset: () => {
       window.cancelAnimationFrame(this.animId.value);
-      this.animId.value = GameState.defaults.animId();
+      this.animId.value = GameState.#defaults.animId();
     },
   };
   settings = {
@@ -55,13 +34,13 @@ class GameState {
           (this.settings.enemies.spawnTime.value = this.enemySpawnTime),
       },
       allowSpawn: {
-        value: GameState.defaults.allowEnemySpawn(),
+        value: GameState.#defaults.allowEnemySpawn(),
         set: (bool) => (this.settings.enemies.allowSpawn.value = bool),
       },
     },
     player: {
       allowShoot: {
-        value: GameState.defaults.allowPlayerShoot(),
+        value: GameState.#defaults.allowPlayerShoot(),
         set: (bool) => (this.settings.player.allowShoot.value = bool),
       },
       allowAbilities: {
@@ -85,9 +64,15 @@ class GameState {
   };
   entities = {
     player: {
-      value: GameState.defaults.entities.player(),
+      value: new Player(x, y, 24, 'white', {
+        x: 0,
+        y: 0,
+      }),
       reset: () =>
-        (this.entities.player.value = GameState.defaults.entities.player()),
+        (this.entities.player.value = new Player(x, y, 24, 'white', {
+          x: 0,
+          y: 0,
+        })),
     },
     abilityEffects: new EntityStore('abilityEffects'),
     enemyAbilityEffects: new EntityStore('enemyAbilityEffects'),
@@ -103,12 +88,12 @@ class GameState {
     walls: new EntityStore('walls'),
   };
   score = {
-    value: GameState.defaults.score(),
+    value: GameState.#defaults.score(),
     add: (num) => (this.score.value += num),
-    reset: () => (this.score.value = GameState.defaults.score()),
+    reset: () => (this.score.value = GameState.#defaults.score()),
   };
   bonuses = {
-    value: GameState.defaults.bonuses(),
+    value: GameState.#defaults.bonuses(),
     add: (bonus) => this.bonuses.value.push(bonus),
     remove: (bonus) => {
       for (let i = 0; i < this.bonuses.value.length; i++) {
@@ -117,19 +102,19 @@ class GameState {
         }
       }
     },
-    reset: () => (this.bonuses = GameState.defaults.bonuses()),
+    reset: () => (this.bonuses = GameState.#defaults.bonuses()),
   };
   running = {
-    value: GameState.defaults.running(),
+    value: GameState.#defaults.running(),
     set: (bool) => (this.running.value = bool),
-    reset: () => (this.running.value = GameState.defaults.running()),
+    reset: () => (this.running.value = GameState.#defaults.running()),
   };
   nextFrameActionQueue = {
-    value: GameState.defaults.nextFrameActionQueue(),
+    value: GameState.#defaults.nextFrameActionQueue(),
     add: (fn) => this.nextFrameActionQueue.value.push(fn),
     reset: () => {
       this.nextFrameActionQueue.value =
-        GameState.defaults.nextFrameActionQueue();
+        GameState.#defaults.nextFrameActionQueue();
       // console.log(
       //   'nextFrameActionQueue reset',
       //   this.nextFrameActionQueue.value
@@ -146,13 +131,13 @@ class GameState {
 class EntityStore {
   constructor(name) {
     this.name = name;
-    this.value = GameState.defaults.entities[this.name]();
+    this.value = [];
   }
   add(e) {
     this.value.push(e);
   }
   reset() {
-    this.value = GameState.defaults.entities[this.name]();
+    this.value = [];
   }
   removeFlagged() {
     this.value = this.value.filter((e) => !e.removed);
