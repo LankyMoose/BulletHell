@@ -28,6 +28,7 @@ import {
   radiansToDeg,
   randomAreaCoords,
   circleRectCollision,
+  getRarityWeightMap,
 } from './util.js';
 
 function strokeCircle(circle) {
@@ -1553,7 +1554,7 @@ export class BonusSet {
       if (!this.items.some((x) => x.name == bonusDef.name)) {
         let rarity = 0;
         if (bonusDef.rarity_weights) {
-          const rarityWeightMap = getWeightMap(bonusDef.rarity_weights);
+          const rarityWeightMap = getRarityWeightMap(bonusDef.rarity_weights);
           rarity = getRandomWeightMapIndex(rarityWeightMap);
         }
         let color = null;
