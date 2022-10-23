@@ -112,8 +112,8 @@ function update() {
   game.entities.enemyAbilityEffects.removeFlagged();
 
   const eLength = game.entities.enemies.value.length;
-  const aeLength = game.entities.abilityEffects.value.length;
-  const bLength = game.entities.bullets.value.length;
+  let aeLength = game.entities.abilityEffects.value.length;
+  let bLength = game.entities.bullets.value.length;
   for (let i = 0; i < eLength; i++) {
     const e = game.entities.enemies.value[i];
     e.update();
@@ -145,6 +145,7 @@ function update() {
         const [hit, kill] = ae.handleEnemyCollision(e);
         if (kill) e.removed = true;
         if (hit && ae.destroyOnCollision) ae.removed = true;
+        if (e.removed) break;
       }
     }
 
@@ -161,6 +162,29 @@ function update() {
   game.entities.enemies.removeFlagged();
 
   game.entities.turrets.update();
+  const tLength = game.entities.turrets.value.length;
+  bLength = game.entities.bullets.value.length;
+  aeLength = game.entities.abilityEffects.value.length;
+  for (let i = 0; i < tLength; i++) {
+    const t = game.entities.turrets.value[i];
+    for (let j = 0; j < bLength; j++) {
+      const b = game.entities.bullets.value[j];
+      const [hit, kill] = b.handleEnemyCollision(t);
+      t.removed = kill;
+      if (hit) b.removed = true;
+      if (t.removed) break;
+    }
+    if (!t.removed) {
+      for (let j = 0; j < aeLength; j++) {
+        const ae = game.entities.abilityEffects.value[j];
+        const [hit, kill] = ae.handleEnemyCollision(t);
+        if (kill) t.removed = true;
+        if (hit && ae.destroyOnCollision) ae.removed = true;
+        if (t.removed) break;
+      }
+    }
+  }
+  game.entities.turrets.removeFlagged();
   game.entities.particles.update();
 
   const iLength = game.entities.items.value.length;

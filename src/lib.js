@@ -456,7 +456,6 @@ export class ShooterBoss extends Boss {
     );
   }
   spawnPhase(numTurrets) {
-    game.entities.turrets.reset();
     this.invulnerable = true;
     this.fixed = true;
     this.color = '#333';
@@ -720,11 +719,15 @@ export class Turret extends Sprite {
     this.applyLighting();
     this.critChance = 10;
     this.critMulti = 1.5;
+    this.damage = 0; // no collision damage
+    this.damageReduction = 0.3;
+    this.invulnerable = true;
   }
   update() {
     super.update();
     this.updateBullets();
-    if (this.r < this.initialR) this.r++;
+    if (this.r == this.initialR) this.invulnerable = false;
+    if (this.invulnerable) this.r++;
   }
   static spawn(coords) {
     const rad = 42;
@@ -768,6 +771,10 @@ export class Turret extends Sprite {
         1.5
       )
     );
+  }
+  takeDamage(damage) {
+    this.r -= damage;
+    return this.r <= 0 || this.r < Enemy.minSize ? [true, true] : [true, false];
   }
 }
 
@@ -1407,7 +1414,6 @@ export class Enemy extends Sprite {
   }
 
   takeDamage(damage) {
-    //console.log('enemy take damage', damage, this.r);
     this.r -= damage;
     return this.r <= 0 || this.r < Enemy.minSize ? [true, true] : [true, false];
   }

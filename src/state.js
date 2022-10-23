@@ -150,7 +150,7 @@ class EntityStore {
 }
 class EventStore extends EntityStore {
   constructor() {
-    super('events');
+    super();
   }
   random(type) {
     const filteredEvents = EVENT_TYPES.filter(
