@@ -391,7 +391,8 @@
   </head>
   <body>
     <div style="display: none">
-      test
+      <img id="img_bg" src="img/bg.png" width="3000" height="3000" />
+
       <img id="img_bullet" src="img/bullet.png" width="30" height="30" />
       <img id="img_bullets" src="img/bullets.png" width="30" height="30" />
       <img id="img_bulletBounce" src="img/bounce.png" width="30" height="30" />
@@ -421,7 +422,15 @@
       <div id="player_stats"></div>
     </div>
 
-    <canvas></canvas>
+    <canvas id="canvas"></canvas>
+    <canvas
+      id="canvas_BG"
+      style="position: absolute; top: 0; left: 0; pointer-events: none"
+    ></canvas>
+    <canvas
+      id="canvas_UI"
+      style="position: absolute; top: 0; left: 0; pointer-events: none"
+    ></canvas>
     <div id="score">
       <div class="row">
         <span>Score:</span>

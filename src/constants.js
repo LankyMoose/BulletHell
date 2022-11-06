@@ -12,17 +12,26 @@ import {
 } from './lib.js';
 import { game } from './state.js';
 
-export const canvas = document.querySelector('canvas');
+export const canvas = document.getElementById('canvas');
 export const c = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
+export const canvas_BG = document.getElementById('canvas_BG');
+export const c_BG = canvas_BG.getContext('2d');
+canvas_BG.width = innerWidth;
+canvas_BG.height = innerHeight;
+export const canvas_UI = document.getElementById('canvas_UI');
+export const c_UI = canvas_UI.getContext('2d');
+canvas_UI.width = innerWidth;
+canvas_UI.height = innerHeight;
+
 export let x = canvas.width / 2;
 export let y = canvas.height / 2;
 export const set_x = (val) => (x = val);
 export const set_y = (val) => (y = val);
 
 export const XP_PER_KILL = 100;
-export const XP_REQ_MULTI_PER_LEVEL = 1.25;
+export const XP_REQ_MULTI_PER_LEVEL = 1.15;
 export const FRICTION = 0.97;
 export const BULLET_COLOR = 'rgba(255,255,255,.75)';
 export const BULLET_SIZE = 5;
@@ -387,8 +396,8 @@ export const ITEM_TYPES = [
     remainingMs: 32,
     size: 22,
     damage: 3,
-    trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(new Laser(player, self, cx, cy));
+    trigger: (player, self, target) => {
+      game.entities.abilityEffects.add(new Laser(player, self, target));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -407,7 +416,7 @@ export const ITEM_TYPES = [
     remainingMs: 32,
     size: 50,
     damage: 10,
-    trigger: (player, self, cx, cy) => {
+    trigger: (player, self, target) => {
       game.entities.abilityEffects.add(new Explode(player, self));
     },
     onAdded: (bonus) => {
@@ -427,8 +436,8 @@ export const ITEM_TYPES = [
     remainingMs: 32,
     size: 85,
     damage: 7,
-    trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(new Slash(player, self, cx, cy));
+    trigger: (player, self, target) => {
+      game.entities.abilityEffects.add(new Slash(player, self, target));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -448,7 +457,7 @@ export const ITEM_TYPES = [
     size: 8,
     damage: 20,
     maxInstances: 3,
-    trigger: (player, self, cx, cy) => {
+    trigger: (player, self, target) => {
       if (
         game.entities.abilityEffects.value.filter((ae) => ae.name == 'Vortex')
           .length < self.maxInstances
@@ -473,8 +482,8 @@ export const ITEM_TYPES = [
     size: 70,
     damage: 2,
     maxDistance: 300,
-    trigger: (player, self, cx, cy) => {
-      game.entities.abilityEffects.add(new Boomerang(player, self, cx, cy));
+    trigger: (player, self, target) => {
+      game.entities.abilityEffects.add(new Boomerang(player, self, target));
     },
     onAdded: (bonus) => {
       game.bonuses.remove(bonus);
@@ -520,13 +529,13 @@ export const BOSS_ITEMS = [
 ];
 
 const renderEventName = (name) => {
-  c.save();
-  c.fillStyle = 'white';
+  c_UI.save();
+  c_UI.fillStyle = 'white';
   const fs = 36;
-  c.font = fs + 'px ' + FONT;
-  c.textAlign = 'center';
-  c.fillText(name, canvas.width / 2, 100);
-  c.restore();
+  c_UI.font = fs + 'px ' + FONT;
+  c_UI.textAlign = 'center';
+  c_UI.fillText(name, canvas.width / 2, 100);
+  c_UI.restore();
 };
 
 export const EVENT_TYPES = [
@@ -536,13 +545,16 @@ export const EVENT_TYPES = [
     weight: 1,
     cooldown: 2e3,
     remainingMs: 0,
-    activations: 1,
+    activations: (self) => {
+      if (typeof self._activations == 'undefined')
+        self._activations =
+          Math.floor(game.entities.player.value.level / 4) + 1;
+
+      return self._activations;
+    },
     functions: [
       () => {
-        const player = game.entities.player.value;
-        for (let i = 0; i < player.level / 3; i++) {
-          Enemy.spawnGroup(3 + Math.floor(player.level / 3));
-        }
+        Enemy.spawnGroup(3 + Math.floor(game.entities.player.value.level / 3));
       },
     ],
     vfx: [
@@ -566,11 +578,13 @@ export const EVENT_TYPES = [
     weight: 0,
     cooldown: 2e3,
     remainingMs: 0,
-    activations: 1,
+    _activations: 1,
+    activations: (self) => self._activations,
     functions: [
       () => {
         BlackHole.spawn();
         game.entities.player.value.invulnerable = true;
+        game.entities.enemies.value.forEach((e) => (e.invulnerable = true));
         game.settings.enemies.allowSpawn.set(false);
         game.settings.player.allowShoot.set(false);
         game.settings.player.allowAbilities.set(false);
@@ -608,7 +622,8 @@ export const EVENT_TYPES = [
     weight: 5,
     cooldown: Infinity,
     remainingMs: 0,
-    activations: 1,
+    _activations: 1,
+    activations: (self) => self._activations,
     functions: [
       (evt) => {
         const newBoss = ShooterBoss.spawn();
@@ -636,7 +651,8 @@ export const EVENT_TYPES = [
     weight: 5,
     cooldown: Infinity,
     remainingMs: 0,
-    activations: 1,
+    _activations: 1,
+    activations: (self) => self._activations,
     remainingBosses: 1,
     functions: [
       (evt) => {
@@ -669,7 +685,8 @@ export const EVENT_TYPES = [
     weight: 0,
     cooldown: 2e3,
     remainingMs: 0,
-    activations: 1,
+    _activations: 1,
+    activations: (self) => self._activations,
     functions: [
       () => {
         BlackHole.spawn();
@@ -738,5 +755,6 @@ export const HTML = {
   submitScoreButton: document.getElementById('submit_button'),
   signInDiv: document.getElementById('sign_in'),
   signInButton: document.getElementById('sign_in_button'),
+  img_bg: document.getElementById('img_bg'),
 };
 HTML.gameVolumeEl.value = GAME_VOLUME;

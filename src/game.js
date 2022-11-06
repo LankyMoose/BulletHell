@@ -1,15 +1,21 @@
 'use strict';
 
 import { game, resetGame } from './state';
-import { Sprite, Enemy, Item, BonusSet, Projectile } from './lib.js';
+import {
+  Sprite,
+  Enemy,
+  Item,
+  BonusSet,
+  Projectile,
+  Polygon,
+  Vec2,
+} from './lib.js';
 import { Howler } from 'howler';
 
 import {
   HTML,
   canvas,
   c,
-  x,
-  y,
   set_x,
   set_y,
   XP_PER_KILL,
@@ -20,6 +26,9 @@ import {
   setFPS,
   BACKGROUND_RGB,
   PLAYER_COLOR,
+  canvas_BG,
+  canvas_UI,
+  c_UI,
 } from './constants.js';
 
 import {
@@ -46,8 +55,11 @@ function main() {
   const elapsed = now - window.start;
   window.start = now;
   window.lag += elapsed;
+  c.globalAlpha = 1;
   c.fillStyle = `rgb(${BACKGROUND_RGB})`;
-  c.fillRect(0, 0, canvas.width, canvas.height);
+  c.fillRect(0, 0, game.width, game.height);
+
+  c_UI.clearRect(0, 0, game.width, game.height);
 
   const nextFrameActions = game.nextFrameActionQueue.value;
   if (nextFrameActions.length > 0) {
@@ -72,9 +84,15 @@ function main() {
   );
 
   render(window.lag / window.frameDuration);
-  c.fillStyle = 'rgba(255,255,255,.6)';
-  c.font = '12px ' + FONT;
-  c.fillText(`${Math.floor(elapsed)}ms`, canvas.width - 50, canvas.height - 12);
+  c_UI.save();
+  c_UI.fillStyle = 'rgba(255,255,255,.6)';
+  c_UI.font = '12px ' + FONT;
+  c_UI.fillText(
+    `${Math.floor(elapsed)}ms`,
+    canvas.width - 100,
+    canvas.height - 100
+  );
+  c_UI.restore();
 }
 
 let debugRenders = [];
@@ -86,6 +104,7 @@ function update() {
   game.entities.blackHoles.update();
 
   player.update();
+  game.camera.followV2(player.ghost ? player.ghost.pos : player.pos);
 
   game.entities.bullets.update();
 
@@ -131,10 +150,10 @@ function update() {
       if (player.rewinds == 0) return endGame();
       player.rewind();
     }
-    if (hit) {
-      player.vel.x += e.vel.x * 3;
-      player.vel.y += e.vel.y * 3;
-    }
+    // if (hit) {
+    //   player.vel.x += e.vel.x * 3;
+    //   player.vel.y += e.vel.y * 3;
+    // }
 
     for (let j = 0; j < bLen; j++) {
       const b = game.entities.bullets.value[j];
@@ -227,7 +246,28 @@ function queuePlayerLevelUp() {
   });
 }
 
+function renderBorder() {
+  c.save();
+  c.beginPath();
+  c.fillStyle = 'transparent';
+  c.strokeStyle = 'white';
+  c.shadowColor = '#aaa';
+  c.shadowBlur = 20;
+  c.lineJoin = 'bevel';
+  c.lineWidth = 15;
+  const camera = game.camera;
+  c.strokeRect(-camera.x, -camera.y, game.width, game.height);
+  c.stroke();
+  c.closePath();
+  c.restore();
+}
+
 function render(lagOffset) {
+  for (const enemy of game.entities.enemies.value) {
+    enemy.drawShadow();
+  }
+  //c.drawImage(HTML.img_bg, -game.camera.x, -game.camera.y);
+  renderBorder();
   for (const bh of game.entities.blackHoles.value) {
     bh.draw(lagOffset);
   }
@@ -236,11 +276,8 @@ function render(lagOffset) {
   }
 
   game.entities.player.value.draw(lagOffset);
-  renderPlayerLight();
+  //renderPlayerLight();
 
-  for (const enemy of game.entities.enemies.value) {
-    enemy.drawShadow();
-  }
   for (const wall of game.entities.walls.value) {
     wall.drawShadow();
   }
@@ -248,19 +285,19 @@ function render(lagOffset) {
     wall.draw();
   }
   for (const bullet of game.entities.enemyBullets.value) {
-    bullet.draw(lagOffset);
+    if (bullet.inView()) bullet.draw(lagOffset);
   }
   for (const enemy of game.entities.enemies.value) {
-    enemy.draw(lagOffset);
+    if (enemy.inView()) enemy.draw(lagOffset);
   }
   for (const turret of game.entities.turrets.value) {
-    turret.draw(lagOffset);
+    if (turret.inView()) turret.draw(lagOffset);
   }
   for (const particle of game.entities.particles.value) {
-    particle.draw(lagOffset);
+    if (particle.inView()) particle.draw(lagOffset);
   }
   for (const item of game.entities.items.value) {
-    item.draw(lagOffset);
+    if (item.inView()) item.draw(lagOffset);
   }
   for (const ae of game.entities.abilityEffects.value) {
     ae.draw(lagOffset);
@@ -291,19 +328,26 @@ function render(lagOffset) {
   }
   debugRenders.forEach((f) => f());
   debugRenders = [];
+
+  for (const pg of game.entities.polygons.value) {
+    pg.draw();
+  }
 }
 
 function renderPlayerLight() {
   const player = game.entities.player.value;
+  const camera = game.camera;
+  const xOffset = player.renderPos.x * camera.zoom - camera.x * camera.zoom;
+  const yOffset = player.renderPos.y * camera.zoom - camera.y * camera.zoom;
   c.save();
   c.beginPath();
-  c.arc(player.pos.x, player.pos.y, player.lightRadius, 0, 2 * Math.PI);
+  c.arc(xOffset, yOffset, player.lightRadius, 0, 2 * Math.PI);
   const gradient1 = c.createRadialGradient(
-    player.pos.x,
-    player.pos.y,
+    xOffset,
+    yOffset,
     0,
-    player.pos.x,
-    player.pos.y,
+    xOffset,
+    yOffset,
     player.lightRadius
   );
   gradient1.addColorStop(0, 'rgba(255,255,255,.07)');
@@ -321,7 +365,7 @@ function handleProgression() {
 
   if (
     !DEBUG_ENABLED &&
-    player.kills % 10 == 0 &&
+    player.kills % 5 == 0 &&
     game.entities.items.length <= 2
   ) {
     Item.spawn();
@@ -353,6 +397,7 @@ function startGame() {
     newEnemy.invulnerable = true;
     game.entities.enemies.add(newEnemy);
   }
+  game.entities.polygons.add(new Polygon());
   //game.entities.walls.add(new Wall());
   game.entities.player.value.color = HTML.playerColorEl.value;
   main();
@@ -601,10 +646,13 @@ HTML.signInButton.addEventListener('click', async () => {
   }
 });
 
-document.addEventListener(
-  'mousemove',
-  (e) => (game.entities.player.value.lastMouseMove = e)
-);
+document.addEventListener('mousemove', (e) => {
+  const camera = game.camera;
+  const xOffset = e.clientX * camera.zoom + camera.x * camera.zoom;
+  const yOffset = e.clientY * camera.zoom + camera.y * camera.zoom;
+  game.entities.player.value.lastMouseMove = new Vec2(xOffset, yOffset);
+});
+
 document.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   e.stopImmediatePropagation();
@@ -612,21 +660,14 @@ document.addEventListener('contextmenu', (e) => {
 });
 
 addEventListener('resize', () => {
-  const old = { x, y };
   canvas.width = innerWidth;
   canvas.height = innerHeight;
+  canvas_BG.width = innerWidth;
+  canvas_BG.height = innerHeight;
+  canvas_UI.width = innerWidth;
+  canvas_UI.height = innerHeight;
   set_x(canvas.width / 2);
   set_y(canvas.height / 2);
-  const { enemies, bullets, abilityEffects, player } = game.entities;
-  [
-    ...enemies.value,
-    ...bullets.value,
-    ...abilityEffects.value,
-    player.value,
-  ].forEach((el) => {
-    el.pos.x += x - old.x;
-    el.pos.y += y - old.y;
-  });
 });
 HTML.gameVolumeEl.addEventListener('input', (e) => {
   Howler.volume(e.target.value);

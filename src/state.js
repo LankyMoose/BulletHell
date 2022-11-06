@@ -1,5 +1,5 @@
 'use strict';
-import { Player } from './lib';
+import { Camera, Player } from './lib';
 import { x, y, BONUS_TYPES, EVENT_TYPES, HTML } from './constants';
 import { getRandomIndexByWeight } from './util';
 import { showLevelUpScreen } from './game';
@@ -16,6 +16,8 @@ class GameState {
     running: () => false,
     nextFrameActionQueue: () => [],
   };
+  width = 3000;
+  height = 3000;
   animId = {
     value: GameState.#defaults.animId(),
     set: (id) => (this.animId.value = id),
@@ -24,10 +26,11 @@ class GameState {
       this.animId.value = GameState.#defaults.animId();
     },
   };
+  camera = new Camera(this.width, this.height);
   settings = {
     enemies: {
       spawnTime: {
-        value: 1000,
+        value: 500,
         set: (num) => {
           this.settings.enemies.spawnTime.value = num;
         },
@@ -65,15 +68,21 @@ class GameState {
   };
   entities = {
     player: {
-      value: new Player(x, y, 24, 'white', {
+      value: new Player(this.width / 2, this.height / 2, 24, 'white', {
         x: 0,
         y: 0,
       }),
       reset: () =>
-        (this.entities.player.value = new Player(x, y, 24, 'white', {
-          x: 0,
-          y: 0,
-        })),
+        (this.entities.player.value = new Player(
+          this.width / 2,
+          this.height / 2,
+          24,
+          'white',
+          {
+            x: 0,
+            y: 0,
+          }
+        )),
     },
     abilityEffects: new EntityStore(),
     enemyAbilityEffects: new EntityStore(),
@@ -87,6 +96,7 @@ class GameState {
     items: new EntityStore(),
     turrets: new EntityStore(),
     walls: new EntityStore(),
+    polygons: new EntityStore(),
   };
   score = {
     value: GameState.#defaults.score(),
@@ -122,38 +132,39 @@ class GameState {
   };
 
   constructor() {
-    this.enemySpawnTime = 1000;
-    this.settings.enemies.spawnTime.value = 1000;
+    this.enemySpawnTime = 500;
+    this.settings.enemies.spawnTime.value = 500;
   }
 }
 
 class EntityStore {
-  _length = 0;
+  #length = 0;
   value = [];
   constructor() {}
   get length() {
-    return this._length;
+    return this.#length;
   }
 
   add(e) {
     this.value.push(e);
-    this._length++;
+    this.#length++;
   }
   reset() {
     this.value = [];
-    this._length = 0;
+    this.#length = 0;
   }
   removeFlagged() {
     this.value = this.value.filter((e) => !e.removed);
-    this._length = this.value.length;
+    this.#length = this.value.length;
   }
   update() {
-    for (let i = 0; i < this._length; i++) {
+    for (let i = 0; i < this.length; i++) {
       this.value[i].update();
     }
     this.removeFlagged();
   }
 }
+
 class EventStore extends EntityStore {
   constructor() {
     super();
@@ -167,10 +178,10 @@ class EventStore extends EntityStore {
   }
 
   update() {
-    for (let i = 0; i < this._length; i++) {
+    for (let i = 0; i < this.length; i++) {
       const evt = this.value[i];
       if (!evt) throw new Error('trying to execute non-existing event');
-      if (evt.activations == 0 && evt.remainingMs <= 0) {
+      if (evt.activations(evt) == 0 && evt.remainingMs <= 0) {
         if (evt.onExit) {
           for (const fn of evt.onExit) {
             fn();
@@ -186,10 +197,10 @@ class EventStore extends EntityStore {
       }
       evt.remainingMs -= window.animFrameDuration;
 
-      if (evt.remainingMs <= 0 && evt.activations > 0) {
+      if (evt.remainingMs <= 0 && evt.activations(evt) > 0) {
         evt.functions.forEach((f) => f(evt));
-        if (evt.activations > 0) evt.remainingMs = evt.cooldown;
-        evt.activations -= 1;
+        if (evt.activations(evt) > 0) evt.remainingMs = evt.cooldown;
+        evt._activations -= 1;
       }
     }
     this.removeFlagged();

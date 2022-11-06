@@ -16,6 +16,7 @@ import {
   BOSS_ITEMS,
   FONT,
   BACKGROUND_RGB,
+  c_UI,
 } from './constants.js';
 
 import {
@@ -29,6 +30,7 @@ import {
   randomAreaCoords,
   circleRectCollision,
   getRarityWeightMap,
+  degreesToRad,
 } from './util.js';
 
 function strokeCircle(circle) {
@@ -51,7 +53,7 @@ export class Sprite {
     this.killValue = Math.floor((r / 3) * 10);
     this.color = color;
     this.alpha = 1;
-    this.vel = vel ? new Vec2(vel.x, vel.y) : undefined;
+    this.vel = vel ? new Vec2(vel.x, vel.y) : new Vec2();
     this.fixed = false;
     this.shapeType = 'circle';
     this.renderGlow = renderGlow;
@@ -62,6 +64,9 @@ export class Sprite {
     this.appliesLighting = false;
     this.collideBoundary = false;
     this.collideWalls = false;
+    this.cameraFollow = false;
+    this.appliedForce = new Vec2();
+    this.forceResistance = 0.65;
   }
 
   preDraw(lagOffset) {
@@ -84,7 +89,10 @@ export class Sprite {
     }
     c.beginPath();
     const r = Math.max(this.r, 0.1);
-    c.arc(this.renderPos.x, this.renderPos.y, r, 0, Math.PI * 2, false);
+    const camera = game.camera;
+    const xOffset = this.renderPos.x * camera.zoom - camera.x * camera.zoom;
+    const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
+    c.arc(xOffset, yOffset, r, 0, Math.PI * 2, false);
     c.closePath();
     c.fillStyle = this.color;
     c.fill();
@@ -93,8 +101,8 @@ export class Sprite {
       try {
         c.drawImage(
           this.image,
-          this.renderPos.x - (r * 2) / 2,
-          this.renderPos.y - (r * 2) / 2,
+          xOffset - (r * 2) / 2,
+          yOffset - (r * 2) / 2,
           r * 2,
           r * 2
         );
@@ -106,9 +114,27 @@ export class Sprite {
     this.postDraw();
   }
 
+  applyForce(v2) {
+    this.appliedForce = this.appliedForce.add(v2);
+  }
   updatePosition() {
-    if (this.fixed || !this.vel) return;
-    this.pos = this.pos.add(this.vel);
+    if (this.fixed) return;
+    if (this.appliedForce.x != 0 || this.appliedForce.y != 0) {
+      this.appliedForce = this.appliedForce.multiply(this.forceResistance);
+      if (
+        Math.abs(this.appliedForce.x) > 0 &&
+        Math.abs(this.appliedForce.x) < 1
+      ) {
+        this.appliedForce.x = 0;
+      }
+      if (
+        Math.abs(this.appliedForce.y) > 0 &&
+        Math.abs(this.appliedForce.y) < 1
+      ) {
+        this.appliedForce.y = 0;
+      }
+    }
+    this.pos = this.pos.add(this.vel).add(this.appliedForce);
   }
 
   applyGlobalScale() {
@@ -133,24 +159,25 @@ export class Sprite {
   }
 
   enforceMapBoundaries() {
+    const padding = 7;
     let collisionCount = 0;
-    if (this.pos.x - this.r < 0) {
-      this.pos.x = this.r;
+    if (this.pos.x - this.r < 0 + padding) {
+      this.pos.x = this.r + padding;
       this.vel.x *= -1;
       collisionCount++;
     }
-    if (this.pos.x + this.r > canvas.width) {
-      this.pos.x = canvas.width - this.r;
+    if (this.pos.x + this.r > game.width - padding) {
+      this.pos.x = game.width - padding - this.r;
       this.vel.x *= -1;
       collisionCount++;
     }
-    if (this.pos.y - this.r < 0) {
-      this.pos.y = this.r;
+    if (this.pos.y - this.r < 0 + padding) {
+      this.pos.y = this.r + padding;
       this.vel.y *= -1;
       collisionCount++;
     }
-    if (this.pos.y + this.r > canvas.height) {
-      this.pos.y = canvas.height - this.r;
+    if (this.pos.y + this.r > game.height - padding) {
+      this.pos.y = game.height - padding - this.r;
       this.vel.y *= -1;
       collisionCount++;
     }
@@ -184,11 +211,22 @@ export class Sprite {
   }
 
   inMap(dist = 0) {
+    const padding = 0;
     return (
-      this.pos.x - this.r > 0 - dist &&
-      this.pos.x + this.r < canvas.width + dist &&
-      this.pos.y - this.r > 0 - dist &&
-      this.pos.y + this.r < canvas.height + dist
+      this.pos.x - this.r > padding - dist &&
+      this.pos.x + this.r < game.width - padding + dist &&
+      this.pos.y - this.r > padding - dist &&
+      this.pos.y + this.r < game.height - padding + dist
+    );
+  }
+  inView() {
+    const camera = game.camera;
+    const r = this.r * 3;
+    return (
+      this.pos.x + r > camera.x && // past left
+      this.pos.x - r < camera.x + canvas.width && // before right
+      this.pos.y + r > camera.y && // past top
+      this.pos.y - r < camera.y + canvas.height // before bottom
     );
   }
 
@@ -278,12 +316,26 @@ export class Sprite {
     }
 
     for (let i = points.length - 1; i >= 0; i--) {
+      const camera = game.camera;
+
       let n = i == 3 ? 0 : i + 1;
       c.beginPath();
-      c.moveTo(points[i].startX, points[i].startY);
-      c.lineTo(points[n].startX, points[n].startY);
-      c.lineTo(points[n].endX, points[n].endY);
-      c.lineTo(points[i].endX, points[i].endY);
+      c.moveTo(
+        points[i].startX * camera.zoom - camera.x * camera.zoom,
+        points[i].startY * camera.zoom - camera.y * camera.zoom
+      );
+      c.lineTo(
+        points[n].startX * camera.zoom - camera.x * camera.zoom,
+        points[n].startY * camera.zoom - camera.y * camera.zoom
+      );
+      c.lineTo(
+        points[n].endX * camera.zoom - camera.x * camera.zoom,
+        points[n].endY * camera.zoom - camera.y * camera.zoom
+      );
+      c.lineTo(
+        points[i].endX * camera.zoom - camera.x * camera.zoom,
+        points[i].endY * camera.zoom - camera.y * camera.zoom
+      );
       c.fillStyle = `rgba(${BACKGROUND_RGB}, .025)`;
       c.fill();
     }
@@ -321,6 +373,7 @@ export class Boss extends Sprite {
     this.phases = [];
     this.critChance = 10;
     this.critMulti = 1.5;
+    this.forceResistance = 0.3;
   }
   update() {
     super.update();
@@ -353,18 +406,18 @@ export class Boss extends Sprite {
   }
 
   renderLife() {
-    c.save();
+    c_UI.save();
 
     const maxWidth = canvas.width * 0.3;
     const height = 10;
     const curPercent = this.life / this.maxLife;
     const leftOffset = canvas.width * 0.35;
     const topOffset = 120;
-    c.fillStyle = '#8c0a10';
-    c.fillRect(leftOffset, topOffset, maxWidth, height);
-    c.fillStyle = '#fc1d26';
-    c.fillRect(leftOffset, topOffset, maxWidth * curPercent, height);
-    c.restore();
+    c_UI.fillStyle = '#8c0a10';
+    c_UI.fillRect(leftOffset, topOffset, maxWidth, height);
+    c_UI.fillStyle = '#fc1d26';
+    c_UI.fillRect(leftOffset, topOffset, maxWidth * curPercent, height);
+    c_UI.restore();
   }
 }
 export class ShooterBoss extends Boss {
@@ -683,12 +736,7 @@ export class AbilityBoss extends Boss {
     for (let ability of abilities) {
       ability.remainingMs -= window.animFrameDuration;
       if (ability.remainingMs <= 0) {
-        ability.trigger(
-          this,
-          ability,
-          game.entities.player.value.pos.x,
-          game.entities.player.value.pos.y
-        );
+        ability.trigger(this, ability, game.entities.player.value.pos);
         ability.remainingMs = ability.cooldown;
       }
     }
@@ -803,12 +851,15 @@ export class BlackHole extends Sprite {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
+    const camera = game.camera;
+    const xOffset = this.renderPos.x * camera.zoom - camera.x * camera.zoom;
+    const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
     let grd = c.createRadialGradient(
-      this.renderPos.x,
-      this.renderPos.y,
+      xOffset,
+      yOffset,
       this.r * 0.8,
-      this.renderPos.x,
-      this.renderPos.y,
+      xOffset,
+      yOffset,
       this.r
     );
     grd.addColorStop(0, 'black');
@@ -821,7 +872,7 @@ export class BlackHole extends Sprite {
     c.fillStyle = grd;
 
     c.beginPath();
-    c.arc(this.renderPos.x, this.renderPos.y, this.r, 0, Math.PI * 2, false);
+    c.arc(xOffset, yOffset, this.r, 0, Math.PI * 2, false);
     c.closePath();
     c.fill();
     c.restore();
@@ -830,7 +881,7 @@ export class BlackHole extends Sprite {
   }
 
   static spawn() {
-    const newBh = new BlackHole(x, y);
+    const newBh = new BlackHole(game.width / 2, game.height / 2);
     game.entities.blackHoles.add(newBh);
   }
 }
@@ -847,7 +898,7 @@ export class Player extends Sprite {
     this.dashReady = true;
     this.dashDuration = 160;
     this.dashTick = 0;
-    this.dashVelocity = new Vec2(0, 0);
+    this.dashVelocity = new Vec2();
     this.bulletCooldown = 400;
     this.bulletTick = 0;
     this.critChance = 10;
@@ -868,10 +919,7 @@ export class Player extends Sprite {
     this.life = 100;
     this.maxLife = 100;
     this.friction = 0.8;
-    this.lastMouseMove = {
-      clientX: 0,
-      clientY: 0,
-    };
+    this.lastMouseMove = new Vec2();
     this.damage = 10;
     this.damageReduction = 0.1;
     this.lightRadius = 500;
@@ -883,6 +931,8 @@ export class Player extends Sprite {
     this.isRewinding = false;
     this.rewinds = 0;
     this.ghost = null;
+
+    this.cameraFollow = true;
   }
   cacheState() {
     this.stateCache.push({
@@ -929,6 +979,9 @@ export class Player extends Sprite {
       this.vel.y *= this.friction;
     }
   }
+  applyForce(v2) {
+    this.appliedForce = this.appliedForce.add(v2.multiply(3));
+  }
 
   applyVelocity() {
     let triggeredDash = false;
@@ -941,7 +994,7 @@ export class Player extends Sprite {
       this.dashing = true;
       this.dashReady = false;
       triggeredDash = true;
-      this.dashVelocity = new Vec2(0, 0)
+      this.dashVelocity = new Vec2()
     }
     const allowMove = game.settings.player.allowMove.value;
     if (anyDir && allowMove) {
@@ -964,6 +1017,10 @@ export class Player extends Sprite {
     }
     this.vel = this.vel.add(this.dashVelocity);
   }
+  updateMousePosition() {
+    if (this.fixed || !this.vel) return;
+    this.lastMouseMove = this.lastMouseMove.add(this.vel);
+  }
   update() {
     if (this.isRewinding) {
       const stateCacheLen = this.stateCache.length;
@@ -982,6 +1039,7 @@ export class Player extends Sprite {
       this.applyMaxSpeed();
       this.applyFriction();
       super.update();
+      this.updateMousePosition();
       this.updateBullets();
       this.updateAbilities();
       this.updateDash();
@@ -991,18 +1049,21 @@ export class Player extends Sprite {
 
   renderGhost() {
     if (this.ghost) {
+      const camera = game.camera;
+      const xOffset = this.ghost.pos.x * camera.zoom - camera.x * camera.zoom;
+      const yOffset = this.ghost.pos.y * camera.zoom - camera.y * camera.zoom;
       c.save();
       c.globalAlpha = 0.8;
       c.beginPath();
       const r = Math.max(this.r, 0.1);
-      c.arc(this.ghost.pos.x, this.ghost.pos.y, r, 0, Math.PI * 2, false);
+      c.arc(xOffset, yOffset, r, 0, Math.PI * 2, false);
       c.closePath();
       const gradient1 = c.createRadialGradient(
-        this.ghost.pos.x,
-        this.ghost.pos.y,
+        xOffset,
+        yOffset,
         0,
-        this.ghost.pos.x,
-        this.ghost.pos.y,
+        xOffset,
+        yOffset,
         r * 2
       );
       gradient1.addColorStop(0, 'rgba(255,255,255,1)');
@@ -1019,7 +1080,7 @@ export class Player extends Sprite {
     if (this.dashTick > this.dashDuration) {
       this.dashTick = 0;
       this.dashing = false;
-      this.dashVelocity = new Vec2(0, 0);
+      this.dashVelocity = new Vec2();
     }
     this.dashCooldownMs -= window.animFrameDuration;
     if (this.dashCooldownMs <= 0) {
@@ -1034,12 +1095,7 @@ export class Player extends Sprite {
     for (let ability of abilities) {
       ability.remainingMs -= window.animFrameDuration;
       if (ability.remainingMs <= 0) {
-        ability.trigger(
-          this,
-          ability,
-          this.lastMouseMove.clientX,
-          this.lastMouseMove.clientY
-        );
+        ability.trigger(this, ability, this.lastMouseMove);
         ability.remainingMs = ability.cooldown;
       }
     }
@@ -1047,6 +1103,29 @@ export class Player extends Sprite {
   draw(lagOffset) {
     super.draw(lagOffset);
     if (DEBUG_ENABLED) strokeCircle(this);
+    this.renderLight();
+  }
+  renderLight() {
+    const camera = game.camera;
+    const xOffset = this.renderPos.x * camera.zoom - camera.x * camera.zoom;
+    const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
+    c.save();
+    c.beginPath();
+    c.arc(xOffset, yOffset, this.lightRadius, 0, 2 * Math.PI);
+    const gradient1 = c.createRadialGradient(
+      xOffset,
+      yOffset,
+      0,
+      xOffset,
+      yOffset,
+      this.lightRadius
+    );
+    gradient1.addColorStop(0, 'rgba(255,255,255,.07)');
+    gradient1.addColorStop(0.7, 'rgba(255,255,255,.02)');
+    gradient1.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = gradient1;
+    c.fill();
+    c.restore();
   }
   renderAbilityCooldowns() {
     const abilities = this.items.filter((i) => i.isAbility);
@@ -1061,75 +1140,81 @@ export class Player extends Sprite {
       const curMs = ability.cooldown - ability.remainingMs;
       const percent = curMs / ability.cooldown;
       const padding = 4;
-      c.save();
-      c.textAlign = 'center';
-      c.font = '14px ' + FONT;
-      c.fillStyle = ability.getColor();
-      c.globalAlpha = 0.25;
-      c.fillRect(leftOffset + gap, topOffset, iconWidth, iconHeight);
-      c.fillRect(leftOffset + gap, topOffset, iconWidth * percent, iconHeight);
-      c.globalAlpha = 1;
-      c.fillStyle = 'white';
-      c.fillText(
+      c_UI.save();
+      c_UI.textAlign = 'center';
+      c_UI.font = '14px ' + FONT;
+      c_UI.fillStyle = ability.getColor();
+      c_UI.globalAlpha = 0.25;
+      c_UI.fillRect(leftOffset + gap, topOffset, iconWidth, iconHeight);
+      c_UI.fillRect(
+        leftOffset + gap,
+        topOffset,
+        iconWidth * percent,
+        iconHeight
+      );
+      c_UI.globalAlpha = 1;
+      c_UI.fillStyle = 'white';
+      c_UI.fillText(
         ability.name,
         leftOffset + gap + padding + iconWidth / 2,
         topOffset + padding + 14,
         iconWidth
       );
 
-      c.restore();
+      c_UI.restore();
     }
   }
   renderDashCooldown() {
+    const camera = game.camera;
+    const xOffset = this.renderPos.x * camera.zoom - camera.x * camera.zoom;
+    const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
+
     const height = 5;
     const gap = 5;
-    const topOffset = this.renderPos.y - this.r - height - gap;
+    const topOffset = yOffset - this.r - height - gap;
     //c.restore();
-    c.save();
-
-    c.fillStyle = 'white';
-    c.globalAlpha = 0.1;
-    c.beginPath();
-    c.arc(this.pos.x, topOffset, height, 0, Math.PI * 2, false);
-    c.fill();
-    c.closePath();
-    //c.restore();
-    //c.save();
+    c_UI.save();
+    c_UI.fillStyle = 'white';
+    c_UI.globalAlpha = 0.1;
+    c_UI.beginPath();
+    c_UI.arc(xOffset, topOffset, height, 0, Math.PI * 2, false);
+    c_UI.fill();
+    c_UI.closePath();
 
     const percent = this.dashCooldownMs / this.dashCooldown;
-    c.globalAlpha = 1;
-    c.fillStyle = '#4e7591';
-    if (percent == 0) c.fillStyle = '#3186c2';
-    c.beginPath();
+    c_UI.globalAlpha = 1;
+    c_UI.fillStyle = '#4e7591';
+    if (percent == 0) c_UI.fillStyle = '#3186c2';
+    c_UI.beginPath();
     const offset = 2 * percent;
     const rotation = Math.PI / 2;
     const startAngle = offset * Math.PI + rotation;
     const endAngle = Math.PI * 2 + rotation;
-    c.arc(this.renderPos.x, topOffset, height, -startAngle, -endAngle, true);
-    c.arc(this.renderPos.x, topOffset, 0, -startAngle, -endAngle, true);
+    c_UI.arc(xOffset, topOffset, height, -startAngle, -endAngle, true);
+    c_UI.arc(xOffset, topOffset, 0, -startAngle, -endAngle, true);
 
-    c.fill();
-    c.closePath();
-    //c.fillStyle = 'red';
-    c.restore();
+    c_UI.fill();
+    c_UI.closePath();
+    //c_UI.fillStyle = 'red';
+    c_UI.restore();
   }
   renderLife() {
-    c.save();
+    c_UI.save();
     const maxWidth = canvas.width * 0.1 + this.maxLife;
     const height = 7;
     let curPercent = this.life / this.maxLife;
     if (curPercent < 0) curPercent = 0;
     const leftOffset = (canvas.width - maxWidth) / 2;
     const topOffset = 10;
-    c.fillStyle = '#066206aa';
-    c.fillRect(leftOffset, topOffset, maxWidth, height);
-    c.fillStyle = 'green';
-    c.fillRect(leftOffset, topOffset, maxWidth * curPercent, height);
-    c.restore();
+    c_UI.fillStyle = '#066206aa';
+    c_UI.fillRect(leftOffset, topOffset, maxWidth, height);
+    c_UI.fillStyle = 'green';
+    c_UI.fillRect(leftOffset, topOffset, maxWidth * curPercent, height);
+    c_UI.restore();
   }
 
-  shootSingleBullet(clientX, clientY, bounces) {
-    const angle = Math.atan2(clientY - this.pos.y, clientX - this.pos.x);
+  shootSingleBullet(v2, bounces) {
+    const angle = Math.atan2(v2.y - this.pos.y, v2.x - this.pos.x);
     const vel = {
       x: Math.cos(angle) * this.bulletSpeed,
       y: Math.sin(angle) * this.bulletSpeed,
@@ -1152,7 +1237,7 @@ export class Player extends Sprite {
     );
   }
 
-  shootMultipleBullets(clientX, clientY, bulletCount, bounces) {
+  shootMultipleBullets(v2, bulletCount, bounces) {
     let bulletSpread = 10;
     if (360 / bulletCount < 10) {
       bulletSpread = 360 / bulletCount;
@@ -1165,25 +1250,25 @@ export class Player extends Sprite {
       const target = rotate(
         this.pos.x,
         this.pos.y,
-        clientX,
-        clientY,
+        v2.x,
+        v2.y,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread,
         true
       );
-      this.shootSingleBullet(target.x, target.y, bounces);
+      this.shootSingleBullet(target, bounces);
     }
 
-    if (bulletCount % 2 == 1) this.shootSingleBullet(clientX, clientY, bounces);
+    if (bulletCount % 2 == 1) this.shootSingleBullet(v2, bounces);
 
     for (let i = 1; i < maxOffset + 1; i++) {
       const target = rotate(
         this.pos.x,
         this.pos.y,
-        clientX,
-        clientY,
+        v2.x,
+        v2.y,
         (bulletCount % 2 == 0 && i == 1 ? 0.5 : i) * bulletSpread
       );
-      this.shootSingleBullet(target.x, target.y, bounces);
+      this.shootSingleBullet(target, bounces);
     }
   }
   updateBullets() {
@@ -1195,8 +1280,6 @@ export class Player extends Sprite {
   }
   shootBullets() {
     if (!game.settings.player.allowShoot.value) return;
-
-    const { clientX, clientY } = this.lastMouseMove;
 
     const itemsToRemove = [];
     let bounces = 0;
@@ -1233,9 +1316,9 @@ export class Player extends Sprite {
       });
 
     if (bulletCount == 1) {
-      this.shootSingleBullet(clientX, clientY, bounces);
+      this.shootSingleBullet(this.lastMouseMove, bounces);
     } else {
-      this.shootMultipleBullets(clientX, clientY, bulletCount, bounces);
+      this.shootMultipleBullets(this.lastMouseMove, bulletCount, bounces);
     }
   }
   onKill() {
@@ -1248,13 +1331,12 @@ export class Player extends Sprite {
     this.life += this.level;
     if (this.life > this.maxLife) this.life = this.maxLife;
 
-    if (this.level % 7 == 0) {
-      game.enemySpawnTime -= 120;
-    }
+    game.enemySpawnTime -= 15;
 
-    if (this.level % 3 == 0) {
+    if (this.level % 10 == 0) {
       const evt = EVENT_TYPES.find((e) => e.name == 'Prepare yourself!');
       if (!evt) throw new Error("failed to get event 'Prepare yourself'");
+      game.entities.events.reset();
       game.entities.events.add({ ...evt });
     } else if (this.level % 2 == 0 || this.level > 10) {
       const evt = game.entities.events.random('');
@@ -1346,6 +1428,7 @@ export class Projectile extends Sprite {
       game.entities.damageTexts.add(
         new DamageText(vfxOnEnemy ? e.pos : self.pos, mitigatedDamage, isCrit)
       );
+      e.applyForce(self.vel);
       return e.takeDamage(mitigatedDamage);
     }
     return [false, false];
@@ -1408,6 +1491,8 @@ export class Enemy extends Sprite {
     this.appliesLighting = true;
     this.applyLighting();
     this.collideWalls = true;
+    this.collideBoundary = true;
+    this.forceResistance = Math.abs(0.65 - this.r * 0.0025);
   }
 
   update() {
@@ -1417,7 +1502,6 @@ export class Enemy extends Sprite {
       if (this.distanceToPlayer() - player.r - this.r < this.aggroRange) {
         this.followPlayer();
       }
-      if (!this.collideBoundary && this.inMap()) this.collideBoundary = true;
       this.applyGravity();
     }
     this.cur_frame++;
@@ -1441,7 +1525,7 @@ export class Enemy extends Sprite {
       x: Math.cos(angle) * ENEMY_SPEED,
       y: Math.sin(angle) * ENEMY_SPEED,
     };
-    const newEnemy = new Enemy(coords.x, coords.y, rad, 'transparent', vel);
+    const newEnemy = new Enemy(coords.x, coords.y, rad, 'red', vel);
     newEnemy.fixed = config?.fixed;
     newEnemy.invulnerable = config?.invulnerable;
     Enemy.setImage(newEnemy);
@@ -1459,6 +1543,7 @@ export class Enemy extends Sprite {
   }
 
   static setImage(enemy) {
+    return;
     enemy.cur_frame = 0;
     enemy.cur_image = enemy.cur_image == 0 ? 1 : 0;
     const player = game.entities.player.value;
@@ -1479,6 +1564,7 @@ export class Enemy extends Sprite {
 
   takeDamage(damage) {
     this.r -= damage;
+    this.forceResistance = Math.abs(0.65 - this.r * 0.0025);
     return this.r <= 0 || this.r < Enemy.minSize ? [true, true] : [true, false];
   }
 }
@@ -1608,7 +1694,10 @@ export class DamageText {
     //c.strokeStyle = 'black';
     c.fillStyle = 'gold';
     //if (this.isCrit) c.fillStyle = 'orangered';
-    c.fillText(this.damage.toString(), this.renderPos.x, this.renderPos.y);
+    const camera = game.camera;
+    const xOffset = this.renderPos.x * camera.zoom - camera.x * camera.zoom;
+    const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
+    c.fillText(this.damage.toString(), xOffset, yOffset);
     //c.strokeText(this.dmg.toString(), this.x, this.y);
     c.restore();
     this.postDraw();
@@ -1690,7 +1779,7 @@ export class Vec2 {
     return new Vec2(this.y, -this.x);
   }
   rotate(angle) {
-    let tmp = new Vec2(0, 0);
+    let tmp = new Vec2();
     let cosAngle = Math.cos(angle);
     let sinAngle = Math.sin(angle);
     tmp.x = this.x * cosAngle - this.y * sinAngle;
@@ -1738,6 +1827,7 @@ export class Ability extends Sprite {
       if (isColliding) {
         if (e.invulnerable) return [true, false];
         if (DEBUG_ENABLED) this.color = 'red';
+
         let isCrit = false;
         if (this.critChance > 0) {
           isCrit = this.critChance / 100 > Math.random();
@@ -1773,7 +1863,7 @@ export class Ability extends Sprite {
 }
 
 export class Laser extends Ability {
-  constructor(owner, itemInstance, clientX, clientY) {
+  constructor(owner, itemInstance, target) {
     super(
       owner.pos,
       itemInstance.size,
@@ -1786,13 +1876,12 @@ export class Laser extends Ability {
       owner
     );
     this.remainingFrames = 40;
-    this.targetX = clientX;
-    this.targetY = clientY;
+    this.target = target;
     this.h = 5;
     this.w = this.r;
     this.angle =
       Math.PI / 2 +
-      Math.atan2(this.pos.y - this.targetY, this.pos.x - this.targetX);
+      Math.atan2(this.pos.y - this.target.y, this.pos.x - this.target.x);
     this.shapeType = 'square';
     this.owner = owner;
     this.cachedOwner = owner;
@@ -1812,7 +1901,10 @@ export class Laser extends Ability {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    c.translate(this.renderPos.x, this.renderPos.y);
+    const camera = game.camera;
+    const xOffset = this.renderPos.x * camera.zoom - camera.x * camera.zoom;
+    const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
+    c.translate(xOffset, yOffset);
     c.rotate(this.angle);
     c.beginPath();
     c.shadowColor = this.color;
@@ -1856,12 +1948,12 @@ export class Explode extends Ability {
 }
 
 export class Slash extends Ability {
-  constructor(owner, itemInstance, clientX, clientY) {
+  constructor(owner, itemInstance, target) {
     super(
       owner.pos,
       itemInstance.size,
       itemInstance.getColor(),
-      new Vec2(0, 0),
+      new Vec2(),
       false,
       0,
       itemInstance.damage,
@@ -1870,13 +1962,12 @@ export class Slash extends Ability {
     );
     this.totalFrames = 14;
     this.remainingFrames = this.totalFrames;
-    this.targetX = clientX;
-    this.targetY = clientY;
+    this.target = target;
     this.h = this.r;
     this.w = 13;
     this.angle =
       Math.PI +
-      Math.atan2(this.pos.y - this.targetY, this.pos.x - this.targetX);
+      Math.atan2(this.pos.y - this.target.y, this.pos.x - this.target.x);
     this.shapeType = 'square';
     this.owner = owner;
     this.cachedOwner = owner;
@@ -1893,7 +1984,10 @@ export class Slash extends Ability {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    c.translate(this.renderPos.x, this.renderPos.y);
+    const camera = game.camera;
+    const xOffset = this.renderPos.x * camera.zoom - camera.x * camera.zoom;
+    const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
+    c.translate(xOffset, yOffset);
     c.rotate(this.angle);
     c.shadowColor = this.color;
     c.shadowBlur = 10;
@@ -1951,12 +2045,12 @@ export class Vortex extends Ability {
 }
 
 export class Boomerang extends Ability {
-  constructor(owner, itemInstance, clientX, clientY) {
+  constructor(owner, itemInstance, target) {
     super(
       owner.pos,
       itemInstance.size,
       itemInstance.getColor(),
-      new Vec2(0, 0),
+      new Vec2(),
       false,
       0,
       itemInstance.damage,
@@ -1964,8 +2058,7 @@ export class Boomerang extends Ability {
       owner
     );
     this.usesFrames = false;
-    this.targetX = clientX;
-    this.targetY = clientY;
+    this.target = target;
     this.h = this.r;
     this.speed = 12;
     this.maxSpeed = 20;
@@ -1982,8 +2075,8 @@ export class Boomerang extends Ability {
   }
   setDirection() {
     const angle = Math.atan2(
-      this.targetY - this.pos.y,
-      this.targetX - this.pos.x
+      this.target.y - this.pos.y,
+      this.target.x - this.pos.x
     );
     this.vel = new Vec2(
       Math.cos(angle) * this.speed,
@@ -1993,17 +2086,15 @@ export class Boomerang extends Ability {
   update() {
     if (this.owner) this.cachedOwner = { ...this.owner };
     if (this.reachedTarget) {
-      this.targetX = this.cachedOwner.pos.x;
-      this.targetY = this.cachedOwner.pos.y;
-      this.followTarget({ x: this.targetX, y: this.targetY });
+      this.target = this.cachedOwner.pos;
+      this.followTarget(this.target);
     }
 
     if (!this.reachedTarget && this.distance >= this.maxDistance) {
       this.reachedTarget = true;
     } else if (
       this.reachedTarget &&
-      this.distToTarget({ x: this.targetX, y: this.targetY }) <=
-        this.cachedOwner.r
+      this.distToTarget(this.target) <= this.cachedOwner.r
     ) {
       this.removed = true;
     }
@@ -2015,7 +2106,10 @@ export class Boomerang extends Ability {
   draw(lagOffset) {
     this.preDraw(lagOffset);
     c.save();
-    c.translate(this.renderPos.x, this.renderPos.y);
+    const camera = game.camera;
+    const xOffset = this.renderPos.x * camera.zoom - camera.x * camera.zoom;
+    const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
+    c.translate(xOffset, yOffset);
     c.rotate(this.angle);
     c.shadowColor = this.color;
     c.shadowBlur = 10;
@@ -2074,4 +2168,84 @@ export class LightningBeam extends Ability {
   }
 }
 
+export class Polygon extends Sprite {
+  constructor() {
+    super();
+    this.pos = new Vec2(canvas.width / 2, canvas.height / 2);
+    this.r = 50;
+    this.vertexCount = 3;
+    this.points = [];
+    for (let i = 0; i < this.vertexCount; i++) {
+      const newPt = rotate(
+        this.pos.x,
+        this.pos.y,
+        this.pos.x,
+        this.pos.y - this.r,
+        (360 / this.vertexCount) * i
+      );
+      this.points.push(newPt);
+    }
+    console.log('pts', this.points);
+  }
+  update() {}
+  draw() {
+    c.save();
+    c.beginPath();
+
+    const camera = game.camera;
+    const pointsToWorldView = this.points.map((p) => {
+      return {
+        x: p.x * camera.zoom - camera.x * camera.zoom,
+        y: p.y * camera.zoom - camera.y * camera.zoom,
+      };
+    });
+    const start = pointsToWorldView[0];
+    c.moveTo(start.x, start.y);
+    for (let i = pointsToWorldView.length - 1; i > -1; i--) {
+      const pt = pointsToWorldView[i];
+      c.lineTo(pt.x, pt.y);
+    }
+    c.fillStyle = 'red';
+    c.fill();
+
+    c.closePath();
+    c.restore();
+  }
+}
+
+export class Camera {
+  x;
+  y;
+  zoom;
+  maxZoom = 2;
+  minZoom = 0.25;
+  values = [0.066, 0.125, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+  constructor(gameWidth, gameHeight) {
+    this.x = gameWidth / 2 - canvas.width / 2;
+    this.y = gameHeight / 2 - canvas.height / 2;
+    this.zoom = 1;
+  }
+
+  increaseZoom() {
+    this.handleZoom(1);
+  }
+  decreaseZoom() {
+    this.handleZoom(-1);
+  }
+
+  handleZoom(mod) {
+    const curIndex = this.values.findIndex((val) => val === this.zoom);
+    if (typeof this.values[curIndex + mod] == 'undefined') return;
+
+    this.zoom = this.values[curIndex + mod];
+    this.followV2(game.entities.player.value.pos);
+  }
+
+  followV2(v2) {
+    this.x = v2.x - Math.floor(canvas.width / 2);
+    this.y = v2.y - Math.floor(canvas.height / 2);
+  }
+}
+
 //http://infochim.u-strasbg.fr/cgi-bin/libs/smilesDrawer-master/doc/Vector2.js.html
+//https://github.com/Sinova/Collisions

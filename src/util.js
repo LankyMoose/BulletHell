@@ -1,6 +1,7 @@
 'use strict';
 import { canvas } from './constants.js';
 import { Vec2 } from './lib.js';
+import { game } from './state.js';
 /*
  CX @ Origin X  
  CY @ Origin Y
@@ -19,7 +20,7 @@ export function rotate(
 ) {
   let radians, cos, sin, nx, ny;
   if (angle == 0) {
-    return { x: parseFloat(targetX), y: parseFloat(targetY) };
+    return new Vec2(parseFloat(targetX), parseFloat(targetY));
   }
   if (anticlock_wise) {
     radians = (Math.PI / 180) * angle;
@@ -30,7 +31,7 @@ export function rotate(
   sin = Math.sin(radians);
   nx = cos * (targetX - originX) + sin * (targetY - originY) + originX;
   ny = cos * (targetY - originY) - sin * (targetX - originX) + originY;
-  return { x: nx, y: ny };
+  return new Vec2(nx, ny);
 }
 
 export function randomScreenEdgeCoords(rad) {
@@ -40,20 +41,26 @@ export function randomScreenEdgeCoords(rad) {
   };
   if (Math.random() < 0.5) {
     // fixed X, random Y
-    coords.x = Math.random() < 0.5 ? 0 - rad : canvas.width + rad;
-    coords.y = Math.random() * canvas.height;
+    coords.x =
+      Math.random() < 0.5
+        ? 0 - rad + game.camera.x
+        : canvas.width + rad + game.camera.x;
+    coords.y = Math.random() * canvas.height + game.camera.y;
   } else {
     // fixed Y, random X
-    coords.y = Math.random() < 0.5 ? 0 - rad : canvas.height + rad;
-    coords.x = Math.random() * canvas.width;
+    coords.y =
+      Math.random() < 0.5
+        ? 0 - rad + game.camera.y
+        : canvas.height + rad + game.camera.y;
+    coords.x = Math.random() * canvas.width + game.camera.x;
   }
   return coords;
 }
 
 export function randomCoords(padding = 0) {
   return {
-    x: padding + Math.random() * (canvas.width - padding),
-    y: padding + Math.random() * (canvas.height - padding),
+    x: padding + Math.random() * (canvas.width - padding) + game.camera.x,
+    y: padding + Math.random() * (canvas.height - padding) + game.camera.y,
   };
 }
 export function randomAreaCoords(vec2, size) {
