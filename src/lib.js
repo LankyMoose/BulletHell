@@ -84,8 +84,8 @@ export class Sprite {
     c.save();
     c.globalAlpha = this.alpha;
     if (this.renderGlow) {
-      c.shadowColor = this.glowColor ?? this.color;
-      c.shadowBlur = this.glowSize;
+      //c.shadowColor = this.glowColor ?? this.color;
+      //c.shadowBlur = this.glowSize;
     }
     c.beginPath();
     const r = Math.max(this.r, 0.1);
@@ -1403,22 +1403,22 @@ export class Projectile extends Sprite {
   static handleEnemyCollision(self, e, vfxOnEnemy = false) {
     if (self.pos.distance(e.pos) - e.r - self.r < 1) {
       if (e.invulnerable) return [true, false];
-      const r = e.r > 0.1 ? e.r : 0.1;
-      let numParticles = r * 2;
-      if (numParticles > 30) numParticles = 30;
-      for (let i = 0; i < numParticles; i++) {
-        game.entities.particles.add(
-          new Particle(
-            vfxOnEnemy ? e.pos : self.pos,
-            Math.random() * 2,
-            'darkred',
-            {
-              x: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
-              y: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
-            }
-          )
-        );
-      }
+      // const r = e.r > 0.1 ? e.r : 0.1;
+      // let numParticles = r * 2;
+      // if (numParticles > 30) numParticles = 30;
+      // for (let i = 0; i < numParticles; i++) {
+      //   game.entities.particles.add(
+      //     new Particle(
+      //       vfxOnEnemy ? e.pos : self.pos,
+      //       Math.random() * 2,
+      //       'darkred',
+      //       {
+      //         x: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
+      //         y: (Math.random() - 0.5) * (Math.random() * (2 + r / 6)),
+      //       }
+      //     )
+      //   );
+      // }
       let isCrit = false;
       if (self.critChance > 0) {
         isCrit = self.critChance / 100 > Math.random();
@@ -1907,8 +1907,8 @@ export class Laser extends Ability {
     c.translate(xOffset, yOffset);
     c.rotate(this.angle);
     c.beginPath();
-    c.shadowColor = this.color;
-    c.shadowBlur = 20;
+    //c.shadowColor = this.color;
+    //c.shadowBlur = 20;
     c.rect(0 - this.w / 2, 0 + this.cachedOwner.r, this.w, this.h);
     c.fillStyle = this.color;
     c.fill();
@@ -1989,8 +1989,8 @@ export class Slash extends Ability {
     const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
     c.translate(xOffset, yOffset);
     c.rotate(this.angle);
-    c.shadowColor = this.color;
-    c.shadowBlur = 10;
+    //c.shadowColor = this.color;
+    //c.shadowBlur = 10;
     c.beginPath();
     c.rect(0 - this.w / 2, 0 + this.cachedOwner.r, this.w, this.h);
     c.fillStyle = this.color;
@@ -2111,8 +2111,8 @@ export class Boomerang extends Ability {
     const yOffset = this.renderPos.y * camera.zoom - camera.y * camera.zoom;
     c.translate(xOffset, yOffset);
     c.rotate(this.angle);
-    c.shadowColor = this.color;
-    c.shadowBlur = 10;
+    //c.shadowColor = this.color;
+    //c.shadowBlur = 10;
     c.beginPath();
     c.rect(-this.w / 2, -this.h / 2, this.w, this.h);
     c.fillStyle = this.color;
@@ -2242,8 +2242,8 @@ export class Camera {
   }
 
   followV2(v2) {
-    this.x = v2.x - Math.floor(canvas.width / 2);
-    this.y = v2.y - Math.floor(canvas.height / 2);
+    this.x = v2.x - canvas.width / 2;
+    this.y = v2.y - canvas.height / 2;
   }
 }
 

@@ -1,15 +1,7 @@
 'use strict';
 
 import { game, resetGame } from './state';
-import {
-  Sprite,
-  Enemy,
-  Item,
-  BonusSet,
-  Projectile,
-  Polygon,
-  Vec2,
-} from './lib.js';
+import { Enemy, Item, BonusSet, Projectile, Polygon, Vec2 } from './lib.js';
 import { Howler } from 'howler';
 
 import {
@@ -39,8 +31,8 @@ import {
   userData,
 } from './firebase.js';
 
+import { musicPlayer } from './vfx.js';
 setFPS(60);
-import { GAME_VOLUME, musicPlayer } from './vfx.js';
 
 musicPlayer.play();
 userData.subscribe((res) => {
@@ -67,10 +59,14 @@ function main() {
     game.nextFrameActionQueue.reset();
   }
 
+  let updates = 0;
   while (window.lag >= window.frameDuration) {
     update();
     window.lag -= window.frameDuration;
+    updates += 1;
   }
+  //update();
+  if (updates > 1) console.debug('performed additional updates', updates);
 
   game.settings.enemies.spawnTime.set(
     game.settings.enemies.spawnTime.value - elapsed
@@ -85,13 +81,21 @@ function main() {
 
   render(window.lag / window.frameDuration);
   c_UI.save();
-  c_UI.fillStyle = 'rgba(255,255,255,.6)';
+  c_UI.fillStyle =
+    Math.floor(elapsed) > Math.floor(window.frameDuration) + 1 ? 'red' : '#aaa';
   c_UI.font = '12px ' + FONT;
   c_UI.fillText(
     `${Math.floor(elapsed)}ms`,
     canvas.width - 100,
     canvas.height - 100
   );
+  c_UI.fillStyle = '#aaa';
+  c_UI.fillText(
+    `${game.entities.enemies.value.length} enemies`,
+    canvas.width - 100,
+    canvas.height - 50
+  );
+  //console.log(elapsed);
   c_UI.restore();
 }
 
@@ -99,12 +103,13 @@ let debugRenders = [];
 
 function update() {
   const player = game.entities.player.value;
+
   if (DEBUG_ENABLED) player.xp += 50 * player.xpMulti;
 
   game.entities.blackHoles.update();
 
   player.update();
-  game.camera.followV2(player.ghost ? player.ghost.pos : player.pos);
+  game.camera.followV2(player.ghost?.pos ?? player.pos);
 
   game.entities.bullets.update();
 
@@ -249,23 +254,20 @@ function queuePlayerLevelUp() {
 function renderBorder() {
   c.save();
   c.beginPath();
-  c.fillStyle = 'transparent';
   c.strokeStyle = 'white';
-  c.shadowColor = '#aaa';
-  c.shadowBlur = 20;
-  c.lineJoin = 'bevel';
+  //c.shadowColor = '#aaa';
+  //c.shadowBlur = 20;
+  //c.lineJoin = 'bevel';
   c.lineWidth = 15;
   const camera = game.camera;
   c.strokeRect(-camera.x, -camera.y, game.width, game.height);
-  c.stroke();
   c.closePath();
   c.restore();
 }
-
 function render(lagOffset) {
-  for (const enemy of game.entities.enemies.value) {
-    enemy.drawShadow();
-  }
+  // for (const enemy of game.entities.enemies.value) {
+  //   enemy.drawShadow();
+  // }
   //c.drawImage(HTML.img_bg, -game.camera.x, -game.camera.y);
   renderBorder();
   for (const bh of game.entities.blackHoles.value) {
@@ -658,7 +660,6 @@ document.addEventListener('contextmenu', (e) => {
   e.stopImmediatePropagation();
   e.stopPropagation();
 });
-
 addEventListener('resize', () => {
   canvas.width = innerWidth;
   canvas.height = innerHeight;

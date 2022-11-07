@@ -4,6 +4,8 @@ import { x, y, BONUS_TYPES, EVENT_TYPES, HTML } from './constants';
 import { getRandomIndexByWeight } from './util';
 import { showLevelUpScreen } from './game';
 
+const initialEnemySpawnTime = 1000;
+
 class GameState {
   static #defaults = {
     score: () => 0,
@@ -16,8 +18,8 @@ class GameState {
     running: () => false,
     nextFrameActionQueue: () => [],
   };
-  width = 3000;
-  height = 3000;
+  width = 2000;
+  height = 2000;
   animId = {
     value: GameState.#defaults.animId(),
     set: (id) => (this.animId.value = id),
@@ -30,7 +32,7 @@ class GameState {
   settings = {
     enemies: {
       spawnTime: {
-        value: 500,
+        value: initialEnemySpawnTime,
         set: (num) => {
           this.settings.enemies.spawnTime.value = num;
         },
@@ -68,7 +70,7 @@ class GameState {
   };
   entities = {
     player: {
-      value: new Player(this.width / 2, this.height / 2, 24, 'white', {
+      value: new Player(this.width / 2, this.height / 2, 24, 'transparent', {
         x: 0,
         y: 0,
       }),
@@ -132,8 +134,8 @@ class GameState {
   };
 
   constructor() {
-    this.enemySpawnTime = 500;
-    this.settings.enemies.spawnTime.value = 500;
+    this.enemySpawnTime = initialEnemySpawnTime;
+    this.settings.enemies.spawnTime.value = initialEnemySpawnTime;
   }
 }
 
